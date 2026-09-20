@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width,initial-scale=1"
+    >
+
+    <title>My Library — EditPrompt</title>
+
+    <meta
+        name="description"
+        content="Access your verified EditPrompt purchases, secure downloads, and invoices."
+    >
+
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+
+<header class="nav">
+
+    <a
+        class="brand"
+        href="/"
+        aria-label="EditPrompt Home"
+    >
+        <div class="logo">EP</div>
+
+        <div>
+            <b>My Library</b>
+            <small>EditPrompt purchases</small>
+        </div>
+    </a>
+
+    <div class="right">
+        <a class="btn ghost" href="/">
+            Back to Site
+        </a>
+    </div>
+
+</header>
+
+
+<main>
+
+<section
+    class="section"
+    style="border-top:0"
+>
+
+    <div class="head">
+
+        <div class="section-intro">
+
+            <div class="eyebrow">
+                PURCHASE LIBRARY
+            </div>
+
+            <h2>
+                Your Downloads
+            </h2>
+
+            <p>
+                Access your verified purchases, secure downloads,
+                and purchase invoices from one place.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Library content -->
+
+    <div
+        id="library"
+        class="three"
+    >
+        <div class="card">
+            <p class="muted">
+                Loading your purchases…
+            </p>
+        </div>
+    </div>
+
+
+    <!-- Security note -->
+
+    <div
+        class="trustline"
+        style="margin-top:22px"
+    >
+        <div class="avatars">
+            <span>✓</span>
+        </div>
+
+        <span>
+            Downloads are available only for verified purchases.
+        </span>
+    </div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+    <span>
+        © 2026 EditPrompt.in
+    </span>
+
+    <span>
+        <a href="/privacy.html">Privacy</a>
+        ·
+        <a href="/terms.html">Terms</a>
+        ·
+        <a href="/refund.html">Refund Policy</a>
+        ·
+        <a href="/contact.html">Contact</a>
+    </span>
+
+</footer>
+
+
+<script>
+(() => {
+
+    const box = document.getElementById("library");
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function formatDate(value) {
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "Date unavailable";
+        }
+
+        return date.toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short"
+        });
+    }
+
+    function formatAmount(value) {
+        const amount = Number(value || 0) / 100;
+
+        return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 0
+        }).format(amount);
+    }
+
+    function showLoginRequired() {
+
+        box.innerHTML = `
+            <div class="card">
+
+                <div class="tag">
+                    ACCOUNT
+                </div>
+
+                <h3>
+                    Login required
+                </h3>
+
+                <p class="muted">
+                    Please log in to access your verified purchases
+                    and secure downloads.
+                </p>
+
+                <a
+                    class="btn primary full"
+                    href="/"
+                >
+                    Go Back & Login →
+                </a>
+
+            </div>
+        `;
+    }
+
+    function showEmpty() {
+
+        box.innerHTML = `
+            <div class="card">
+
+                <div class="tag">
+                    YOUR LIBRARY
+                </div>
+
+                <h3>
+                    No purchases yet
+                </h3>
+
+                <p class="muted">
+                    Your verified digital purchases will appear
+                    here after a successful payment.
+                </p>
+
+                <a
+                    class="btn primary full"
+                    href="/#store"
+                >
+                    Browse Prompt Packs →
+                </a>
+
+            </div>
+        `;
+    }
+
+    function showError(message) {
+
+        box.innerHTML = `
+            <div class="card">
+
+                <div class="tag">
+                    TEMPORARY ERROR
+                </div>
+
+                <h3>
+                    Could not load your library
+                </h3>
+
+                <p class="muted">
+                    ${escapeHtml(message)}
+                </p>
+
+                <button
+                    class="btn primary full"
+                    type="button"
+                    onclick="location.reload()"
+                >
+                    Try Again
+                </button>
+
+            </div>
+        `;
+    }
+
+    function render(items) {
+
+        box.innerHTML = items.map(item => {
+
+            const name = escapeHtml(item.name);
+            const download = escapeHtml(item.download);
+            const invoice = escapeHtml(item.invoice);
+
+            return `
+                <div class="product">
+
+                    <div class="tag">
+                        PURCHASED • VERIFIED
+                    </div>
+
+                    <h3>
+                        ${name}
+                    </h3>
+
+                    <div class="mini">
+                        <strong>Purchase date</strong><br>
+                        ${escapeHtml(formatDate(item.created_at))}
+                    </div>
+
+                    <div class="mini">
+                        <strong>Order amount</strong><br>
+                        ${escapeHtml(formatAmount(item.amount))}
+                    </div>
+
+                    <a
+                        class="btn primary full"
+                        href="${download}"
+                    >
+                        Download Securely
+                    </a>
+
+                    <a
+                        class="btn ghost full small"
+                        href="${invoice}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View Invoice
+                    </a>
+
+                </div>
+            `;
+
+        }).join("");
+    }
+
+    async function loadLibrary() {
+
+        try {
+
+            const response = await fetch(
+                "/api/library",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error(
+                    "Invalid response from the server."
+                );
+            }
+
+            if (response.status === 401) {
+                showLoginRequired();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                    "Unable to load your purchases."
+                );
+            }
+
+            const items = Array.isArray(data.items)
+                ? data.items
+                : [];
+
+            if (!items.length) {
+                showEmpty();
+                return;
+            }
+
+            render(items);
+
+        } catch (error) {
+
+            console.error(
+                "Library loading error:",
+                error
+            );
+
+            showError(
+                error.message ||
+                "Please try again in a moment."
+            );
+        }
+    }
+
+    loadLibrary();
+
+})();
+</script>
+
+</body>
+</html>

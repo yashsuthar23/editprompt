@@ -1,0 +1,11 @@
+.env
+node_modules/
+media/
+*.db
+*.db-shm
+*.db-wal
+*.exe
+*.blob
+bundled.js
+downloads/*.zip
+public/generated/

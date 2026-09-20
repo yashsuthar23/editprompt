@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>EditPrompt Admin V7</title>
+
+    <link rel="stylesheet" href="/styles.css" />
+
+    <style>
+      .admin-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .admin-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .admin-table {
+        width: 100%;
+        min-width: 720px;
+        border-collapse: collapse;
+      }
+
+      .admin-table th {
+        text-align: left;
+        padding: 12px 10px;
+        color: #aaa;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+
+      .admin-table td {
+        padding: 12px 10px;
+        border-top: 1px solid #333;
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      .admin-table th:first-child,
+      .admin-table td:first-child {
+        padding-left: 0;
+      }
+
+      .admin-table th:last-child,
+      .admin-table td:last-child {
+        padding-right: 0;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .status-paid {
+        background: rgba(34, 197, 94, 0.12);
+        color: #67e58a;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+      }
+
+      .status-pending {
+        background: rgba(234, 179, 8, 0.12);
+        color: #facc15;
+        border: 1px solid rgba(234, 179, 8, 0.25);
+      }
+
+      .status-failed,
+      .status-cancelled {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+      }
+
+      .status-other {
+        background: rgba(148, 163, 184, 0.12);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+
+      .empty-state {
+        padding: 20px 0;
+        color: #888;
+        font-size: 13px;
+      }
+
+      .error-card {
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+
+      .admin-subtitle {
+        margin-top: 5px;
+      }
+
+      .admin-loading {
+        color: #888;
+        font-size: 13px;
+        padding: 8px 0;
+      }
+
+      .admin-meta {
+        font-size: 11px;
+        color: #777;
+        margin-top: 3px;
+      }
+
+      .admin-refresh {
+        cursor: pointer;
+      }
+
+      @media (max-width: 700px) {
+        .admin-actions {
+          width: 100%;
+        }
+
+        .admin-actions .btn {
+          flex: 1;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="nav">
+      <div class="brand">
+        <div class="logo">EP</div>
+
+        <div>
+          <b>EditPrompt Admin</b>
+          <small>V7 management dashboard</small>
+        </div>
+      </div>
+
+      <div class="admin-actions">
+        <button id="refreshBtn" class="btn ghost admin-refresh" type="button">
+          Refresh
+        </button>
+
+        <a class="btn ghost" href="/"> Back to Site </a>
+      </div>
+    </header>
+
+    <main>
+      <section class="section" style="border-top: 0">
+        <div class="head">
+          <div>
+            <div class="eyebrow">ADMIN</div>
+
+            <h2>Management Dashboard</h2>
+
+            <p class="admin-subtitle">
+              Protected admin analytics, users and orders.
+            </p>
+          </div>
+        </div>
+
+        <!-- =====================================================
+       STATS
+  ====================================================== -->
+
+        <div id="stats" class="four">
+          <div class="statcard">
+            <span>👤</span>
+            <b>—</b>
+            <small>Users</small>
+          </div>
+
+          <div class="statcard">
+            <span>💰</span>
+            <b>—</b>
+            <small>Revenue</small>
+          </div>
+
+          <div class="statcard">
+            <span>🛍️</span>
+            <b>—</b>
+            <small>Paid Orders</small>
+          </div>
+
+          <div class="statcard">
+            <span>🪄</span>
+            <b>—</b>
+            <small>Prompts Generated</small>
+          </div>
+        </div>
+
+        <!-- =====================================================
+       RECENT USERS
+  ====================================================== -->
+
+        <div class="panel" style="margin-top: 18px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 12px;
+            "
+          >
+            <div>
+              <h3 style="margin-bottom: 3px">Recent Users</h3>
+
+              <p class="muted" style="margin: 0">
+                Latest registered EditPrompt users.
+              </p>
+            </div>
+          </div>
+
+          <div id="users">
+            <div class="admin-loading">Loading users…</div>
+          </div>
+        </div>
+
+        <!-- =====================================================
+       RECENT ORDERS
+  ====================================================== -->
+
+        <div class="panel" style="margin-top: 18px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 12px;
+            "
+          >
+            <div>
+              <h3 style="margin-bottom: 3px">Recent Orders</h3>
+
+              <p class="muted" style="margin: 0">
+                Latest paid and payment records.
+              </p>
+            </div>
+          </div>
+
+          <div id="orders">
+            <div class="admin-loading">Loading orders…</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+
+      /* ==========================================================
+   HELPERS
+========================================================== */
+
+      const $ = (id) => document.getElementById(id);
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(
+          /[&<>'"]/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[char],
+        );
+      }
+
+      function formatMoney(value) {
+        const number = Number(value || 0);
+
+        return new Intl.NumberFormat("en-IN", {
+          maximumFractionDigits: 0,
+        }).format(number);
+      }
+
+      function formatDate(value) {
+        if (!value) return "—";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(value);
+        }
+
+        return escapeHtml(
+          date.toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
+        );
+      }
+
+      function productName(productId) {
+        const products = {
+          cinematic: "Cinematic AI Prompt Pack",
+
+          wedding: "Wedding Video Prompt Pack",
+
+          ads: "Product Ad Prompt Pack",
+        };
+
+        return products[productId] || productId || "Unknown Product";
+      }
+
+      function statusClass(status) {
+        const value = String(status || "").toLowerCase();
+
+        if (value === "paid") {
+          return "status-paid";
+        }
+
+        if (value === "pending" || value === "created") {
+          return "status-pending";
+        }
+
+        if (value === "failed") {
+          return "status-failed";
+        }
+
+        if (value === "cancelled" || value === "canceled") {
+          return "status-cancelled";
+        }
+
+        return "status-other";
+      }
+
+      /* ==========================================================
+   LOAD STATS
+========================================================== */
+
+      async function loadStats() {
+        const statsEl = $("stats");
+
+        statsEl.innerHTML = `
+    <div class="statcard">
+      <span>👤</span>
+      <b>…</b>
+      <small>Users</small>
+    </div>
+
+    <div class="statcard">
+      <span>💰</span>
+      <b>…</b>
+      <small>Revenue</small>
+    </div>
+
+    <div class="statcard">
+      <span>🛍️</span>
+      <b>…</b>
+      <small>Paid Orders</small>
+    </div>
+
+    <div class="statcard">
+      <span>🪄</span>
+      <b>…</b>
+      <small>Prompts Generated</small>
+    </div>
+  `;
+
+        const response = await fetch("/api/admin/stats", {
+          credentials: "same-origin",
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          statsEl.innerHTML = `
+      <div
+        class="card error-card"
+        style="grid-column:1/-1"
+      >
+
+        <h3>
+          ${escapeHtml(data.error || "Access denied")}
+        </h3>
+
+        <p class="muted">
+          Log in with an authorized admin email.
+        </p>
+
+        <a
+          class="btn"
+          href="/"
+        >
+          Back to Login
+        </a>
+
+      </div>
+    `;
+
+          throw new Error(data.error || "Admin access denied");
+        }
+
+        const stats = data.stats || {};
+
+        statsEl.innerHTML = [
+          ["👤", "Users", Number(stats.users || 0)],
+
+          ["💰", "Revenue", "₹" + formatMoney(stats.revenue)],
+
+          ["🛍️", "Paid Orders", Number(stats.orders || 0)],
+
+          ["🪄", "Prompts Generated", Number(stats.prompts || 0)],
+        ]
+          .map(
+            (item) => `
+        <div class="statcard">
+
+          <span>
+            ${item[0]}
+          </span>
+
+          <b>
+            ${escapeHtml(item[2])}
+          </b>
+
+          <small>
+            ${escapeHtml(item[1])}
+          </small>
+
+        </div>
+      `,
+          )
+          .join("");
+
+        return data;
+      }
+
+      /* ==========================================================
+   LOAD USERS
+========================================================== */
+
+      function renderUsers(users) {
+        const usersEl = $("users");
+
+        if (!Array.isArray(users) || !users.length) {
+          usersEl.innerHTML = `
+      <div class="empty-state">
+        No users yet.
+      </div>
+    `;
+
+          return;
+        }
+
+        usersEl.innerHTML = `
+    <div class="admin-table-wrap">
+
+      <table class="admin-table">
+
+        <thead>
+
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Registered</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${users
+            .map(
+              (user) => `
+                <tr>
+
+                  <td>
+                    #${escapeHtml(user.id)}
+                  </td>
+
+                  <td>
+                    <b>
+                      ${escapeHtml(user.name || "Unknown")}
+                    </b>
+                  </td>
+
+                  <td>
+                    ${escapeHtml(user.email || "—")}
+                  </td>
+
+                  <td>
+                    ${formatDate(user.created_at)}
+                  </td>
+
+                </tr>
+              `,
+            )
+            .join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+      }
+
+      /* ==========================================================
+   LOAD ORDERS
+========================================================== */
+
+      async function loadOrders() {
+        const ordersEl = $("orders");
+
+        ordersEl.innerHTML = `
+    <div class="admin-loading">
+      Loading orders…
+    </div>
+  `;
+
+        const response = await fetch("/api/admin/orders", {
+          credentials: "same-origin",
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          ordersEl.innerHTML = `
+      <div class="empty-state">
+        ${escapeHtml(data.error || "Could not load orders.")}
+      </div>
+    `;
+
+          return;
+        }
+
+        const orders = Array.isArray(data.orders) ? data.orders : [];
+
+        if (!orders.length) {
+          ordersEl.innerHTML = `
+      <div class="empty-state">
+        No orders yet.
+      </div>
+    `;
+
+          return;
+        }
+
+        ordersEl.innerHTML = `
+    <div class="admin-table-wrap">
+
+      <table class="admin-table">
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Customer
+            </th>
+
+            <th>
+              Product
+            </th>
+
+            <th>
+              Amount
+            </th>
+
+            <th>
+              Status
+            </th>
+
+            <th>
+              Order ID
+            </th>
+
+            <th>
+              Payment ID
+            </th>
+
+            <th>
+              Date
+            </th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${orders
+            .map((order) => {
+              const status = String(order.status || "unknown");
+
+              return `
+                  <tr>
+
+                    <td>
+
+                      <b>
+                        ${escapeHtml(order.name || "Unknown")}
+                      </b>
+
+                      <div class="admin-meta">
+                        ${escapeHtml(order.email || "—")}
+                      </div>
+
+                    </td>
+
+                    <td>
+
+                      <b>
+                        ${escapeHtml(productName(order.product_id))}
+                      </b>
+
+                      <div class="admin-meta">
+                        ${escapeHtml(order.product_id || "")}
+                      </div>
+
+                    </td>
+
+                    <td>
+                      <b>
+                        ₹${formatMoney(Number(order.amount || 0) / 100)}
+                      </b>
+                    </td>
+
+                    <td>
+
+                      <span
+                        class="status-pill ${statusClass(status)}"
+                      >
+                        ${escapeHtml(status)}
+                      </span>
+
+                    </td>
+
+                    <td>
+                      <span
+                        class="muted"
+                        style="font-size:11px"
+                      >
+                        ${escapeHtml(order.order_id || "—")}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        class="muted"
+                        style="font-size:11px"
+                      >
+                        ${escapeHtml(order.payment_id || "—")}
+                      </span>
+                    </td>
+
+                    <td>
+                      ${formatDate(order.created_at)}
+                    </td>
+
+                  </tr>
+                `;
+            })
+            .join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+      }
+
+      /* ==========================================================
+   LOAD EVERYTHING
+========================================================== */
+
+      async function loadDashboard() {
+        const refreshBtn = $("refreshBtn");
+
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Refreshing…";
+
+        try {
+          const stats = await loadStats();
+
+          renderUsers(stats.recentUsers || []);
+
+          await loadOrders();
+        } catch (error) {
+          console.error("Admin dashboard error:", error);
+
+          $("users").innerHTML = `
+      <div class="empty-state">
+        Could not load users.
+      </div>
+    `;
+
+          $("orders").innerHTML = `
+      <div class="empty-state">
+        Could not load orders.
+      </div>
+    `;
+        } finally {
+          refreshBtn.disabled = false;
+
+          refreshBtn.textContent = "Refresh";
+        }
+      }
+
+      /* ==========================================================
+   REFRESH
+========================================================== */
+
+      $("refreshBtn").addEventListener("click", loadDashboard);
+
+      /* ==========================================================
+   START
+========================================================== */
+
+      loadDashboard();
+    </script>
+  </body>
+</html>

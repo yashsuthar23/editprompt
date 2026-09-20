@@ -1,0 +1,2465 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <meta name="theme-color" content="#0c0c0c">
+
+    <meta name="description"
+        content="EditPrompt.in is an AI creator platform for generating production-ready video prompts, managing prompt history, and accessing premium AI video prompt packs.">
+
+    <meta name="robots" content="index,follow">
+
+    <link rel="canonical" href="https://editprompt.in/">
+
+    <title>EditPrompt.in — AI Video Prompt Generator & Creator Platform</title>
+
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- Razorpay Checkout -->
+    <script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        defer>
+    </script>
+</head>
+
+<body>
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="nav">
+
+        <a
+            class="brand"
+            href="/"
+            aria-label="EditPrompt home">
+
+            <div class="logo" aria-hidden="true">
+                EP
+            </div>
+
+            <div>
+                <b>EditPrompt</b>
+                <small>AI tools for video creators</small>
+            </div>
+
+        </a>
+
+
+        <nav aria-label="Main navigation">
+
+            <a href="#generator">
+                AI Generator
+            </a>
+
+            <a href="#tools">
+                Tools
+            </a>
+
+            <a href="#categories">
+                Categories
+            </a>
+
+            <a href="#store">
+                Store
+            </a>
+
+            <a href="/software.html">
+                Software
+            </a>
+
+            <a
+                id="dashboardLink"
+                href="#dashboard">
+                Dashboard
+            </a>
+
+            <a href="/library.html">
+                My Library
+            </a>
+
+            <a href="/admin.html">
+                Admin
+            </a>
+
+        </nav>
+
+
+        <div class="right account">
+
+            <button
+                id="loginBtn"
+                class="btn ghost"
+                type="button">
+                Login
+            </button>
+
+            <button
+                id="logoutBtn"
+                class="btn ghost hide"
+                type="button">
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main>
+
+        <!-- =================================================
+             HERO
+        ================================================== -->
+
+        <section class="hero">
+
+            <!-- CINEMATIC BACKGROUND (optional: drop public/hero.mp4 to enable video) -->
+            <div class="hero-bg" aria-hidden="true">
+                <video class="hero-video" muted loop playsinline preload="none" poster=""
+                    data-src="/hero.mp4"></video>
+                <span class="orb o1"></span>
+                <span class="orb o2"></span>
+                <span class="orb o3"></span>
+                <span class="hero-grid"></span>
+                <span class="hero-sweep"></span>
+                <span class="hero-grain"></span>
+                <span class="hero-fade"></span>
+            </div>
+
+            <div>
+
+                <div class="eyebrow">
+                    AI CREATOR PLATFORM • V7
+                </div>
+
+                <h1>
+                    Create better videos.
+                    <br>
+                    <span>Faster. With AI.</span>
+                </h1>
+
+                <p class="lead">
+                    Generate production-ready video prompts,
+                    save your creative history, favorite your
+                    best ideas and unlock premium creator packs.
+                </p>
+
+                <div class="actions">
+
+                    <a
+                        class="btn primary"
+                        href="#generator">
+                        Generate Prompt
+                    </a>
+
+                    <a
+                        class="btn ghost"
+                        href="#store">
+                        Browse Packs
+                    </a>
+
+                </div>
+
+                <div class="badges">
+
+                    <span>
+                        ⚡ Advanced AI prompt builder
+                    </span>
+
+                    <span>
+                        🔒 Secure purchases
+                    </span>
+
+                    <span>
+                        📚 Personal prompt history
+                    </span>
+
+                </div>
+
+                <div class="stats">
+
+                    <div>
+                        <b>240+</b>
+                        <span>
+                            Prompts across 3 packs
+                        </span>
+                    </div>
+
+                    <div>
+                        <b>20+</b>
+                        <span>
+                            Advanced prompt controls
+                        </span>
+                    </div>
+
+                    <div>
+                        <b>₹299</b>
+                        <span>
+                            Starting pack price
+                        </span>
+                    </div>
+
+                </div>
+
+                <div
+                    id="status"
+                    class="status"
+                    role="status"
+                    aria-live="polite">
+                    Checking integrations…
+                </div>
+
+            </div>
+
+
+            <!-- HERO VISUAL -->
+
+            <div
+                class="visual"
+                aria-hidden="true">
+
+                <div class="window">
+
+                    <div class="dots">
+                        ● ● ●
+                    </div>
+
+                    <h3>
+                        Creator Workspace
+                    </h3>
+
+                    <div class="pillrow">
+
+                        <span>AI</span>
+                        <span>History</span>
+                        <span>Favorites</span>
+                        <span>Razorpay</span>
+                        <span>Library</span>
+
+                    </div>
+
+                    <p>
+                        One workspace for generating,
+                        saving and managing your creator prompts.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AI VIDEO PROMPT GENERATOR
+        ================================================== -->
+
+        <section
+            id="generator"
+            class="section">
+
+            <div class="head">
+
+                <div class="section-intro">
+
+                    <div class="eyebrow">
+                        AI TOOL
+                    </div>
+
+                    <h2>
+                        Advanced AI Video Prompt Generator
+                    </h2>
+
+                    <p>
+                        Build a complete production-ready video
+                        prompt with camera, lens, movement,
+                        environment, timing and negative controls.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- GENERATOR TOP CONTROLS -->
+
+            <div class="panel generator-tools">
+
+                <div class="two compact">
+
+                    <!-- CREATOR PRESET -->
+
+                    <div>
+
+                        <label for="preset">
+                            Creator Preset
+                        </label>
+
+                        <select id="preset">
+
+                            <option value="custom">
+                                Custom
+                            </option>
+
+                            <option value="cinematic">
+                                Cinematic Film
+                            </option>
+
+                            <option value="reel">
+                                Instagram Reel / Short
+                            </option>
+
+                            <option value="commercial">
+                                Product Advertisement
+                            </option>
+
+                            <option value="corporate">
+                                Corporate Video
+                            </option>
+
+                            <option value="luxury">
+                                Luxury Brand
+                            </option>
+
+                            <option value="wedding">
+                                Wedding
+                            </option>
+
+                            <option value="travel">
+                                Travel
+                            </option>
+
+                            <option value="fashion">
+                                Fashion Film
+                            </option>
+
+                            <option value="music">
+                                Music Video
+                            </option>
+
+                            <option value="documentary">
+                                Documentary
+                            </option>
+
+                            <option value="action">
+                                Action
+                            </option>
+
+                            <option value="sports">
+                                Sports
+                            </option>
+
+                            <option value="food">
+                                Food &amp; Lifestyle
+                            </option>
+
+                            <option value="automotive">
+                                Automotive
+                            </option>
+
+                            <option value="realestate">
+                                Real Estate
+                            </option>
+
+                            <option value="social-ad">
+                                Social Media Advertisement
+                            </option>
+
+                            <option value="brand-film">
+                                Brand Film
+                            </option>
+
+                            <option value="fashion-editorial">
+                                Fashion Editorial
+                            </option>
+
+                            <option value="travel-film">
+                                Travel Film
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- OPTIMIZE FOR -->
+
+                    <div>
+
+                        <label for="targetModel">
+                            Optimize For
+                        </label>
+
+                        <select id="targetModel">
+
+                            <option value="general">
+                                General AI Video
+                            </option>
+
+                            <option value="veo">
+                                Google Veo
+                            </option>
+
+                            <option value="sora">
+                                Sora
+                            </option>
+
+                            <option value="runway">
+                                Runway
+                            </option>
+
+                            <option value="kling">
+                                Kling
+                            </option>
+
+                            <option value="pika">
+                                Pika
+                            </option>
+
+                            <option value="luma">
+                                Luma
+                            </option>
+
+                            <option value="cinematic-quality">
+                                Cinematic Quality
+                            </option>
+
+                            <option value="photorealism">
+                                Photorealism
+                            </option>
+
+                            <option value="realistic-motion">
+                                Realistic Motion
+                            </option>
+
+                            <option value="character-consistency">
+                                Character Consistency
+                            </option>
+
+                            <option value="camera-movement">
+                                Camera Movement
+                            </option>
+
+                            <option value="product-marketing">
+                                Product Marketing
+                            </option>
+
+                            <option value="commercial-ad">
+                                Commercial Advertisement
+                            </option>
+
+                            <option value="social-media">
+                                Social Media Content
+                            </option>
+
+                            <option value="short-form">
+                                Short-Form Content
+                            </option>
+
+                            <option value="storytelling">
+                                Cinematic Storytelling
+                            </option>
+
+                            <option value="brand-film">
+                                Brand Film
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- GENERATOR BODY -->
+
+            <div class="two">
+
+                <!-- =========================================
+                     LEFT GENERATOR PANEL
+                ========================================== -->
+
+                <div class="panel">
+
+                    <!-- SUBJECT -->
+
+                    <label for="subject">
+                        Subject / Scene
+                    </label>
+
+                    <textarea
+                        id="subject"
+                        rows="4"
+                        autocomplete="off"
+                        placeholder="Example: Indian entrepreneur walking through a premium modern office"></textarea>
+
+
+                    <!-- STYLE + RATIO -->
+
+                    <div class="two compact">
+
+                        <!-- VISUAL STYLE -->
+
+                        <div
+                            class="multiselect"
+                            id="styleField">
+
+                            <label for="styleControl">
+                                Visual Style
+                            </label>
+
+                            <div
+                                class="ms-control"
+                                id="styleControl"
+                                tabindex="0"
+                                role="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false">
+
+                                <div
+                                    class="ms-chips"
+                                    id="styleChips">
+                                </div>
+
+                            </div>
+
+                            <div
+                                class="ms-dropdown hide"
+                                id="styleDropdown"
+                                role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cinematic">
+                                    Cinematic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Photorealistic">
+                                    Photorealistic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hyperrealistic">
+                                    Hyperrealistic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hollywood Film">
+                                    Hollywood Film
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Commercial">
+                                    Commercial
+                                </label>
+
+                                <!-- FIXED FOR SMART PRESETS -->
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Corporate">
+                                    Corporate
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Luxury">
+                                    Luxury
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Luxury Commercial">
+                                    Luxury Commercial
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Action">
+                                    Action
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Sports">
+                                    Sports
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Music Video">
+                                    Music Video
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Documentary">
+                                    Documentary
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Editorial">
+                                    Editorial
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Fashion Film">
+                                    Fashion Film
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Wedding Film">
+                                    Wedding Film
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Social Media">
+                                    Social Media
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Food">
+                                    Food
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Travel">
+                                    Travel
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Vintage Film">
+                                    Vintage Film
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dark Cinematic">
+                                    Dark Cinematic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dreamy">
+                                    Dreamy
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Epic">
+                                    Epic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Minimalist">
+                                    Minimalist
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Futuristic">
+                                    Futuristic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="3D CGI">
+                                    3D CGI
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Anime">
+                                    Anime
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- RATIO -->
+
+                        <div>
+
+                            <label for="ratio">
+                                Ratio
+                            </label>
+
+                            <select id="ratio">
+
+                                <option value="9:16 Vertical">
+                                    9:16 Vertical
+                                </option>
+
+                                <option value="16:9 Landscape">
+                                    16:9 Landscape
+                                </option>
+
+                                <option value="1:1 Square">
+                                    1:1 Square
+                                </option>
+
+                                <option value="4:5 Portrait">
+                                    4:5 Portrait
+                                </option>
+
+                                <option value="21:9 Cinematic">
+                                    21:9 Cinematic
+                                </option>
+
+                                <option value="2.39:1 Anamorphic">
+                                    2.39:1 Anamorphic
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- CAMERA + LENS -->
+
+                    <div class="two compact">
+
+                        <!-- CAMERA -->
+
+                        <div
+                            class="multiselect"
+                            id="cameraField">
+
+                            <label for="cameraControl">
+                                Camera
+                            </label>
+
+                            <div
+                                class="ms-control"
+                                id="cameraControl"
+                                tabindex="0"
+                                role="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false">
+
+                                <div
+                                    class="ms-chips"
+                                    id="cameraChips">
+                                </div>
+
+                            </div>
+
+                            <div
+                                class="ms-dropdown hide"
+                                id="cameraDropdown"
+                                role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Slow push-in">
+                                    Slow push-in
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Slow pull-out">
+                                    Slow pull-out
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Orbit around subject">
+                                    Orbit around subject
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tracking shot">
+                                    Tracking shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dolly forward">
+                                    Dolly forward
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dolly backward">
+                                    Dolly backward
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dolly left to right">
+                                    Dolly left to right
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dolly right to left">
+                                    Dolly right to left
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Crane reveal">
+                                    Crane reveal
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Aerial drone shot">
+                                    Aerial / Drone shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Handheld tracking">
+                                    Handheld tracking
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Steadicam">
+                                    Steadicam
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Static hero shot">
+                                    Static hero shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Low angle">
+                                    Low angle
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="High angle">
+                                    High angle
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Close-up">
+                                    Close-up
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Wide establishing shot">
+                                    Wide establishing shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Over-the-shoulder">
+                                    Over-the-shoulder
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- LENS -->
+
+                        <div>
+
+                            <label for="lens">
+                                Lens
+                            </label>
+
+                            <select id="lens">
+
+                                <option value="35mm lens">
+                                    35mm lens
+                                </option>
+
+                                <option value="24mm wide lens">
+                                    24mm wide lens
+                                </option>
+
+                                <option value="28mm wide lens">
+                                    28mm wide lens
+                                </option>
+
+                                <option value="40mm lens">
+                                    40mm lens
+                                </option>
+
+                                <option value="50mm natural lens">
+                                    50mm natural lens
+                                </option>
+
+                                <option value="70mm lens">
+                                    70mm lens
+                                </option>
+
+                                <option value="85mm portrait lens">
+                                    85mm portrait lens
+                                </option>
+
+                                <option value="100mm telephoto lens">
+                                    100mm telephoto lens
+                                </option>
+
+                                <option value="Macro lens">
+                                    Macro lens
+                                </option>
+
+                                <option value="Anamorphic lens">
+                                    Anamorphic lens
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- LIGHTING + DURATION -->
+
+                    <div class="two compact">
+
+                        <!-- LIGHTING -->
+
+                        <div
+                            class="multiselect"
+                            id="lightingField">
+
+                            <label for="lightingControl">
+                                Lighting
+                            </label>
+
+                            <div
+                                class="ms-control"
+                                id="lightingControl"
+                                tabindex="0"
+                                role="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false">
+
+                                <div
+                                    class="ms-chips"
+                                    id="lightingChips">
+                                </div>
+
+                            </div>
+
+                            <div
+                                class="ms-dropdown hide"
+                                id="lightingDropdown"
+                                role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Warm cinematic">
+                                    Warm cinematic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Golden hour">
+                                    Golden hour
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Soft natural daylight">
+                                    Soft natural daylight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dramatic low-key">
+                                    Dramatic low-key
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="High-key lighting">
+                                    High-key lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Studio commercial">
+                                    Studio commercial
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Neon night">
+                                    Neon night
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Blue hour">
+                                    Blue hour
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Moonlight">
+                                    Moonlight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Volumetric lighting">
+                                    Volumetric lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Rim lighting">
+                                    Rim lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Soft diffused lighting">
+                                    Soft diffused lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hard directional lighting">
+                                    Hard directional lighting
+                                </label>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- DURATION -->
+
+                        <div>
+
+                            <label for="duration">
+                                Duration
+                            </label>
+
+                            <select id="duration">
+
+                                <option value="8 seconds">
+                                    8 seconds
+                                </option>
+
+                                <option value="5 seconds">
+                                    5 seconds
+                                </option>
+
+                                <option value="10 seconds">
+                                    10 seconds
+                                </option>
+
+                                <option value="15 seconds">
+                                    15 seconds
+                                </option>
+
+                                <option value="20 seconds">
+                                    20 seconds
+                                </option>
+
+                                <option value="30 seconds">
+                                    30 seconds
+                                </option>
+
+                                <option value="45 seconds">
+                                    45 seconds
+                                </option>
+
+                                <option value="60 seconds">
+                                    60 seconds
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- FPS + MOOD -->
+
+                    <div class="two compact">
+
+                        <!-- FPS -->
+
+                        <div>
+
+                            <label for="fps">
+                                FPS
+                            </label>
+
+                            <select id="fps">
+
+                                <option value="24 fps">
+                                    24 fps
+                                </option>
+
+                                <option value="25 fps">
+                                    25 fps
+                                </option>
+
+                                <option value="30 fps">
+                                    30 fps
+                                </option>
+
+                                <option value="50 fps">
+                                    50 fps
+                                </option>
+
+                                <option value="60 fps">
+                                    60 fps
+                                </option>
+
+                                <option value="120 fps">
+                                    120 fps
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- MOOD -->
+
+                        <div
+                            class="multiselect"
+                            id="moodField">
+
+                            <label for="moodControl">
+                                Mood
+                            </label>
+
+                            <div
+                                class="ms-control"
+                                id="moodControl"
+                                tabindex="0"
+                                role="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false">
+
+                                <div
+                                    class="ms-chips"
+                                    id="moodChips">
+                                </div>
+
+                            </div>
+
+                            <div
+                                class="ms-dropdown hide"
+                                id="moodDropdown"
+                                role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Premium and confident">
+                                    Premium and confident
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Emotional and heartfelt">
+                                    Emotional and heartfelt
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Energetic and modern">
+                                    Energetic and modern
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Elegant and luxurious">
+                                    Elegant and luxurious
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Mysterious and dramatic">
+                                    Mysterious and dramatic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Inspiring">
+                                    Inspiring
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Romantic">
+                                    Romantic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Calm and peaceful">
+                                    Calm and peaceful
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dark and suspenseful">
+                                    Dark and suspenseful
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Futuristic">
+                                    Futuristic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Epic and powerful">
+                                    Epic and powerful
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Joyful and vibrant">
+                                    Joyful and vibrant
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Professional">
+                                    Professional
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cinematic and atmospheric">
+                                    Cinematic and atmospheric
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Raw and realistic">
+                                    Raw and realistic
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ENVIRONMENT -->
+
+                    <label for="environment">
+                        Environment
+                    </label>
+
+                    <input
+                        id="environment"
+                        autocomplete="off"
+                        placeholder="Default: detailed realistic environment">
+
+
+                    <!-- MOVEMENT -->
+
+                    <label for="movement">
+                        Subject Movement
+                    </label>
+
+                    <input
+                        id="movement"
+                        autocomplete="off"
+                        placeholder="Default: subtle natural movement">
+
+
+                    <!-- NEGATIVE -->
+
+                    <label for="negative">
+                        Negative Prompt
+                    </label>
+
+                    <input
+                        id="negative"
+                        autocomplete="off"
+                        placeholder="Default: flicker, warping, text artifacts">
+
+
+                    <!-- GENERATE -->
+
+                    <button
+                        id="generateBtn"
+                        class="btn primary full"
+                        type="button">
+
+                        ✨ Generate with AI
+
+                    </button>
+
+                </div>
+
+
+                <!-- =========================================
+                     RESULT PANEL
+                ========================================== -->
+
+                <div class="panel resultbox">
+
+                    <div class="resulthead">
+
+                        <b>
+                            Generated Prompt
+                        </b>
+
+                        <div class="resultactions">
+
+                            <button
+                                class="btn ghost small"
+                                id="copyBtn"
+                                type="button">
+                                Copy
+                            </button>
+
+                            <button
+                                class="btn ghost small"
+                                id="improveBtn"
+                                type="button">
+                                ✨ Improve
+                            </button>
+
+                            <button
+                                class="btn ghost small"
+                                id="favoriteOutputBtn"
+                                type="button">
+                                ☆ Favorite
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div id="output" class="output" aria-live="polite"></div>
+
+
+                    <!-- GENERATE MEDIA -->
+
+                    <button
+                        id="generateMediaBtn"
+                        class="btn primary full"
+                        type="button">
+
+                        🎬 Generate Media
+
+                    </button>
+
+
+                    <div
+                        id="historyHint"
+                        class="mini">
+
+                        Log in to automatically save generated prompts.
+
+                    </div>
+
+
+                    <!-- =====================================
+                         AI MEDIA STUDIO
+                    ====================================== -->
+
+                    <div
+                        id="mediaStudio"
+                        class="mediastudio hide">
+
+                        <!-- STEP 1 : SELECT TYPE -->
+
+                        <div
+                            class="mediastep"
+                            id="mediaStepType">
+
+                            <div class="mediasteplabel">
+                                Step 1 · Select Type
+                            </div>
+
+                            <div class="mediatypes">
+
+                                <button
+                                    type="button"
+                                    class="mediatype active"
+                                    data-type="image">
+
+                                    <span class="mediatypeicon">🖼️</span>
+                                    <span>Image</span>
+                                    <small>Nano Banana</small>
+
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="mediatype"
+                                    data-type="video">
+
+                                    <span class="mediatypeicon">🎬</span>
+                                    <span>Video</span>
+                                    <small>Veo · with audio</small>
+
+                                </button>
+
+                            </div>
+
+                            <button
+                                id="mediaGenerateBtn"
+                                class="btn primary full"
+                                type="button">
+
+                                ⚡ Generate Image
+
+                            </button>
+
+                        </div>
+
+
+                        <!-- STEP 2 : PROGRESS -->
+
+                        <div
+                            class="mediastep hide"
+                            id="mediaStepLoading">
+
+                            <div class="medialoader">
+
+                                <div class="medialoaderbar">
+                                    <span id="mediaProgressFill"></span>
+                                </div>
+
+                                <div
+                                    class="medialoadertext"
+                                    id="mediaProgressText">
+
+                                    Starting…
+
+                                </div>
+
+                            </div>
+
+                            <button
+                                id="mediaCancelBtn"
+                                class="btn ghost small"
+                                type="button">
+
+                                Cancel
+
+                            </button>
+
+                        </div>
+
+
+                        <!-- STEP 3 : PREVIEW -->
+
+                        <div
+                            class="mediastep hide"
+                            id="mediaStepPreview">
+
+                            <div class="mediasteplabel">
+                                Media Preview
+                            </div>
+
+                            <div
+                                class="mediapreview"
+                                id="mediaPreview">
+                            </div>
+
+                            <div class="mediaactions">
+
+                                <a
+                                    id="mediaDownloadBtn"
+                                    class="btn primary small"
+                                    href="#"
+                                    download>
+
+                                    ⬇ Download
+
+                                </a>
+
+                                <button
+                                    id="mediaAnimateBtn"
+                                    class="btn ghost small hide"
+                                    type="button">
+
+                                    🎬 Animate Image
+
+                                </button>
+
+                                <button
+                                    id="mediaRegenerateBtn"
+                                    class="btn ghost small"
+                                    type="button">
+
+                                    ↻ Regenerate
+
+                                </button>
+
+                                <button
+                                    id="mediaBackBtn"
+                                    class="btn ghost small"
+                                    type="button">
+
+                                    ← Change Type
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <section
+            id="dashboard"
+            class="section hide">
+
+            <div class="head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        YOUR WORKSPACE
+                    </div>
+
+                    <h2>
+                        Creator Dashboard
+                    </h2>
+
+                    <p>
+                        Manage your prompt activity and account
+                        at a glance.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="dashboardStats"
+                class="four">
+            </div>
+
+
+            <div
+                class="panel"
+                style="margin-top:18px">
+
+                <div class="resulthead">
+
+                    <h3>
+                        Recent Prompts
+                    </h3>
+
+                    <button
+                        class="btn ghost small"
+                        id="refreshDashboard"
+                        type="button">
+
+                        Refresh
+
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="recentPrompts"
+                    class="historygrid">
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             CATEGORIES
+        ================================================== -->
+
+        <section
+            id="categories"
+            class="section">
+
+            <div class="head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        EXPLORE
+                    </div>
+
+                    <h2>
+                        Prompt Categories
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="categorygrid">
+
+                <button
+                    type="button"
+                    data-cat="Cinematic">
+                    🎬 Cinematic
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Social Media">
+                    📱 Reels &amp; Shorts
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Commercial">
+                    🛍️ Product Ads
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Wedding">
+                    💍 Wedding
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Luxury">
+                    ✨ Luxury
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Documentary">
+                    🎥 Documentary
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Food">
+                    🍔 Food
+                </button>
+
+                <button
+                    type="button"
+                    data-cat="Travel">
+                    ✈️ Travel
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             CREATOR TOOLS
+        ================================================== -->
+
+        <section
+            id="tools"
+            class="section">
+
+            <div class="head">
+
+                <div>
+
+                    <div class="eyebrow">
+                        FREE UTILITIES
+                    </div>
+
+                    <h2>
+                        Creator Tools
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="three">
+
+                <!-- ASPECT RATIO -->
+
+                <div class="card">
+
+                    <h3>
+                        Aspect Ratio
+                    </h3>
+
+                    <input
+                        id="width"
+                        type="number"
+                        min="1"
+                        inputmode="numeric"
+                        placeholder="Width e.g. 1080">
+
+                    <select id="rc">
+
+                        <option value="9/16">
+                            9:16
+                        </option>
+
+                        <option value="16/9">
+                            16:9
+                        </option>
+
+                        <option value="1">
+                            1:1
+                        </option>
+
+                        <option value="4/5">
+                            4:5
+                        </option>
+
+                    </select>
+
+                    <button
+                        id="ratioBtn"
+                        class="btn primary full"
+                        type="button">
+
+                        Calculate
+
+                    </button>
+
+                    <div
+                        id="ratioOut"
+                        class="mini"
+                        aria-live="polite">
+                        —
+                    </div>
+
+                </div>
+
+
+                <!-- FILE SIZE -->
+
+                <div class="card">
+
+                    <h3>
+                        File Size
+                    </h3>
+
+                    <input
+                        id="bitrate"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        inputmode="decimal"
+                        placeholder="Bitrate Mbps">
+
+                    <input
+                        id="minutes"
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        inputmode="decimal"
+                        placeholder="Duration minutes">
+
+                    <button
+                        id="sizeBtn"
+                        class="btn primary full"
+                        type="button">
+
+                        Estimate
+
+                    </button>
+
+                    <div
+                        id="sizeOut"
+                        class="mini"
+                        aria-live="polite">
+                        —
+                    </div>
+
+                </div>
+
+
+                <!-- CAMERA IDEA -->
+
+                <div class="card">
+
+                    <h3>
+                        Camera Idea
+                    </h3>
+
+                    <p class="muted">
+                        Instant movement direction for AI video.
+                    </p>
+
+                    <button
+                        id="ideaBtn"
+                        class="btn primary full"
+                        type="button">
+
+                        Generate Idea
+
+                    </button>
+
+                    <div
+                        id="ideaOut"
+                        class="mini"
+                        aria-live="polite">
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             STORE
+        ================================================== -->
+
+        <section
+            id="store"
+            class="section">
+
+            <div class="head">
+
+                <div class="section-intro">
+
+                    <div class="eyebrow">
+                        PREMIUM STORE
+                    </div>
+
+                    <h2>
+                        Prompt Packs
+                    </h2>
+
+                    <p>
+                        Purchase once and keep verified access
+                        in My Library.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="store-tabs" role="tablist" aria-label="Filter packs">
+                <button type="button" class="on" data-filter="all">All</button>
+                <button type="button" data-filter="Cinematic">🎬 Cinematic</button>
+                <button type="button" data-filter="Wedding">💍 Wedding</button>
+                <button type="button" data-filter="Commercial">🛍️ Product Ads</button>
+            </div>
+
+            <div class="three">
+
+                <!-- CINEMATIC -->
+
+                <div class="product" data-cat-filter="Cinematic">
+
+                    <div
+                        class="thumb cinematic" data-preview="/previews/cinematic.mp4"
+                        aria-hidden="true">
+                        🎬
+                    </div>
+
+                    <div class="tag">
+                        BEST SELLER
+                    </div>
+
+                    <h3>
+                        Cinematic AI Prompt Pack
+                    </h3>
+
+                    <p>
+                        100+ prompts for ads, reels and
+                        cinematic scenes.
+                    </p>
+
+                    <div class="price">
+                        ₹399
+                    </div>
+
+                    <a
+                        class="btn primary full"
+                        href="/cinematic-pack.html">
+
+                        View Pack — ₹399
+
+                    </a>
+
+                </div>
+
+
+                <!-- WEDDING -->
+
+                <div class="product" data-cat-filter="Wedding">
+
+                    <div
+                        class="thumb wedding" data-preview="/previews/wedding.mp4"
+                        aria-hidden="true">
+                        💍
+                    </div>
+
+                    <div class="tag">
+                        WEDDING
+                    </div>
+
+                    <h3>
+                        Wedding Video Prompt Pack
+                    </h3>
+
+                    <p>
+                        Pre-wedding, haldi, sangeet,
+                        baby shower and family sequences.
+                    </p>
+
+                    <div class="price">
+                        ₹299
+                    </div>
+
+                    <button
+                        class="btn primary full buy"
+                        data-id="wedding"
+                        type="button">
+
+                        Buy Now
+
+                    </button>
+
+                </div>
+
+
+                <!-- ADS -->
+
+                <div class="product" data-cat-filter="Commercial">
+
+                    <div
+                        class="thumb ads" data-preview="/previews/ads.mp4"
+                        aria-hidden="true">
+                        🛍️
+                    </div>
+
+                    <div class="tag">
+                        COMMERCIAL
+                    </div>
+
+                    <h3>
+                        Product Ad Prompt Pack
+                    </h3>
+
+                    <p>
+                        Finance, tech, luxury product and
+                        social ad prompts.
+                    </p>
+
+                    <div class="price">
+                        ₹499
+                    </div>
+
+                    <button
+                        class="btn primary full buy"
+                        data-id="ads"
+                        type="button">
+
+                        Buy Now
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+                <!-- =================================================
+             TESTIMONIALS
+        ================================================== -->
+
+        <section
+            id="testimonials"
+            class="section">
+
+            <div class="head">
+
+                <div class="section-intro">
+
+                    <div class="eyebrow">
+                        TRUSTED BY CREATORS
+                    </div>
+
+                    <h2>
+                        What creators are saying
+                    </h2>
+
+                    <p>
+                        Editors, wedding videographers and ad
+                        creators use EditPrompt packs in
+                        real client work.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="three testimonial-grid">
+
+                <!-- TESTIMONIAL 1 -->
+
+                <div class="card testimonial">
+
+                    <p>
+                        “Cut my cinematic prompt writing time
+                        by more than half. The camera and
+                        lighting controls alone are worth it
+                        for ad work.”
+                    </p>
+
+                    <div class="testimonial-author">
+
+                        <span
+                            class="avatar"
+                            aria-hidden="true">
+                            RK
+                        </span>
+
+                        <div>
+
+                            <b>
+                                Rohan K.
+                            </b>
+
+                            <small>
+                                Freelance video editor
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TESTIMONIAL 2 -->
+
+                <div class="card testimonial">
+
+                    <p>
+                        “Bought the wedding pack for a client
+                        shoot — haldi and sangeet sequences
+                        came out looking genuinely cinematic
+                        on the first try.”
+                    </p>
+
+                    <div class="testimonial-author">
+
+                        <span
+                            class="avatar"
+                            aria-hidden="true">
+                            PS
+                        </span>
+
+                        <div>
+
+                            <b>
+                                Priya S.
+                            </b>
+
+                            <small>
+                                Wedding videographer
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- TESTIMONIAL 3 -->
+
+                <div class="card testimonial">
+
+                    <p>
+                        “The ads pack structure is
+                        production-ready. My team just swaps
+                        the product and environment and we're
+                        generating in minutes.”
+                    </p>
+
+                    <div class="testimonial-author">
+
+                        <span
+                            class="avatar"
+                            aria-hidden="true">
+                            AM
+                        </span>
+
+                        <div>
+
+                            <b>
+                                Arjun M.
+                            </b>
+
+                            <small>
+                                Creative director
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         LOGIN MODAL
+    ====================================================== -->
+
+    <div
+        id="loginModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="loginTitle">
+
+        <div class="modalbox">
+
+            <button
+                class="x"
+                id="closeLogin"
+                type="button"
+                aria-label="Close login">
+                ×
+            </button>
+
+
+            <!-- STEP 1 -->
+
+            <div id="loginStep1">
+
+                <h2 id="loginTitle">
+                    Login / Create Account
+                </h2>
+
+                <p class="muted">
+                    We'll email you a 6-digit code —
+                    no password needed.
+                </p>
+
+                <label
+                    for="name"
+                    class="hide">
+                    Name
+                </label>
+
+                <input
+                    id="name"
+                    autocomplete="name"
+                    maxlength="100"
+                    placeholder="Your name">
+
+                <label
+                    for="email"
+                    class="hide">
+                    Email
+                </label>
+
+                <input
+                    id="email"
+                    type="email"
+                    autocomplete="email"
+                    maxlength="254"
+                    placeholder="Email address">
+
+                <button
+                    id="sendOtpBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Send Code
+
+                </button>
+
+            </div>
+
+
+            <!-- STEP 2 -->
+
+            <div
+                id="loginStep2"
+                class="hide">
+
+                <h2>
+                    Enter Code
+                </h2>
+
+                <p
+                    class="muted"
+                    id="otpHint">
+
+                    Check your email for the
+                    6-digit code.
+
+                </p>
+
+                <label
+                    for="otp"
+                    class="hide">
+                    Verification code
+                </label>
+
+                <input
+                    id="otp"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    placeholder="6-digit code">
+
+                <button
+                    id="verifyOtpBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Verify &amp; Login
+
+                </button>
+
+                <button
+                    id="resendOtpBtn"
+                    class="btn ghost full small"
+                    type="button">
+
+                    Resend code
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         FOOTER
+    ====================================================== -->
+
+    <footer>
+
+        <span>
+            © 2026 EditPrompt.in
+        </span>
+
+        <span>
+            V7 Creator Platform
+        </span>
+
+    </footer>
+
+
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
+
+    <div
+        id="toast"
+        class="toast"
+        role="status"
+        aria-live="polite">
+    </div>
+
+
+    <!-- APP JS -->
+
+    <script src="/app.js" defer></script>
+
+
+    <script>
+    /* hero: load optional video + pointer glow (safe no-op if missing) */
+    (function(){
+        var h=document.querySelector('.hero'),v=document.querySelector('.hero-video');
+        if(!h)return;
+        var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if(v&&!reduce){
+            fetch(v.dataset.src,{method:'HEAD'}).then(function(r){
+                if(r.ok&&/video/.test(r.headers.get('content-type')||'')){v.src=v.dataset.src;v.play().then(function(){v.classList.add('on')}).catch(function(){});}
+            }).catch(function(){});
+        }
+        if(!reduce&&matchMedia('(pointer:fine)').matches){
+            h.addEventListener('pointermove',function(e){
+                var b=h.getBoundingClientRect();
+                h.style.setProperty('--mx',(e.clientX-b.left)+'px');
+                h.style.setProperty('--my',(e.clientY-b.top)+'px');
+            });
+        }
+    })();
+    </script>
+
+    <script>
+    /* store: category tabs + hover video preview (video optional) */
+    (function(){
+        var tabs=document.querySelectorAll('.store-tabs button'),
+            cards=document.querySelectorAll('#store .product');
+        tabs.forEach(function(t){t.addEventListener('click',function(){
+            tabs.forEach(function(x){x.classList.toggle('on',x===t)});
+            var f=t.dataset.filter;
+            cards.forEach(function(c){
+                c.classList.toggle('is-hidden',!(f==='all'||c.dataset.catFilter===f));
+            });
+        });});
+        if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+        document.querySelectorAll('#store .thumb[data-preview]').forEach(function(th){
+            var v=null,ok=null;
+            function go(){if(v)v.play().then(function(){th.classList.add('playing')}).catch(function(){});}
+            function start(){
+                if(ok===false)return;
+                if(!v){v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.className='thumb-video';th.prepend(v);}
+                if(ok===null){
+                    fetch(th.dataset.preview,{method:'HEAD'}).then(function(r){
+                        ok=r.ok&&/video/.test(r.headers.get('content-type')||'');
+                        if(ok){v.src=th.dataset.preview;go();}else{v.remove();v=null;}
+                    }).catch(function(){ok=false;if(v){v.remove();v=null;}});
+                } else go();
+            }
+            function stop(){if(v){v.pause();v.currentTime=0;}th.classList.remove('playing');}
+            var card=th.closest('.product');
+            card.addEventListener('mouseenter',start);
+            card.addEventListener('mouseleave',stop);
+        });
+    })();
+    </script>
+</body>
+
+</html>

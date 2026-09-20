@@ -1,0 +1,31 @@
+{
+    "name": "editprompt-v7",
+    "version": "7.1.0",
+    "private": true,
+    "type": "module",
+    "engines": {
+        "node": ">=22.5.0"
+    },
+    "scripts": {
+        "start": "node server.js",
+        "dev": "node --watch server.js",
+        "desktop": "node desktop-entry.js",
+        "build:exe": "powershell -ExecutionPolicy Bypass -File build.ps1"
+    },
+    "dependencies": {
+        "@google/genai": "^2.22.0",
+        "@huggingface/inference": "^4.13.30",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.2",
+        "express-session": "^1.18.1",
+        "nodemailer": "^10.0.9"
+    },
+    "overrides": {
+        "qs": "^6.16.0"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.2",
+        "postject": "^1.0.0-alpha.6",
+        "rcedit": "^4.0.1"
+    }
+}
