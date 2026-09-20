@@ -249,9 +249,44 @@
         `;
     }
 
+    // ?paid=<productId> is added right after a successful payment
+    const params = new URLSearchParams(location.search);
+    const justPaid = (params.get("paid") || "").trim();
+
+    if (justPaid) {
+        history.replaceState(null, "", location.pathname);
+    }
+
+    function startDownload(url) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
     function render(items) {
 
-        box.innerHTML = items.map(item => {
+        const bought = justPaid
+            ? items.find(item => String(item.download).endsWith("/" + justPaid))
+            : null;
+
+        const banner = bought ? `
+            <div class="card" style="grid-column:1/-1;border-color:rgba(34,197,94,.45)">
+                <div class="tag" style="color:#67e58a">PAYMENT SUCCESSFUL ✓</div>
+                <h3>Your prompts are ready</h3>
+                <p class="muted">
+                    <b>${escapeHtml(bought.name)}</b> is added to your library.
+                    Your download should start automatically. If it does not, use the button below.
+                </p>
+                <a class="btn primary" href="${escapeHtml(bought.download)}">
+                    Download ${escapeHtml(bought.name)}
+                </a>
+            </div>
+        ` : "";
+
+        box.innerHTML = banner + items.map(item => {
 
             const name = escapeHtml(item.name);
             const download = escapeHtml(item.download);
@@ -298,6 +333,17 @@
             `;
 
         }).join("");
+
+        // start the download once (not again if the page is refreshed)
+        if (bought) {
+            const key = "ep-auto-dl-" + bought.id;
+            let already = false;
+            try { already = sessionStorage.getItem(key) === "1"; } catch {}
+            if (!already) {
+                try { sessionStorage.setItem(key, "1"); } catch {}
+                setTimeout(() => startDownload(bought.download), 600);
+            }
+        }
     }
 
     async function loadLibrary() {

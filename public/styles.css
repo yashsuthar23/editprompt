@@ -1710,3 +1710,9 @@ html { overflow-x: clip; }
 /* generator: long placeholders never get cut mid-word */
 .generator-tools ~ * input::placeholder,
 #generator input::placeholder { text-overflow: ellipsis; }
+
+/* active page link in header */
+.nav nav a.active {
+    color: #fff;
+    font-weight: 600;
+}

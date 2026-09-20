@@ -21,31 +21,24 @@
 
   <!-- Header -->
   <header class="nav">
-
-    <a
-      class="brand"
-      href="/"
-      aria-label="EditPrompt home"
-      style="display:flex;gap:11px;align-items:center"
-    >
-      <div class="logo">EP</div>
-
-      <div>
-        <b>EditPrompt</b>
-        <small>AI tools for video creators</small>
-      </div>
+    <a class="brand" href="/" aria-label="EditPrompt home">
+        <div class="logo" aria-hidden="true">EP</div>
+        <div><b>EditPrompt</b><small>AI tools for video creators</small></div>
     </a>
-
-    <nav aria-label="Legal navigation">
-      <a href="/#store">Store</a>
-      <a href="/library.html">My Library</a>
+    <nav aria-label="Main navigation">
+        <a href="/#generator">AI Generator</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#categories">Categories</a>
+        <a href="/#store">Store</a>
+        <a href="/software.html">Software</a>
+        <a href="/#dashboard">Dashboard</a>
+        <a href="/library.html">My Library</a>
     </nav>
-
-    <div class="right">
-      <a class="btn ghost" href="/">Back to Site</a>
+    <div class="right account">
+        <button id="loginBtn" class="btn ghost" type="button">Login</button>
+        <button id="logoutBtn" class="btn ghost hide" type="button">Logout</button>
     </div>
-
-  </header>
+</header>
 
 
   <!-- Main Content -->
@@ -272,5 +265,6 @@
   </footer>
 
 
+<script src="/nav.js" defer></script>
 </body>
 </html>

@@ -84,9 +84,6 @@
                 My Library
             </a>
 
-            <a href="/admin.html">
-                Admin
-            </a>
 
         </nav>
 
@@ -2307,6 +2304,54 @@
                     type="button">
 
                     Send Code
+
+                </button>
+
+            </div>
+
+
+            <!-- ADMIN STEP (shown only when the admin email is entered) -->
+
+            <div
+                id="loginStepAdmin"
+                class="hide">
+
+                <h2>
+                    Admin Login
+                </h2>
+
+                <p class="muted">
+                    Enter the admin password.
+                </p>
+
+                <label
+                    for="adminPass"
+                    class="hide">
+                    Admin password
+                </label>
+
+                <input
+                    id="adminPass"
+                    type="password"
+                    autocomplete="current-password"
+                    maxlength="200"
+                    placeholder="Password">
+
+                <button
+                    id="adminLoginBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Login as Admin
+
+                </button>
+
+                <button
+                    id="adminCustomerBtn"
+                    class="btn ghost full small"
+                    type="button">
+
+                    Login as customer instead
 
                 </button>
 

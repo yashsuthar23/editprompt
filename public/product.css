@@ -122,6 +122,13 @@ nav a:hover {
     align-items: center;
 }
 
+/* Login / Logout text must always be light (buttons default to black text) */
+.account .secondary,
+#loginBtn,
+#logoutBtn {
+    color: #f5f2ec;
+}
+
 /* =========================
    BUTTONS
 ========================= */
@@ -156,6 +163,7 @@ nav a:hover {
 
 .secondary {
     background: #191919;
+    color: var(--white, #f5f2ec);
     border: 1px solid var(--border);
     display: inline-block;
 }

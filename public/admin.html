@@ -3,726 +3,1278 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
 
-    <title>EditPrompt Admin V7</title>
+    <title>EditPrompt Admin</title>
 
     <link rel="stylesheet" href="/styles.css" />
 
     <style>
-      .admin-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
+      .admin-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-      .admin-table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      .admin-table {
-        width: 100%;
-        min-width: 720px;
-        border-collapse: collapse;
-      }
-
+      .admin-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .admin-table { width: 100%; min-width: 720px; border-collapse: collapse; }
       .admin-table th {
-        text-align: left;
-        padding: 12px 10px;
-        color: #aaa;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        white-space: nowrap;
+        text-align: left; padding: 12px 10px; color: #aaa; font-size: 11px;
+        text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
       }
-
-      .admin-table td {
-        padding: 12px 10px;
-        border-top: 1px solid #333;
-        font-size: 13px;
-        vertical-align: top;
-      }
-
-      .admin-table th:first-child,
-      .admin-table td:first-child {
-        padding-left: 0;
-      }
-
-      .admin-table th:last-child,
-      .admin-table td:last-child {
-        padding-right: 0;
-      }
+      .admin-table td { padding: 12px 10px; border-top: 1px solid #333; font-size: 13px; vertical-align: top; }
+      .admin-table th:first-child, .admin-table td:first-child { padding-left: 0; }
+      .admin-table th:last-child, .admin-table td:last-child { padding-right: 0; }
+      .admin-table td.num, .admin-table th.num { text-align: right; }
+      .admin-table td.nowrap { white-space: nowrap; }
 
       .status-pill {
-        display: inline-flex;
-        align-items: center;
-        border-radius: 999px;
-        padding: 5px 9px;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 9px;
+        font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
       }
+      .status-paid, .status-active { background: rgba(34,197,94,.12); color: #67e58a; border: 1px solid rgba(34,197,94,.25); }
+      .status-pending { background: rgba(234,179,8,.12); color: #facc15; border: 1px solid rgba(234,179,8,.25); }
+      .status-failed, .status-cancelled, .status-blocked { background: rgba(239,68,68,.12); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+      .status-other { background: rgba(148,163,184,.12); color: #cbd5e1; border: 1px solid rgba(148,163,184,.25); }
 
-      .status-paid {
-        background: rgba(34, 197, 94, 0.12);
-        color: #67e58a;
-        border: 1px solid rgba(34, 197, 94, 0.25);
-      }
+      .empty-state { padding: 20px 0; color: #888; font-size: 13px; }
+      .admin-subtitle { margin-top: 5px; }
+      .admin-loading { color: #888; font-size: 13px; padding: 8px 0; }
+      .admin-meta { font-size: 11px; color: #777; margin-top: 3px; }
+      .admin-refresh { cursor: pointer; }
 
-      .status-pending {
-        background: rgba(234, 179, 8, 0.12);
-        color: #facc15;
-        border: 1px solid rgba(234, 179, 8, 0.25);
+      .adm-field { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+      .adm-field label { font-size: 12px; color: #aaa; }
+      .adm-input {
+        font: inherit; font-size: 14px; color: var(--text, #f5f2ec);
+        background: var(--input, #101010); border: 1px solid var(--border, #333);
+        border-radius: 10px; padding: 11px 13px; outline: none; width: 100%; box-sizing: border-box;
       }
+      .adm-input:focus { border-color: var(--red, #e11d2e); }
+      select.adm-input { cursor: pointer; }
+      .adm-login { max-width: 420px; margin: 40px auto; }
+      .adm-login form { display: grid; gap: 14px; margin-top: 16px; }
+      .adm-err { color: #f87171; font-size: 13px; min-height: 18px; margin: 0; }
+      .adm-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+      .adm-row .adm-field { flex: 1 1 200px; }
+      .adm-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+      .adm-tools .adm-input { width: auto; min-width: 150px; }
+      .adm-tools .adm-input.grow { flex: 1 1 220px; max-width: 340px; }
+      .adm-tools .spacer { flex: 1; }
+      .btn.small { padding: 7px 12px; font-size: 12px; }
+      .btn.danger { background: #b91c1c; color: #fff; }
+      .adm-hide { display: none !important; }
 
-      .status-failed,
-      .status-cancelled {
-        background: rgba(239, 68, 68, 0.12);
-        color: #f87171;
-        border: 1px solid rgba(239, 68, 68, 0.25);
-      }
+      .five { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+      .six { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 14px; }
+      .six .statcard { padding: 16px; }
+      .six .statcard span { font-size: 17px; }
+      .six .statcard b { font-size: 22px; margin: 6px 0 1px; }
+      .six .statcard small { font-size: 12px; }
+      @media (max-width: 950px) { .five, .six { grid-template-columns: repeat(2, 1fr); } }
 
-      .status-other {
-        background: rgba(148, 163, 184, 0.12);
-        color: #cbd5e1;
-        border: 1px solid rgba(148, 163, 184, 0.25);
+      /* ---------- tabs ---------- */
+      .adm-tabs {
+        display: flex; gap: 6px; margin: 22px 0 18px; padding: 5px; background: #141414;
+        border: 1px solid var(--border, #303030); border-radius: 14px; width: fit-content;
+        max-width: 100%; overflow-x: auto;
       }
+      .adm-tab-btn {
+        font: inherit; font-weight: 700; font-size: 13px; color: var(--muted, #9f9990);
+        background: transparent; border: 0; border-radius: 10px; padding: 9px 15px;
+        cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px;
+      }
+      .adm-tab-btn:hover { color: var(--text, #f5f2ec); }
+      .adm-tab-btn.active { background: var(--red, #e52329); color: #fff; }
+      .tab-badge {
+        font-size: 11px; min-width: 20px; padding: 1px 6px; border-radius: 999px;
+        background: rgba(255,255,255,.12); text-align: center;
+      }
+      .tab-badge:empty { display: none; }
 
-      .empty-state {
-        padding: 20px 0;
-        color: #888;
-        font-size: 13px;
-      }
+      /* ---------- layout helpers ---------- */
+      .adm-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+      @media (max-width: 900px) { .adm-grid2 { grid-template-columns: 1fr; } }
+      .panel h3 { margin: 0 0 3px; }
+      .panel .muted { margin: 0; }
 
-      .error-card {
-        border-color: rgba(239, 68, 68, 0.35);
-      }
+      /* ---------- charts ---------- */
+      .chart-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+      .big-num { font-size: 26px; font-weight: 800; color: var(--ivory, #e9d8bb); line-height: 1.1; }
+      .chart { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-top: 16px; border-bottom: 1px solid #2a2a2a; }
+      .chart .bar { flex: 1; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+      .chart .bar i { display: block; width: 100%; background: var(--red, #e52329); border-radius: 3px 3px 0 0; opacity: .8; transition: opacity .15s; }
+      .chart .bar:hover i { opacity: 1; }
+      .chart-axis { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: #777; margin-top: 7px; }
 
-      .admin-subtitle {
-        margin-top: 5px;
-      }
+      /* ---------- small lists / meters ---------- */
+      .list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid #2d2d2d; font-size: 13px; }
+      .list-row:first-of-type { border-top: 0; }
+      .list-row .left { min-width: 0; }
+      .list-row .left b, .list-row .left .admin-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .list-row .right { text-align: right; white-space: nowrap; color: #ccc; }
+      .linkish { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+      .linkish > b, .linkish > .admin-meta { display: block; }
+      .linkish:hover b { color: var(--ivory, #e9d8bb); text-decoration: underline; }
+      .meter { height: 6px; border-radius: 99px; background: #262626; margin-top: 7px; overflow: hidden; }
+      .meter i { display: block; height: 100%; background: var(--red, #e52329); border-radius: 99px; }
 
-      .admin-loading {
-        color: #888;
-        font-size: 13px;
-        padding: 8px 0;
-      }
+      /* ---------- activity ---------- */
+      .seg { display: inline-flex; padding: 3px; background: #101010; border: 1px solid var(--border, #303030); border-radius: 11px; }
+      .seg button { font: inherit; font-size: 12px; font-weight: 700; color: var(--muted, #9f9990); background: transparent; border: 0; border-radius: 8px; padding: 7px 13px; cursor: pointer; }
+      .seg button.active { background: #2a2a2a; color: #fff; }
+      .feed-item { border-top: 1px solid #2d2d2d; padding: 14px 0; }
+      .feed-item:first-child { border-top: 0; }
+      .feed-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 12px; color: #999; }
+      .feed-item details { margin-top: 8px; }
+      .feed-item summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--text, #f5f2ec); }
+      .feed-item pre { white-space: pre-wrap; word-break: break-word; margin: 10px 0 0; font: inherit; font-size: 13px; line-height: 1.55; color: #bbb; background: #101010; border: 1px solid #2a2a2a; border-radius: 10px; padding: 12px; }
+      .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+      .media-card { background: #111; border: 1px solid #2a2a2a; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+      .media-thumb { aspect-ratio: 1; background: #0b0b0b; display: flex; align-items: center; justify-content: center; color: #666; font-size: 12px; }
+      .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .media-info { padding: 11px 12px 13px; font-size: 12px; color: #999; display: grid; gap: 6px; }
+      .media-info p { margin: 0; color: #ccc; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-      .admin-meta {
-        font-size: 11px;
-        color: #777;
-        margin-top: 3px;
-      }
+      /* ---------- system ---------- */
+      .check-row { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-top: 1px solid #2d2d2d; font-size: 13px; }
+      .check-row:first-child { border-top: 0; }
+      .dot { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; margin-top: 1px; }
+      .dot.ok { background: rgba(34,197,94,.15); color: #67e58a; }
+      .dot.warn { background: rgba(234,179,8,.15); color: #facc15; }
+      .check-row b { display: block; }
+      .check-row span.note { color: #888; font-size: 12px; }
+      .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+      .kv div { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px 14px; }
+      .kv small { display: block; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+      .kv b { display: block; margin-top: 4px; font-size: 16px; color: var(--ivory, #e9d8bb); }
 
-      .admin-refresh {
-        cursor: pointer;
+      /* ---------- user drawer ---------- */
+      .adm-drawer { position: fixed; inset: 0; z-index: 9999; display: none; }
+      .adm-drawer.open { display: block; }
+      .adm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.62); }
+      .adm-sheet {
+        position: absolute; top: 0; right: 0; height: 100%; width: min(680px, 100%);
+        background: #141414; border-left: 1px solid var(--border, #303030);
+        overflow-y: auto; padding: 24px; box-shadow: -30px 0 80px rgba(0,0,0,.5);
       }
+      .drawer-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+      .drawer-head h3 { margin: 0; font-size: 22px; }
+      .drawer-sec { margin-top: 24px; }
+      .drawer-sec h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: #999; }
+      .drawer-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 16px; }
+      .drawer-actions select { width: auto; min-width: 200px; }
+      .drawer-sheet-table { min-width: 520px; }
+      .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+      .mini-stats div { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px; }
+      .mini-stats b { display: block; font-size: 20px; color: var(--ivory, #e9d8bb); }
+      .mini-stats small { color: #888; font-size: 11px; }
+      .media-grid.tight { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+      @media (max-width: 560px) { .mini-stats { grid-template-columns: repeat(2, 1fr); } }
 
       @media (max-width: 700px) {
-        .admin-actions {
-          width: 100%;
-        }
-
-        .admin-actions .btn {
-          flex: 1;
-        }
+        .admin-actions { width: 100%; }
+        .admin-actions .btn { flex: 1; }
       }
     </style>
   </head>
-
   <body>
     <header class="nav">
       <div class="brand">
         <div class="logo">EP</div>
-
         <div>
           <b>EditPrompt Admin</b>
-          <small>V7 management dashboard</small>
+          <small id="who">Sign in to continue</small>
         </div>
       </div>
 
       <div class="admin-actions">
-        <button id="refreshBtn" class="btn ghost admin-refresh" type="button">
-          Refresh
-        </button>
-
-        <a class="btn ghost" href="/"> Back to Site </a>
+        <button id="refreshBtn" class="btn ghost admin-refresh adm-hide" type="button">Refresh</button>
+        <button id="logoutBtn" class="btn ghost adm-hide" type="button">Logout</button>
+        <a class="btn ghost" href="/">Back to Site</a>
       </div>
     </header>
 
     <main>
-      <section class="section" style="border-top: 0">
+      <!-- ================= LOGIN ================= -->
+      <section id="loginView" class="section adm-hide" style="border-top: 0">
+        <div class="panel adm-login">
+          <div class="eyebrow">ADMIN</div>
+          <h2 style="margin: 6px 0 0">Admin login</h2>
+          <p class="muted" style="margin: 6px 0 0">Only the site owner can sign in here.</p>
+
+          <form id="loginForm" autocomplete="on">
+            <div class="adm-field">
+              <label for="aEmail">Email</label>
+              <input id="aEmail" class="adm-input" type="email" autocomplete="username" required />
+            </div>
+
+            <div class="adm-field">
+              <label for="aPass">Password</label>
+              <input id="aPass" class="adm-input" type="password" autocomplete="current-password" required />
+            </div>
+
+            <p id="loginErr" class="adm-err" role="alert"></p>
+
+            <button id="loginBtn" class="btn primary" type="submit">Login</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ================= DASHBOARD ================= -->
+      <section id="dashView" class="section adm-hide" style="border-top: 0">
         <div class="head">
           <div>
             <div class="eyebrow">ADMIN</div>
-
             <h2>Management Dashboard</h2>
+            <p class="admin-subtitle">Users, orders, activity and blocked emails.</p>
+          </div>
+        </div>
 
-            <p class="admin-subtitle">
-              Protected admin analytics, users and orders.
+        <div class="adm-tabs" role="tablist" aria-label="Admin sections">
+          <button class="adm-tab-btn active" data-tab="overview" role="tab" aria-selected="true" type="button">Overview</button>
+          <button class="adm-tab-btn" data-tab="users" role="tab" aria-selected="false" type="button">Users <span class="tab-badge" id="usersBadge"></span></button>
+          <button class="adm-tab-btn" data-tab="orders" role="tab" aria-selected="false" type="button">Orders <span class="tab-badge" id="ordersBadge"></span></button>
+          <button class="adm-tab-btn" data-tab="activity" role="tab" aria-selected="false" type="button">Activity</button>
+          <button class="adm-tab-btn" data-tab="blocked" role="tab" aria-selected="false" type="button">Blocked <span class="tab-badge" id="blockedBadge"></span></button>
+          <button class="adm-tab-btn" data-tab="system" role="tab" aria-selected="false" type="button">System &amp; Log</button>
+        </div>
+
+        <!-- ===== OVERVIEW ===== -->
+        <div id="tab-overview" role="tabpanel">
+          <div id="stats" class="five"></div>
+          <div id="stats2" class="six"></div>
+
+          <div id="charts" class="adm-grid2"></div>
+
+          <div class="adm-grid2">
+            <div class="panel">
+              <h3>Product performance</h3>
+              <p class="muted" style="margin-bottom: 8px">Paid sales per product (free grants not counted).</p>
+              <div id="byProduct"></div>
+            </div>
+
+            <div class="panel">
+              <h3>Most active users</h3>
+              <p class="muted" style="margin-bottom: 8px">By prompts + images/videos generated.</p>
+              <div id="topUsers"></div>
+            </div>
+
+            <div class="panel">
+              <h3>Recent signups</h3>
+              <p class="muted" style="margin-bottom: 8px">The latest people to join.</p>
+              <div id="recentUsers"></div>
+            </div>
+
+            <div class="panel">
+              <h3>Prompt sources</h3>
+              <p class="muted" style="margin-bottom: 8px">How prompts were generated (AI vs local fallback).</p>
+              <div id="promptModes"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== USERS ===== -->
+        <div id="tab-users" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3>All Users</h3>
+            <p class="muted" style="margin: 0 0 12px">Everyone who has signed up. Click a name to see everything about that person.</p>
+
+            <div class="adm-tools">
+              <input id="userSearch" class="adm-input grow" type="search" placeholder="Search name or email" aria-label="Search users" />
+              <select id="userFilter" class="adm-input" aria-label="Filter users">
+                <option value="all">All users</option>
+                <option value="active">Active only</option>
+                <option value="blocked">Blocked only</option>
+                <option value="paying">Paying customers</option>
+                <option value="free">Never paid</option>
+              </select>
+              <select id="userSort" class="adm-input" aria-label="Sort users">
+                <option value="new">Newest first</option>
+                <option value="old">Oldest first</option>
+                <option value="prompts">Most prompts</option>
+                <option value="spent">Most spent</option>
+                <option value="name">Name A–Z</option>
+              </select>
+              <span id="userCount" class="muted"></span>
+              <span class="spacer"></span>
+              <button id="exportUsers" class="btn ghost small" type="button">Export CSV</button>
+            </div>
+
+            <div id="users"><div class="admin-loading">Loading users…</div></div>
+          </div>
+        </div>
+
+        <!-- ===== ORDERS ===== -->
+        <div id="tab-orders" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3>Orders</h3>
+            <p class="muted" style="margin: 0 0 12px">Latest 500 payment records. Revoking removes the customer's download but does not refund money.</p>
+
+            <div class="adm-tools">
+              <input id="orderSearch" class="adm-input grow" type="search" placeholder="Search customer, order or payment ID" aria-label="Search orders" />
+              <select id="orderStatus" class="adm-input" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="paid">Paid</option>
+                <option value="granted">Free grants</option>
+                <option value="revoked">Revoked</option>
+              </select>
+              <select id="orderProduct" class="adm-input" aria-label="Filter by product">
+                <option value="all">All products</option>
+              </select>
+              <span id="orderSummary" class="muted"></span>
+              <span class="spacer"></span>
+              <button id="exportOrders" class="btn ghost small" type="button">Export CSV</button>
+            </div>
+
+            <div id="orders"><div class="admin-loading">Loading orders…</div></div>
+          </div>
+        </div>
+
+        <!-- ===== ACTIVITY ===== -->
+        <div id="tab-activity" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3>Live activity</h3>
+            <p class="muted" style="margin: 0 0 12px">Latest prompts and media generated by your users. Useful for spotting abuse.</p>
+
+            <div class="adm-tools">
+              <div class="seg" role="group" aria-label="Activity type">
+                <button type="button" data-kind="prompts" class="active">Prompts</button>
+                <button type="button" data-kind="media">Images &amp; videos</button>
+              </div>
+              <input id="activitySearch" class="adm-input grow" type="search" placeholder="Search user or text" aria-label="Search activity" />
+              <span id="activityCount" class="muted"></span>
+            </div>
+
+            <div id="activity"><div class="admin-loading">Loading activity…</div></div>
+          </div>
+        </div>
+
+        <!-- ===== BLOCKED ===== -->
+        <div id="tab-blocked" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3 style="margin-bottom: 3px">Block an email</h3>
+            <p class="muted" style="margin: 0 0 14px">
+              A blocked email can not log in or buy. It works even if the person has not signed up yet. Gmail dots and +tags are treated as the same address.
             </p>
+
+            <form id="blockForm" class="adm-row">
+              <div class="adm-field">
+                <label for="bEmail">Email</label>
+                <input id="bEmail" class="adm-input" type="email" placeholder="name@example.com" required />
+              </div>
+
+              <div class="adm-field">
+                <label for="bReason">Reason (optional)</label>
+                <input id="bReason" class="adm-input" type="text" maxlength="200" placeholder="e.g. refund abuse" />
+              </div>
+
+              <button class="btn danger" type="submit">Block</button>
+            </form>
+
+            <p id="blockMsg" class="adm-err" style="margin-top: 10px"></p>
+
+            <div id="blocked" style="margin-top: 6px"></div>
           </div>
         </div>
 
-        <!-- =====================================================
-       STATS
-  ====================================================== -->
+        <!-- ===== SYSTEM ===== -->
+        <div id="tab-system" role="tabpanel" class="adm-hide">
+          <div class="adm-grid2" style="margin-top: 0">
+            <div class="panel">
+              <h3>Setup checklist</h3>
+              <p class="muted" style="margin-bottom: 8px">What is configured on this server. Secret values are never shown.</p>
+              <div id="checks"><div class="admin-loading">Loading…</div></div>
+            </div>
 
-        <div id="stats" class="four">
-          <div class="statcard">
-            <span>👤</span>
-            <b>—</b>
-            <small>Users</small>
-          </div>
-
-          <div class="statcard">
-            <span>💰</span>
-            <b>—</b>
-            <small>Revenue</small>
-          </div>
-
-          <div class="statcard">
-            <span>🛍️</span>
-            <b>—</b>
-            <small>Paid Orders</small>
-          </div>
-
-          <div class="statcard">
-            <span>🪄</span>
-            <b>—</b>
-            <small>Prompts Generated</small>
-          </div>
-        </div>
-
-        <!-- =====================================================
-       RECENT USERS
-  ====================================================== -->
-
-        <div class="panel" style="margin-top: 18px">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              gap: 12px;
-              margin-bottom: 12px;
-            "
-          >
-            <div>
-              <h3 style="margin-bottom: 3px">Recent Users</h3>
-
-              <p class="muted" style="margin: 0">
-                Latest registered EditPrompt users.
-              </p>
+            <div class="panel">
+              <h3>Server &amp; storage</h3>
+              <p class="muted" style="margin-bottom: 12px">Runtime info and database size.</p>
+              <div id="sysinfo" class="kv"></div>
             </div>
           </div>
 
-          <div id="users">
-            <div class="admin-loading">Loading users…</div>
-          </div>
-        </div>
-
-        <!-- =====================================================
-       RECENT ORDERS
-  ====================================================== -->
-
-        <div class="panel" style="margin-top: 18px">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              gap: 12px;
-              margin-bottom: 12px;
-            "
-          >
-            <div>
-              <h3 style="margin-bottom: 3px">Recent Orders</h3>
-
-              <p class="muted" style="margin: 0">
-                Latest paid and payment records.
-              </p>
-            </div>
-          </div>
-
-          <div id="orders">
-            <div class="admin-loading">Loading orders…</div>
+          <div class="panel" style="margin-top: 18px">
+            <h3>Admin activity log</h3>
+            <p class="muted" style="margin: 0 0 12px">Everything done from this panel: logins, blocks, grants and revokes (latest 100).</p>
+            <div id="adminLog"><div class="admin-loading">Loading…</div></div>
           </div>
         </div>
       </section>
     </main>
 
+    <!-- ================= USER DRAWER ================= -->
+    <div id="drawer" class="adm-drawer" aria-hidden="true">
+      <div class="adm-backdrop" data-close-drawer></div>
+      <aside class="adm-sheet" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+        <div id="drawerBody"></div>
+      </aside>
+    </div>
+
     <script>
       "use strict";
 
-      /* ==========================================================
-   HELPERS
-========================================================== */
-
       const $ = (id) => document.getElementById(id);
 
+      let allUsers = [];
+      let allOrders = [];
+      let activityData = null;
+      let activityKind = "prompts";
+      let openUserId = null;
+      let lastFocus = null;
+
+      const TABS = ["overview", "users", "orders", "activity", "blocked", "system"];
+      let currentTab = "overview";
+
+      let productNames = {
+        cinematic: "Cinematic AI Prompt Pack",
+        wedding: "Wedding Video Prompt Pack",
+        ads: "Product Ad Prompt Pack",
+      };
+
+      /* ---------- helpers ---------- */
+
       function escapeHtml(value) {
-        return String(value ?? "").replace(
-          /[&<>'"]/g,
-          (char) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              "'": "&#39;",
-              '"': "&quot;",
-            })[char],
-        );
+        return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]);
       }
 
       function formatMoney(value) {
-        const number = Number(value || 0);
+        return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Number(value || 0));
+      }
 
-        return new Intl.NumberFormat("en-IN", {
-          maximumFractionDigits: 0,
-        }).format(number);
+      function parseDate(value) {
+        if (!value) return null;
+        const d = new Date(String(value).includes("T") ? value : String(value).replace(" ", "T") + "Z");
+        return Number.isNaN(d.getTime()) ? null : d;
       }
 
       function formatDate(value) {
         if (!value) return "—";
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-          return escapeHtml(value);
-        }
-
-        return escapeHtml(
-          date.toLocaleString("en-IN", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }),
-        );
+        const d = parseDate(value);
+        if (!d) return escapeHtml(value);
+        return escapeHtml(d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }));
       }
 
-      function productName(productId) {
-        const products = {
-          cinematic: "Cinematic AI Prompt Pack",
+      function shortDay(isoDay) {
+        const d = new Date(isoDay + "T00:00:00Z");
+        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+      }
 
-          wedding: "Wedding Video Prompt Pack",
+      function formatBytes(n) {
+        n = Number(n || 0);
+        if (n < 1024) return n + " B";
+        const units = ["KB", "MB", "GB", "TB"];
+        let i = -1;
+        do { n /= 1024; i++; } while (n >= 1024 && i < units.length - 1);
+        return n.toFixed(n < 10 ? 1 : 0) + " " + units[i];
+      }
 
-          ads: "Product Ad Prompt Pack",
-        };
+      function formatUptime(sec) {
+        sec = Number(sec || 0);
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return (d ? d + "d " : "") + (h || d ? h + "h " : "") + m + "m";
+      }
 
-        return products[productId] || productId || "Unknown Product";
+      function productName(id) {
+        return productNames[id] || id || "Unknown Product";
       }
 
       function statusClass(status) {
-        const value = String(status || "").toLowerCase();
-
-        if (value === "paid") {
-          return "status-paid";
-        }
-
-        if (value === "pending" || value === "created") {
-          return "status-pending";
-        }
-
-        if (value === "failed") {
-          return "status-failed";
-        }
-
-        if (value === "cancelled" || value === "canceled") {
-          return "status-cancelled";
-        }
-
+        const v = String(status || "").toLowerCase();
+        if (v === "paid") return "status-paid";
+        if (v === "pending" || v === "created") return "status-pending";
+        if (v === "failed") return "status-failed";
+        if (v === "cancelled" || v === "canceled" || v === "revoked") return "status-cancelled";
         return "status-other";
       }
 
-      /* ==========================================================
-   LOAD STATS
-========================================================== */
+      const errBox = (msg) => `<div class="adm-err" role="alert">${escapeHtml(msg)}</div>`;
 
-      async function loadStats() {
-        const statsEl = $("stats");
+      function csvCell(v) {
+        let s = String(v ?? "");
+        // stop spreadsheet formulas (=, +, -, @) from running when the file is opened
+        if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
 
-        statsEl.innerHTML = `
-    <div class="statcard">
-      <span>👤</span>
-      <b>…</b>
-      <small>Users</small>
-    </div>
+      function downloadCsv(filename, headers, rows) {
+        const body = [headers, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+        const blob = new Blob(["\ufeff" + body], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
 
-    <div class="statcard">
-      <span>💰</span>
-      <b>…</b>
-      <small>Revenue</small>
-    </div>
+      const stamp = () => new Date().toISOString().slice(0, 10);
 
-    <div class="statcard">
-      <span>🛍️</span>
-      <b>…</b>
-      <small>Paid Orders</small>
-    </div>
-
-    <div class="statcard">
-      <span>🪄</span>
-      <b>…</b>
-      <small>Prompts Generated</small>
-    </div>
-  `;
-
-        const response = await fetch("/api/admin/stats", {
+      async function api(url, options) {
+        const res = await fetch(url, {
           credentials: "same-origin",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          ...(options || {}),
         });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          statsEl.innerHTML = `
-      <div
-        class="card error-card"
-        style="grid-column:1/-1"
-      >
-
-        <h3>
-          ${escapeHtml(data.error || "Access denied")}
-        </h3>
-
-        <p class="muted">
-          Log in with an authorized admin email.
-        </p>
-
-        <a
-          class="btn"
-          href="/"
-        >
-          Back to Login
-        </a>
-
-      </div>
-    `;
-
-          throw new Error(data.error || "Admin access denied");
-        }
-
-        const stats = data.stats || {};
-
-        statsEl.innerHTML = [
-          ["👤", "Users", Number(stats.users || 0)],
-
-          ["💰", "Revenue", "₹" + formatMoney(stats.revenue)],
-
-          ["🛍️", "Paid Orders", Number(stats.orders || 0)],
-
-          ["🪄", "Prompts Generated", Number(stats.prompts || 0)],
-        ]
-          .map(
-            (item) => `
-        <div class="statcard">
-
-          <span>
-            ${item[0]}
-          </span>
-
-          <b>
-            ${escapeHtml(item[2])}
-          </b>
-
-          <small>
-            ${escapeHtml(item[1])}
-          </small>
-
-        </div>
-      `,
-          )
-          .join("");
-
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401 && !url.endsWith("/login")) showLogin();
+        if (!res.ok) throw new Error(data.error || "Request failed");
         return data;
       }
 
-      /* ==========================================================
-   LOAD USERS
-========================================================== */
+      const post = (url, body) => api(url, { method: "POST", body: JSON.stringify(body || {}) });
 
-      function renderUsers(users) {
-        const usersEl = $("users");
+      /* ---------- views + tabs ---------- */
 
-        if (!Array.isArray(users) || !users.length) {
-          usersEl.innerHTML = `
-      <div class="empty-state">
-        No users yet.
-      </div>
-    `;
-
-          return;
-        }
-
-        usersEl.innerHTML = `
-    <div class="admin-table-wrap">
-
-      <table class="admin-table">
-
-        <thead>
-
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Email</th>
-            <th>Registered</th>
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          ${users
-            .map(
-              (user) => `
-                <tr>
-
-                  <td>
-                    #${escapeHtml(user.id)}
-                  </td>
-
-                  <td>
-                    <b>
-                      ${escapeHtml(user.name || "Unknown")}
-                    </b>
-                  </td>
-
-                  <td>
-                    ${escapeHtml(user.email || "—")}
-                  </td>
-
-                  <td>
-                    ${formatDate(user.created_at)}
-                  </td>
-
-                </tr>
-              `,
-            )
-            .join("")}
-
-        </tbody>
-
-      </table>
-
-    </div>
-  `;
+      function showLogin(msg) {
+        closeDrawer();
+        $("dashView").classList.add("adm-hide");
+        $("loginView").classList.remove("adm-hide");
+        $("refreshBtn").classList.add("adm-hide");
+        $("logoutBtn").classList.add("adm-hide");
+        $("who").textContent = "Sign in to continue";
+        if (msg) $("loginErr").textContent = msg;
       }
 
-      /* ==========================================================
-   LOAD ORDERS
-========================================================== */
+      function showDash(email) {
+        $("loginView").classList.add("adm-hide");
+        $("dashView").classList.remove("adm-hide");
+        $("refreshBtn").classList.remove("adm-hide");
+        $("logoutBtn").classList.remove("adm-hide");
+        $("who").textContent = email || "Management dashboard";
+        setTab(location.hash.slice(1), false);
+      }
 
-      async function loadOrders() {
-        const ordersEl = $("orders");
+      function setTab(name, updateHash = true) {
+        if (!TABS.includes(name)) name = "overview";
+        currentTab = name;
 
-        ordersEl.innerHTML = `
-    <div class="admin-loading">
-      Loading orders…
-    </div>
-  `;
+        for (const t of TABS) {
+          $("tab-" + t).classList.toggle("adm-hide", t !== name);
+          const btn = document.querySelector(`[data-tab="${t}"]`);
+          btn.classList.toggle("active", t === name);
+          btn.setAttribute("aria-selected", String(t === name));
+        }
 
-        const response = await fetch("/api/admin/orders", {
-          credentials: "same-origin",
+        if (updateHash) history.replaceState(null, "", "#" + name);
+
+        if (name === "activity") loadActivity();
+        if (name === "system") loadSystem();
+      }
+
+      /* ---------- overview ---------- */
+
+      function chartPanel(title, series, opts = {}) {
+        const fmt = (v) => (opts.money ? "₹" + formatMoney(v) : formatMoney(v));
+        const total = series.reduce((a, p) => a + p.value, 0);
+        const max = Math.max(0, ...series.map((p) => p.value));
+        const peak = series.reduce((a, p) => (p.value > a.value ? p : a), series[0] || { value: 0, date: "" });
+
+        const bars = series
+          .map((p) => {
+            const h = max ? Math.max(p.value ? 3 : 0, (p.value / max) * 100) : 0;
+            return `<div class="bar" title="${escapeHtml(shortDay(p.date) + ": " + fmt(p.value))}"><i style="height:${h.toFixed(1)}%"></i></div>`;
+          })
+          .join("");
+
+        const first = series[0]?.date;
+        const last = series[series.length - 1]?.date;
+
+        return `<div class="panel">
+          <div class="chart-head">
+            <div><h3>${escapeHtml(title)}</h3><p class="muted">Last ${series.length} days</p></div>
+            <div class="big-num">${escapeHtml(fmt(total))}</div>
+          </div>
+          <div class="chart">${bars}</div>
+          <div class="chart-axis">
+            <span>${first ? shortDay(first) : ""}</span>
+            <span>${peak.value ? "Peak " + escapeHtml(fmt(peak.value)) + " · " + shortDay(peak.date) : "No data yet"}</span>
+            <span>${last ? shortDay(last) : ""}</span>
+          </div>
+        </div>`;
+      }
+
+      function userLink(u, extraMeta) {
+        return `<button class="linkish" type="button" data-view="${escapeHtml(u.id)}"><b>${escapeHtml(u.name || "Unknown")}</b><span class="admin-meta">${escapeHtml(extraMeta ?? u.email)}</span></button>`;
+      }
+
+      async function loadStats() {
+        const data = await api("/api/admin/stats");
+        const s = data.stats || {};
+        const n = (v) => Number(v || 0);
+
+        for (const p of data.byProduct || []) productNames[p.id] = p.name;
+
+        const card = (i) => `<div class="statcard"><span>${i[0]}</span><b>${escapeHtml(i[2])}</b><small>${escapeHtml(i[1])}</small></div>`;
+
+        $("stats").innerHTML = [
+          ["👤", "Users", n(s.users)],
+          ["💰", "Revenue", "₹" + formatMoney(s.revenue)],
+          ["🛍️", "Paid Orders", n(s.orders)],
+          ["🪄", "Prompts Generated", n(s.prompts)],
+          ["⛔", "Blocked", n(s.blocked)],
+        ].map(card).join("");
+
+        $("stats2").innerHTML = [
+          ["🆕", "New today", n(s.signupsToday)],
+          ["📈", "New this week", n(s.signups7)],
+          ["🔥", "Active users (7d)", n(s.active7)],
+          ["💵", "Revenue (7d)", "₹" + formatMoney(s.revenue7)],
+          ["🗓️", "Revenue (30d)", "₹" + formatMoney(s.revenue30)],
+          ["🧾", "Avg order", "₹" + formatMoney(s.avgOrder)],
+          ["🎯", "Users who bought", n(s.conversion) + "%"],
+          ["🖼️", "Images made", n(s.images)],
+          ["🎬", "Videos made", n(s.videos)],
+          ["🎁", "Free grants", n(s.granted)],
+        ].map(card).join("");
+
+        const sr = data.series || {};
+        $("charts").innerHTML =
+          chartPanel("New signups", sr.signups || []) +
+          chartPanel("Revenue", sr.revenue || [], { money: true }) +
+          chartPanel("Prompts generated", sr.prompts || []) +
+          chartPanel("Images & videos", sr.media || []);
+
+        const products = data.byProduct || [];
+        const maxRev = Math.max(1, ...products.map((p) => p.revenue));
+        $("byProduct").innerHTML = products.length
+          ? products
+              .map(
+                (p) => `<div class="list-row" style="display:block">
+                  <div style="display:flex;justify-content:space-between;gap:12px">
+                    <div><b>${escapeHtml(p.name)}</b><div class="admin-meta">₹${formatMoney(p.price)} each</div></div>
+                    <div style="text-align:right"><b>₹${formatMoney(p.revenue)}</b><div class="admin-meta">${Number(p.sales)} sold</div></div>
+                  </div>
+                  <div class="meter"><i style="width:${((p.revenue / maxRev) * 100).toFixed(1)}%"></i></div>
+                </div>`,
+              )
+              .join("")
+          : '<div class="empty-state">No products.</div>';
+
+        const top = data.topUsers || [];
+        $("topUsers").innerHTML = top.length
+          ? top
+              .map(
+                (u) => `<div class="list-row"><div class="left">${userLink(u)}</div>
+                  <div class="right">${Number(u.prompts)} prompts<div class="admin-meta">${Number(u.media)} media</div></div></div>`,
+              )
+              .join("")
+          : '<div class="empty-state">No activity yet.</div>';
+
+        const recent = data.recentUsers || [];
+        $("recentUsers").innerHTML = recent.length
+          ? recent
+              .map((u) => `<div class="list-row"><div class="left">${userLink(u)}</div><div class="right admin-meta">${formatDate(u.created_at)}</div></div>`)
+              .join("")
+          : '<div class="empty-state">No users yet.</div>';
+
+        const modes = data.promptModes || [];
+        const totalModes = modes.reduce((a, m) => a + Number(m.n), 0) || 1;
+        $("promptModes").innerHTML = modes.length
+          ? modes
+              .map(
+                (m) => `<div class="list-row" style="display:block">
+                  <div style="display:flex;justify-content:space-between"><b>${escapeHtml(m.mode)}</b><span>${Number(m.n)} <span class="admin-meta">(${Math.round((m.n / totalModes) * 100)}%)</span></span></div>
+                  <div class="meter"><i style="width:${((m.n / totalModes) * 100).toFixed(1)}%"></i></div>
+                </div>`,
+              )
+              .join("")
+          : '<div class="empty-state">No prompts yet.</div>';
+      }
+
+      /* ---------- users ---------- */
+
+      function filteredUsers() {
+        const q = $("userSearch").value.trim().toLowerCase();
+        const f = $("userFilter").value;
+        const sort = $("userSort").value;
+
+        const list = allUsers.filter((u) => {
+          if (q && !(u.name || "").toLowerCase().includes(q) && !(u.email || "").toLowerCase().includes(q)) return false;
+          if (f === "active") return !u.blocked;
+          if (f === "blocked") return u.blocked;
+          if (f === "paying") return Number(u.paid_amount) > 0;
+          if (f === "free") return !Number(u.paid_amount);
+          return true;
         });
 
-        const data = await response.json().catch(() => ({}));
+        const sorters = {
+          new: (a, b) => b.id - a.id,
+          old: (a, b) => a.id - b.id,
+          prompts: (a, b) => Number(b.prompts) - Number(a.prompts),
+          spent: (a, b) => Number(b.paid_amount) - Number(a.paid_amount),
+          name: (a, b) => String(a.name || "").localeCompare(String(b.name || "")),
+        };
 
-        if (!response.ok) {
-          ordersEl.innerHTML = `
-      <div class="empty-state">
-        ${escapeHtml(data.error || "Could not load orders.")}
-      </div>
-    `;
-
-          return;
-        }
-
-        const orders = Array.isArray(data.orders) ? data.orders : [];
-
-        if (!orders.length) {
-          ordersEl.innerHTML = `
-      <div class="empty-state">
-        No orders yet.
-      </div>
-    `;
-
-          return;
-        }
-
-        ordersEl.innerHTML = `
-    <div class="admin-table-wrap">
-
-      <table class="admin-table">
-
-        <thead>
-
-          <tr>
-
-            <th>
-              Customer
-            </th>
-
-            <th>
-              Product
-            </th>
-
-            <th>
-              Amount
-            </th>
-
-            <th>
-              Status
-            </th>
-
-            <th>
-              Order ID
-            </th>
-
-            <th>
-              Payment ID
-            </th>
-
-            <th>
-              Date
-            </th>
-
-          </tr>
-
-        </thead>
-
-        <tbody>
-
-          ${orders
-            .map((order) => {
-              const status = String(order.status || "unknown");
-
-              return `
-                  <tr>
-
-                    <td>
-
-                      <b>
-                        ${escapeHtml(order.name || "Unknown")}
-                      </b>
-
-                      <div class="admin-meta">
-                        ${escapeHtml(order.email || "—")}
-                      </div>
-
-                    </td>
-
-                    <td>
-
-                      <b>
-                        ${escapeHtml(productName(order.product_id))}
-                      </b>
-
-                      <div class="admin-meta">
-                        ${escapeHtml(order.product_id || "")}
-                      </div>
-
-                    </td>
-
-                    <td>
-                      <b>
-                        ₹${formatMoney(Number(order.amount || 0) / 100)}
-                      </b>
-                    </td>
-
-                    <td>
-
-                      <span
-                        class="status-pill ${statusClass(status)}"
-                      >
-                        ${escapeHtml(status)}
-                      </span>
-
-                    </td>
-
-                    <td>
-                      <span
-                        class="muted"
-                        style="font-size:11px"
-                      >
-                        ${escapeHtml(order.order_id || "—")}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        class="muted"
-                        style="font-size:11px"
-                      >
-                        ${escapeHtml(order.payment_id || "—")}
-                      </span>
-                    </td>
-
-                    <td>
-                      ${formatDate(order.created_at)}
-                    </td>
-
-                  </tr>
-                `;
-            })
-            .join("")}
-
-        </tbody>
-
-      </table>
-
-    </div>
-  `;
+        return list.sort(sorters[sort] || sorters.new);
       }
 
-      /* ==========================================================
-   LOAD EVERYTHING
-========================================================== */
+      function renderUsers() {
+        const list = filteredUsers();
+        $("userCount").textContent = list.length + " of " + allUsers.length;
 
-      async function loadDashboard() {
-        const refreshBtn = $("refreshBtn");
+        if (!list.length) {
+          $("users").innerHTML = '<div class="empty-state">No users found.</div>';
+          return;
+        }
 
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = "Refreshing…";
+        $("users").innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr>
+          <th>ID</th><th>User</th><th>Registered</th><th>Paid orders</th><th>Prompts</th><th>Status</th><th></th>
+        </tr></thead><tbody>${list
+          .map(
+            (u) => `<tr>
+              <td>#${escapeHtml(u.id)}</td>
+              <td>${userLink(u)}</td>
+              <td>${formatDate(u.created_at)}</td>
+              <td>${Number(u.paid_orders || 0)} <span class="admin-meta">(₹${formatMoney(Number(u.paid_amount || 0) / 100)})</span></td>
+              <td>${Number(u.prompts || 0)}</td>
+              <td><span class="status-pill ${u.blocked ? "status-blocked" : "status-active"}">${u.blocked ? "Blocked" : "Active"}</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn ghost small" data-view="${escapeHtml(u.id)}" type="button">View</button>
+                ${
+                  u.blocked
+                    ? `<button class="btn ghost small" data-unblock="${escapeHtml(u.email)}" type="button">Unblock</button>`
+                    : `<button class="btn danger small" data-block="${escapeHtml(u.email)}" type="button">Block</button>`
+                }
+              </td>
+            </tr>`,
+          )
+          .join("")}</tbody></table></div>`;
+      }
+
+      async function loadUsers() {
+        const data = await api("/api/admin/users");
+        allUsers = data.users || [];
+        $("usersBadge").textContent = allUsers.length;
+        renderUsers();
+      }
+
+      function exportUsers() {
+        const list = filteredUsers();
+        downloadCsv(
+          `editprompt-users-${stamp()}.csv`,
+          ["ID", "Name", "Email", "Registered", "Paid orders", "Spent (INR)", "Prompts", "Status"],
+          list.map((u) => [u.id, u.name || "", u.email, u.created_at, Number(u.paid_orders || 0), Number(u.paid_amount || 0) / 100, Number(u.prompts || 0), u.blocked ? "Blocked" : "Active"]),
+        );
+      }
+
+      /* ---------- blocked ---------- */
+
+      async function loadBlocked() {
+        const data = await api("/api/admin/blocked");
+        const list = data.blocked || [];
+        $("blockedBadge").textContent = list.length || "";
+
+        if (!list.length) {
+          $("blocked").innerHTML = '<div class="empty-state">No blocked emails.</div>';
+          return;
+        }
+
+        $("blocked").innerHTML = `<div class="admin-table-wrap"><table class="admin-table" style="min-width:520px"><thead><tr>
+          <th>Blocked email</th><th>Reason</th><th>Blocked on</th><th></th></tr></thead><tbody>${list
+          .map(
+            (b) => `<tr>
+              <td><b>${escapeHtml(b.email)}</b></td>
+              <td>${escapeHtml(b.reason || "—")}</td>
+              <td>${formatDate(b.created_at)}</td>
+              <td><button class="btn ghost small" data-unblock="${escapeHtml(b.email)}" type="button">Unblock</button></td>
+            </tr>`,
+          )
+          .join("")}</tbody></table></div>`;
+      }
+
+      async function blockEmail(email, reason) {
+        await post("/api/admin/block", { email, reason });
+        await afterChange();
+      }
+
+      async function unblockEmail(email) {
+        await post("/api/admin/unblock", { email });
+        await afterChange();
+      }
+
+      /* ---------- orders ---------- */
+
+      const isGrant = (o) => Number(o.amount) === 0 && String(o.status).toLowerCase() === "paid";
+
+      function filteredOrders() {
+        const q = $("orderSearch").value.trim().toLowerCase();
+        const st = $("orderStatus").value;
+        const pr = $("orderProduct").value;
+
+        return allOrders.filter((o) => {
+          const status = String(o.status || "").toLowerCase();
+          if (st === "paid" && !(status === "paid" && Number(o.amount) > 0)) return false;
+          if (st === "granted" && !isGrant(o)) return false;
+          if (st === "revoked" && status !== "revoked") return false;
+          if (pr !== "all" && o.product_id !== pr) return false;
+          if (!q) return true;
+          return [o.name, o.email, o.order_id, o.payment_id, productName(o.product_id)].some((v) => String(v || "").toLowerCase().includes(q));
+        });
+      }
+
+      function renderOrders() {
+        const list = filteredOrders();
+        const collected = list.filter((o) => String(o.status).toLowerCase() === "paid").reduce((a, o) => a + Number(o.amount || 0), 0);
+        $("orderSummary").textContent = list.length + " of " + allOrders.length + " · ₹" + formatMoney(collected / 100) + " collected";
+
+        if (!allOrders.length) {
+          $("orders").innerHTML = '<div class="empty-state">No orders yet.</div>';
+          return;
+        }
+
+        if (!list.length) {
+          $("orders").innerHTML = '<div class="empty-state">No orders match these filters.</div>';
+          return;
+        }
+
+        $("orders").innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr>
+          <th>Customer</th><th>Product</th><th>Amount</th><th>Status</th><th>Order ID</th><th>Payment ID</th><th>Date</th><th></th>
+        </tr></thead><tbody>${list
+          .map((o) => {
+            const status = String(o.status || "unknown");
+            const lower = status.toLowerCase();
+            const grant = isGrant(o);
+            const label = `${o.name || o.email} · ${productName(o.product_id)}`;
+
+            let actions = "";
+            if (lower === "paid" && !grant) actions += `<a class="btn ghost small" target="_blank" rel="noopener" href="/api/invoice/${encodeURIComponent(o.id)}">Invoice</a> `;
+            if (lower === "paid") actions += `<button class="btn ghost small" data-revoke="${escapeHtml(o.id)}" data-label="${escapeHtml(label)}" type="button">Revoke</button>`;
+            if (lower === "revoked") actions += `<button class="btn ghost small" data-restore="${escapeHtml(o.id)}" data-label="${escapeHtml(label)}" type="button">Restore</button>`;
+
+            return `<tr>
+              <td>${userLink({ id: o.user_id, name: o.name, email: o.email }, o.email || "—")}</td>
+              <td><b>${escapeHtml(productName(o.product_id))}</b><div class="admin-meta">${escapeHtml(o.product_id || "")}</div></td>
+              <td>${grant ? '<span class="status-pill status-other">Free grant</span>' : `<b>₹${formatMoney(Number(o.amount || 0) / 100)}</b>`}</td>
+              <td><span class="status-pill ${statusClass(status)}">${escapeHtml(status)}</span></td>
+              <td><span class="muted" style="font-size:11px">${escapeHtml(o.order_id || "—")}</span></td>
+              <td><span class="muted" style="font-size:11px">${escapeHtml(o.payment_id || "—")}</span></td>
+              <td>${formatDate(o.created_at)}</td>
+              <td class="nowrap">${actions}</td>
+            </tr>`;
+          })
+          .join("")}</tbody></table></div>`;
+      }
+
+      async function loadOrders() {
+        const data = await api("/api/admin/orders");
+        allOrders = data.orders || [];
+        $("ordersBadge").textContent = allOrders.length || "";
+
+        const sel = $("orderProduct");
+        const keep = sel.value || "all";
+        const ids = [...new Set([...Object.keys(productNames), ...allOrders.map((o) => o.product_id)])];
+        sel.innerHTML = '<option value="all">All products</option>' + ids.map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(productName(id))}</option>`).join("");
+        sel.value = ids.includes(keep) ? keep : "all";
+
+        renderOrders();
+      }
+
+      function exportOrders() {
+        const list = filteredOrders();
+        downloadCsv(
+          `editprompt-orders-${stamp()}.csv`,
+          ["Order #", "Date", "Customer", "Email", "Product", "Amount (INR)", "Status", "Razorpay order ID", "Payment ID"],
+          list.map((o) => [o.id, o.created_at, o.name || "", o.email || "", productName(o.product_id), Number(o.amount || 0) / 100, isGrant(o) ? "free grant" : o.status, o.order_id || "", o.payment_id || ""]),
+        );
+      }
+
+      async function orderAction(action, id, label) {
+        const msg =
+          action === "revoke"
+            ? `Revoke access for:\n${label}\n\nThe customer loses this download. This does NOT refund the payment - do that in the Razorpay dashboard.`
+            : `Restore access for:\n${label}?`;
+        if (!confirm(msg)) return;
+        await post("/api/admin/order-status", { purchaseId: Number(id), action });
+        await afterChange();
+      }
+
+      /* ---------- activity ---------- */
+
+      async function loadActivity() {
+        try {
+          activityData = await api("/api/admin/activity");
+          renderActivity();
+        } catch (e) {
+          $("activity").innerHTML = errBox(e.message);
+        }
+      }
+
+      function renderActivity() {
+        if (!activityData) return;
+        const q = $("activitySearch").value.trim().toLowerCase();
+        const match = (row) => !q || [row.name, row.email, row.subject, row.prompt, row.model, row.kind].some((v) => String(v || "").toLowerCase().includes(q));
+
+        document.querySelectorAll(".seg button").forEach((b) => b.classList.toggle("active", b.dataset.kind === activityKind));
+
+        if (activityKind === "prompts") {
+          const list = activityData.prompts.filter(match);
+          $("activityCount").textContent = list.length + " shown";
+          $("activity").innerHTML = list.length
+            ? list
+                .map(
+                  (p) => `<div class="feed-item">
+                    <div class="feed-top">
+                      <span>${userLink({ id: p.user_id, name: p.name }, p.email)}</span>
+                      <span><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span> &nbsp; ${formatDate(p.created_at)}</span>
+                    </div>
+                    <details><summary>${escapeHtml(p.subject || "(no subject)")}</summary><pre>${escapeHtml(p.prompt)}</pre></details>
+                  </div>`,
+                )
+                .join("")
+            : '<div class="empty-state">No prompts found.</div>';
+          return;
+        }
+
+        const list = activityData.media.filter(match);
+        $("activityCount").textContent = list.length + " shown";
+        $("activity").innerHTML = list.length
+          ? `<div class="media-grid">${list.map(mediaCard).join("")}</div>`
+          : '<div class="empty-state">No media found.</div>';
+      }
+
+      function mediaCard(m, showUser = true) {
+        const isVideo = /video/i.test(m.kind);
+        let thumb = '<div class="media-thumb">File expired</div>';
+        if (m.url) {
+          thumb = isVideo
+            ? `<div class="media-thumb"><video src="${escapeHtml(m.url)}" controls preload="none" muted playsinline></video></div>`
+            : `<a class="media-thumb" href="${escapeHtml(m.url)}" target="_blank" rel="noopener"><img src="${escapeHtml(m.url)}" alt="Generated image" loading="lazy" /></a>`;
+        }
+        return `<div class="media-card">${thumb}<div class="media-info">
+          <p>${escapeHtml(m.prompt)}</p>
+          ${showUser ? `<span>${userLink({ id: m.user_id, name: m.name }, m.email)}</span>` : ""}
+          <span><span class="status-pill status-other">${escapeHtml(m.kind)}</span> ${formatDate(m.created_at)}</span>
+        </div></div>`;
+      }
+
+      /* ---------- system + audit log ---------- */
+
+      async function loadSystem() {
+        try {
+          const [sys, log] = await Promise.all([api("/api/admin/system"), api("/api/admin/log")]);
+
+          $("checks").innerHTML = (sys.checks || [])
+            .map((c) => `<div class="check-row"><span class="dot ${c.ok ? "ok" : "warn"}">${c.ok ? "✓" : "!"}</span><div><b>${escapeHtml(c.label)}</b><span class="note">${escapeHtml(c.note)}</span></div></div>`)
+            .join("");
+
+          const i = sys.info || {};
+          const r = i.rows || {};
+          const kv = (k, v) => `<div><small>${escapeHtml(k)}</small><b>${escapeHtml(v)}</b></div>`;
+          $("sysinfo").innerHTML = [
+            kv("Environment", i.environment),
+            kv("Node.js", i.node),
+            kv("Uptime", formatUptime(i.uptimeSeconds)),
+            kv("Database size", formatBytes(i.dbBytes)),
+            kv("Media files", `${i.mediaFiles} (${formatBytes(i.mediaBytes)})`),
+            kv("Media kept for", `${i.mediaTtlHours} hours`),
+            kv("Users / Orders", `${r.users} / ${r.purchases}`),
+            kv("Prompts / Media", `${r.prompts} / ${r.media}`),
+            kv("Favorites", r.favorites),
+            kv("Day boundary", "UTC" + (i.timezoneOffsetMinutes >= 0 ? "+" : "-") + Math.floor(Math.abs(i.timezoneOffsetMinutes) / 60) + ":" + String(Math.abs(i.timezoneOffsetMinutes) % 60).padStart(2, "0")),
+          ].join("");
+
+          const rows = log.log || [];
+          const bad = ["block", "revoke", "login_failed"];
+          $("adminLog").innerHTML = rows.length
+            ? `<div class="admin-table-wrap"><table class="admin-table" style="min-width:560px"><thead><tr><th>When</th><th>Action</th><th>Target</th><th>Details</th></tr></thead><tbody>${rows
+                .map(
+                  (l) => `<tr><td class="nowrap">${formatDate(l.created_at)}</td>
+                    <td><span class="status-pill ${bad.includes(l.action) ? "status-blocked" : "status-active"}">${escapeHtml(l.action.replace("_", " "))}</span></td>
+                    <td>${escapeHtml(l.target || "—")}</td><td>${escapeHtml(l.detail || "—")}</td></tr>`,
+                )
+                .join("")}</tbody></table></div>`
+            : '<div class="empty-state">Nothing logged yet. Blocks, grants and logins will appear here.</div>';
+        } catch (e) {
+          $("checks").innerHTML = errBox(e.message);
+        }
+      }
+
+      /* ---------- user drawer ---------- */
+
+      async function openUser(id) {
+        openUserId = Number(id);
+        lastFocus = document.activeElement;
+        $("drawer").classList.add("open");
+        $("drawer").setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+        $("drawerBody").innerHTML = '<div class="admin-loading">Loading…</div>';
+        await reloadDrawer();
+      }
+
+      function closeDrawer() {
+        openUserId = null;
+        $("drawer").classList.remove("open");
+        $("drawer").setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+        lastFocus = null;
+      }
+
+      async function reloadDrawer() {
+        const id = openUserId;
+        if (!id) return;
+        try {
+          const d = await api("/api/admin/users/" + id);
+          if (openUserId !== id) return;
+          renderDrawer(d);
+        } catch (e) {
+          if (openUserId === id) $("drawerBody").innerHTML = `<button class="btn ghost small" data-close-drawer type="button">Close</button>${errBox(e.message)}`;
+        }
+      }
+
+      function renderDrawer(d) {
+        const u = d.user;
+        const t = d.totals || {};
+        const owned = new Set(d.purchases.filter((p) => p.status === "paid").map((p) => p.product_id));
+        const available = (d.products || []).filter((p) => !owned.has(p.id));
+
+        const purchases = d.purchases.length
+          ? `<div class="admin-table-wrap"><table class="admin-table drawer-sheet-table"><thead><tr><th>Product</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr></thead><tbody>${d.purchases
+              .map((p) => {
+                const label = `${u.name || u.email} · ${p.product_name}`;
+                return `<tr>
+                  <td><b>${escapeHtml(p.product_name)}</b><div class="admin-meta">${escapeHtml(p.payment_id)}</div></td>
+                  <td>${p.granted ? '<span class="status-pill status-other">Free grant</span>' : "₹" + formatMoney(p.amount / 100)}</td>
+                  <td><span class="status-pill ${statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
+                  <td>${formatDate(p.created_at)}</td>
+                  <td class="nowrap">${
+                    p.status === "paid"
+                      ? `<button class="btn ghost small" data-revoke="${escapeHtml(p.id)}" data-label="${escapeHtml(label)}" type="button">Revoke</button>`
+                      : p.status === "revoked"
+                        ? `<button class="btn ghost small" data-restore="${escapeHtml(p.id)}" data-label="${escapeHtml(label)}" type="button">Restore</button>`
+                        : ""
+                  }</td></tr>`;
+              })
+              .join("")}</tbody></table></div>`
+          : '<div class="empty-state">No purchases.</div>';
+
+        const prompts = d.prompts.length
+          ? d.prompts
+              .map(
+                (p) => `<div class="feed-item"><div class="feed-top"><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span><span>${formatDate(p.created_at)}</span></div>
+                  <details><summary>${escapeHtml(p.subject || "(no subject)")}</summary><pre>${escapeHtml(p.prompt)}</pre></details></div>`,
+              )
+              .join("")
+          : '<div class="empty-state">No prompts yet.</div>';
+
+        const media = d.media.length ? `<div class="media-grid tight">${d.media.map((m) => mediaCard(m, false)).join("")}</div>` : '<div class="empty-state">No media yet.</div>';
+
+        $("drawerBody").innerHTML = `
+          <div class="drawer-head">
+            <div>
+              <div class="eyebrow">USER #${escapeHtml(u.id)}</div>
+              <h3 id="drawerTitle">${escapeHtml(u.name || "Unknown")}</h3>
+              <div class="admin-meta" style="font-size:13px">${escapeHtml(u.email)}</div>
+              <div class="admin-meta">Joined ${formatDate(u.created_at)}</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <span class="status-pill ${u.blocked ? "status-blocked" : "status-active"}">${u.blocked ? "Blocked" : "Active"}</span>
+              <button class="btn ghost small" data-close-drawer type="button" aria-label="Close">✕</button>
+            </div>
+          </div>
+
+          ${u.blocked && u.block_reason ? `<p class="adm-err" style="margin-top:12px">Blocked reason: ${escapeHtml(u.block_reason)}</p>` : ""}
+
+          <div class="mini-stats">
+            <div><b>${Number(t.prompts || 0)}</b><small>Prompts</small></div>
+            <div><b>${Number(t.media || 0)}</b><small>Media</small></div>
+            <div><b>${Number(t.favorites || 0)}</b><small>Favorites</small></div>
+            <div><b>${d.purchases.filter((p) => p.status === "paid").length}</b><small>Products owned</small></div>
+          </div>
+
+          <div class="drawer-actions">
+            ${
+              u.blocked
+                ? `<button class="btn ghost small" data-unblock="${escapeHtml(u.email)}" type="button">Unblock user</button>`
+                : `<button class="btn danger small" data-block="${escapeHtml(u.email)}" type="button">Block user</button>`
+            }
+            <button class="btn ghost small" data-copy="${escapeHtml(u.email)}" type="button">Copy email</button>
+            <a class="btn ghost small" href="mailto:${escapeHtml(u.email)}">Send email</a>
+          </div>
+
+          <div class="drawer-sec">
+            <h4>Give free access</h4>
+            ${
+              available.length
+                ? `<div class="drawer-actions" style="margin-top:0">
+                    <select id="grantSelect" class="adm-input" aria-label="Product to give">${available.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("")}</select>
+                    <button class="btn primary small" data-grant="${escapeHtml(u.id)}" type="button">Give access</button>
+                  </div>`
+                : '<div class="empty-state" style="padding:0">This user already owns every product.</div>'
+            }
+          </div>
+
+          <div class="drawer-sec"><h4>Purchases</h4>${purchases}</div>
+          <div class="drawer-sec"><h4>Recent prompts</h4>${prompts}</div>
+          <div class="drawer-sec"><h4>Recent images &amp; videos</h4>${media}</div>
+        `;
+
+        const closeBtn = $("drawerBody").querySelector("[data-close-drawer]");
+        if (closeBtn && document.activeElement === document.body) closeBtn.focus();
+      }
+
+      /* ---------- load everything ---------- */
+
+      async function refreshAll() {
+        const btn = $("refreshBtn");
+        btn.disabled = true;
+        btn.textContent = "Refreshing…";
+        try {
+          const jobs = [
+            ["overview", loadStats()],
+            ["users", loadUsers()],
+            ["blocked", loadBlocked()],
+            ["orders", loadOrders()],
+          ];
+          const results = await Promise.allSettled(jobs.map((j) => j[1]));
+          results.forEach((r, i) => {
+            if (r.status === "rejected") {
+              console.error("Admin load error (" + jobs[i][0] + "):", r.reason);
+              const target = { overview: "stats", users: "users", blocked: "blocked", orders: "orders" }[jobs[i][0]];
+              $(target).innerHTML = errBox(r.reason && r.reason.message ? r.reason.message : "Could not load.");
+            }
+          });
+          if (currentTab === "activity") loadActivity();
+          if (currentTab === "system") loadSystem();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Refresh";
+        }
+      }
+
+      async function afterChange() {
+        await refreshAll();
+        if (openUserId) await reloadDrawer();
+      }
+
+      /* ---------- events ---------- */
+
+      $("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        $("loginErr").textContent = "";
+        const btn = $("loginBtn");
+        btn.disabled = true;
+        btn.textContent = "Signing in…";
+        try {
+          const data = await post("/api/admin/login", { email: $("aEmail").value, password: $("aPass").value });
+          $("aPass").value = "";
+          showDash(data.email);
+          await refreshAll();
+        } catch (err) {
+          $("loginErr").textContent = err.message;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Login";
+        }
+      });
+
+      $("logoutBtn").addEventListener("click", async () => {
+        await post("/api/admin/logout").catch(() => {});
+        showLogin();
+      });
+
+      $("refreshBtn").addEventListener("click", refreshAll);
+
+      document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+      window.addEventListener("hashchange", () => {
+        if (!$("dashView").classList.contains("adm-hide")) setTab(location.hash.slice(1), false);
+      });
+
+      ["userSearch", "userFilter", "userSort"].forEach((id) => $(id).addEventListener("input", renderUsers));
+      ["orderSearch", "orderStatus", "orderProduct"].forEach((id) => $(id).addEventListener("input", renderOrders));
+      $("activitySearch").addEventListener("input", renderActivity);
+      $("exportUsers").addEventListener("click", exportUsers);
+      $("exportOrders").addEventListener("click", exportOrders);
+
+      document.querySelectorAll(".seg button").forEach((b) =>
+        b.addEventListener("click", () => {
+          activityKind = b.dataset.kind;
+          renderActivity();
+        }),
+      );
+
+      $("blockForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        $("blockMsg").textContent = "";
+        try {
+          await blockEmail($("bEmail").value, $("bReason").value);
+          $("bEmail").value = "";
+          $("bReason").value = "";
+        } catch (err) {
+          $("blockMsg").textContent = err.message;
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && openUserId) closeDrawer();
+      });
+
+      document.addEventListener("click", async (e) => {
+        const t = e.target;
+        const view = t.closest("[data-view]");
+        const close = t.closest("[data-close-drawer]");
+        const b = t.closest("[data-block]");
+        const u = t.closest("[data-unblock]");
+        const rv = t.closest("[data-revoke]");
+        const rs = t.closest("[data-restore]");
+        const gr = t.closest("[data-grant]");
+        const cp = t.closest("[data-copy]");
 
         try {
-          const stats = await loadStats();
-
-          renderUsers(stats.recentUsers || []);
-
-          await loadOrders();
-        } catch (error) {
-          console.error("Admin dashboard error:", error);
-
-          $("users").innerHTML = `
-      <div class="empty-state">
-        Could not load users.
-      </div>
-    `;
-
-          $("orders").innerHTML = `
-      <div class="empty-state">
-        Could not load orders.
-      </div>
-    `;
-        } finally {
-          refreshBtn.disabled = false;
-
-          refreshBtn.textContent = "Refresh";
+          if (close) {
+            closeDrawer();
+          } else if (view) {
+            await openUser(view.getAttribute("data-view"));
+          } else if (b) {
+            const email = b.getAttribute("data-block");
+            if (!confirm("Block " + email + " permanently?")) return;
+            const reason = prompt("Reason (optional):", "");
+            if (reason === null) return;
+            await blockEmail(email, reason);
+          } else if (u) {
+            const email = u.getAttribute("data-unblock");
+            if (!confirm("Unblock " + email + "?")) return;
+            await unblockEmail(email);
+          } else if (rv) {
+            await orderAction("revoke", rv.getAttribute("data-revoke"), rv.getAttribute("data-label"));
+          } else if (rs) {
+            await orderAction("restore", rs.getAttribute("data-restore"), rs.getAttribute("data-label"));
+          } else if (gr) {
+            const productId = $("grantSelect").value;
+            if (!confirm("Give this user free access to " + productName(productId) + "?")) return;
+            await post("/api/admin/grant", { userId: Number(gr.getAttribute("data-grant")), productId });
+            await afterChange();
+          } else if (cp) {
+            const email = cp.getAttribute("data-copy");
+            try {
+              await navigator.clipboard.writeText(email);
+              cp.textContent = "Copied ✓";
+              setTimeout(() => (cp.textContent = "Copy email"), 1500);
+            } catch {
+              prompt("Copy this email:", email);
+            }
+          }
+        } catch (err) {
+          alert(err.message);
         }
-      }
+      });
 
-      /* ==========================================================
-   REFRESH
-========================================================== */
+      /* ---------- start ---------- */
 
-      $("refreshBtn").addEventListener("click", loadDashboard);
-
-      /* ==========================================================
-   START
-========================================================== */
-
-      loadDashboard();
+      (async function start() {
+        try {
+          const me = await api("/api/admin/me");
+          if (me.admin) {
+            showDash(me.email);
+            await refreshAll();
+          } else {
+            showLogin(me.configured ? "" : "Admin login is not set up yet. Add ADMIN_EMAIL and ADMIN_PASSWORD to .env and restart the server.");
+          }
+        } catch (e) {
+          showLogin();
+        }
+      })();
     </script>
   </body>
 </html>

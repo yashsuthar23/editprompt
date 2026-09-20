@@ -39,7 +39,9 @@ app.use((req, res, next) => {
     "camera=(), microphone=(), geolocation=()",
   );
 
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // same-origin would cut the link to Razorpay's payment popup (bank / UPI / 3-D Secure page),
+  // leaving a blank about:blank window and a payment that never reaches the site.
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
   next();
 });
@@ -232,6 +234,129 @@ CREATE TABLE IF NOT EXISTS favorites(
 try {
   db.exec("ALTER TABLE otps ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
 } catch {}
+
+// ============================================================
+// BLOCKED EMAILS (permanent block list managed from admin panel)
+// ============================================================
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS blocked_emails(
+  email TEXT PRIMARY KEY,
+  shown_email TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+// Audit trail of everything the admin does (block, unblock, grant, revoke, login).
+db.exec(`
+CREATE TABLE IF NOT EXISTS admin_log(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  action TEXT NOT NULL,
+  target TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+function logAdmin(action, target = "", detail = "") {
+  try {
+    db.prepare(
+      "INSERT INTO admin_log(action, target, detail) VALUES(?,?,?)",
+    ).run(
+      String(action).slice(0, 40),
+      String(target || "").slice(0, 200),
+      String(detail || "").slice(0, 300),
+    );
+  } catch (err) {
+    console.error("Admin log failed:", err.message);
+  }
+}
+
+// One key per real mailbox: gmail ignores dots and +tags, so a+1@gmail.com
+// and a.@gmail.com cannot be used to get around a block.
+function canonicalEmail(email) {
+  const e = String(email || "").trim().toLowerCase();
+  const at = e.lastIndexOf("@");
+
+  if (at < 1) return e;
+
+  let local = e.slice(0, at);
+  let domain = e.slice(at + 1);
+
+  if (domain === "googlemail.com") domain = "gmail.com";
+
+  if (domain === "gmail.com") {
+    local = local.split("+")[0].replace(/\./g, "");
+  }
+
+  return `${local}@${domain}`;
+}
+
+function isEmailBlocked(email) {
+  return Boolean(
+    db
+      .prepare("SELECT 1 FROM blocked_emails WHERE email=?")
+      .get(canonicalEmail(email)),
+  );
+}
+
+const BLOCKED_MESSAGE =
+  "This email has been blocked. Contact support if you think this is a mistake.";
+
+// A user who gets blocked while logged in is signed out on their next request.
+app.use("/api", (req, res, next) => {
+  if (req.session && req.session.userId) {
+    const u = db
+      .prepare("SELECT email FROM users WHERE id=?")
+      .get(req.session.userId);
+
+    if (!u || isEmailBlocked(u.email)) {
+      delete req.session.userId;
+    }
+  }
+
+  next();
+});
+
+// ============================================================
+// RAZORPAY KEYS
+// ============================================================
+
+// Values pasted into .env often carry stray spaces or quotes. Clean them once here.
+function cleanEnv(name) {
+  return String(process.env[name] || "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .trim();
+}
+
+function razorpayKeys() {
+  return {
+    keyId: cleanEnv("RAZORPAY_KEY_ID"),
+    keySecret: cleanEnv("RAZORPAY_KEY_SECRET"),
+  };
+}
+
+// Which key is missing, in plain words (empty string when everything is set).
+function razorpayProblem() {
+  const { keyId, keySecret } = razorpayKeys();
+
+  if (!keyId && !keySecret) return "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are both empty";
+  if (!keyId) return "RAZORPAY_KEY_ID is empty";
+  if (!keySecret) return "RAZORPAY_KEY_SECRET is empty";
+  if (!/^rzp_(test|live)_/.test(keyId)) return "RAZORPAY_KEY_ID should start with rzp_test_ or rzp_live_";
+
+  return "";
+}
+
+const razorpayReady = () => !razorpayProblem();
+
+if (!razorpayReady()) {
+  console.warn(
+    `Razorpay checkout is OFF: ${razorpayProblem()}. Add it to .env and restart the server.`,
+  );
+}
 
 // ============================================================
 // PRODUCTS
@@ -856,29 +981,76 @@ function requireLogin(req, res, next) {
   next();
 }
 
-function requireAdmin(req, res, next) {
-  if (!req.session.userId) {
-    return res.status(401).json({
-      error: "Please log in first.",
-    });
+// ------------------------------------------------------------
+// ADMIN LOGIN (separate from the customer OTP login)
+// Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) in .env
+// ------------------------------------------------------------
+
+const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
+
+function adminConfigured() {
+  return Boolean(
+    (process.env.ADMIN_EMAIL || "").trim() &&
+      ((process.env.ADMIN_PASSWORD_HASH || "").trim() ||
+        process.env.ADMIN_PASSWORD),
+  );
+}
+
+function safeEqual(a, b) {
+  const ha = crypto.createHash("sha256").update(String(a)).digest();
+  const hb = crypto.createHash("sha256").update(String(b)).digest();
+
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+function verifyAdminPassword(password) {
+  const hash = (process.env.ADMIN_PASSWORD_HASH || "").trim();
+
+  if (hash.startsWith("scrypt:")) {
+    const [, saltHex, keyHex] = hash.split(":");
+
+    if (!saltHex || !keyHex) return false;
+
+    const expected = Buffer.from(keyHex, "hex");
+
+    const derived = crypto.scryptSync(
+      String(password),
+      Buffer.from(saltHex, "hex"),
+      expected.length,
+    );
+
+    return crypto.timingSafeEqual(derived, expected);
   }
 
-  const user = db
-    .prepare("SELECT email FROM users WHERE id=?")
-    .get(req.session.userId);
+  if (process.env.ADMIN_PASSWORD) {
+    return safeEqual(password, process.env.ADMIN_PASSWORD);
+  }
 
-  const adminList = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  return false;
+}
 
-  if (!user || !adminList.includes(user.email.toLowerCase())) {
-    return res.status(403).json({
-      error: "Admin access only.",
+function isAdminSession(req) {
+  return Boolean(
+    req.session &&
+      req.session.isAdmin &&
+      Date.now() - Number(req.session.adminAt || 0) < ADMIN_SESSION_MS,
+  );
+}
+
+function requireAdmin(req, res, next) {
+  if (!isAdminSession(req)) {
+    return res.status(401).json({
+      error: "Admin login required.",
     });
   }
 
   next();
+}
+
+if (!adminConfigured()) {
+  console.warn(
+    "Admin login is not set up. Add ADMIN_EMAIL and ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH) to .env.",
+  );
 }
 
 // ============================================================
@@ -1122,7 +1294,9 @@ ${negativeText}`;
 
 app.get("/api/config", (req, res) => {
   res.json({
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID || "",
+    // Only sent when BOTH keys are present, so the site never opens a checkout that cannot work.
+    razorpayKeyId: razorpayReady() ? razorpayKeys().keyId : "",
+
 
     aiEnabled: hasUsableGeminiKey(),
 
@@ -1158,7 +1332,21 @@ app.post(
 
   async (req, res) => {
     try {
-      const { name, email } = req.body || {};
+      const { name, email, customer } = req.body || {};
+
+      // The site owner types the admin email in the normal login box:
+      // instead of emailing a code, ask the popup for the admin password.
+      if (
+        email &&
+        !customer &&
+        adminConfigured() &&
+        String(email).trim().toLowerCase() ===
+          process.env.ADMIN_EMAIL.trim().toLowerCase()
+      ) {
+        return res.json({
+          admin: true,
+        });
+      }
 
       if (!name || !name.trim()) {
         return res.status(400).json({
@@ -1173,6 +1361,12 @@ app.post(
       }
 
       const cleanEmail = email.trim().toLowerCase();
+
+      if (isEmailBlocked(cleanEmail)) {
+        return res.status(403).json({
+          error: BLOCKED_MESSAGE,
+        });
+      }
 
       const recent = db
         .prepare(
@@ -1260,6 +1454,12 @@ app.post(
       }
 
       const cleanEmail = email.trim().toLowerCase();
+
+      if (isEmailBlocked(cleanEmail)) {
+        return res.status(403).json({
+          error: BLOCKED_MESSAGE,
+        });
+      }
 
       const row = db
         .prepare(
@@ -1394,6 +1594,17 @@ app.post(
 // ============================================================
 
 app.post("/api/auth/logout", (req, res) => {
+  if (isAdminSession(req)) {
+    // Only sign the customer out; keep the admin panel session.
+    delete req.session.userId;
+
+    return req.session.save(() =>
+      res.json({
+        ok: true,
+      }),
+    );
+  }
+
   req.session.destroy(() =>
     res.json({
       ok: true,
@@ -1469,7 +1680,13 @@ app.get("/api/library", requireLogin, (req, res) => {
 // INVOICE
 // ============================================================
 
-app.get("/api/invoice/:purchaseId", requireLogin, (req, res) => {
+app.get("/api/invoice/:purchaseId", (req, res, next) => {
+  if (req.session.userId || isAdminSession(req)) return next();
+
+  return res.status(401).json({
+    error: "Please log in first.",
+  });
+}, (req, res) => {
   const purchase = db
     .prepare(
       `
@@ -1489,19 +1706,11 @@ app.get("/api/invoice/:purchaseId", requireLogin, (req, res) => {
     return res.status(404).send("Invoice not found.");
   }
 
-  const adminList = (process.env.ADMIN_EMAILS || "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+  const isOwner =
+    Boolean(req.session.userId) &&
+    purchase.user_id === req.session.userId;
 
-  const isOwner = purchase.user_id === req.session.userId;
-
-  const currentUser = db
-    .prepare("SELECT email FROM users WHERE id=?")
-    .get(req.session.userId);
-
-  const isAdmin =
-    currentUser && adminList.includes(currentUser.email.toLowerCase());
+  const isAdmin = isAdminSession(req);
 
   if (!isOwner && !isAdmin) {
     return res.status(403).send("You do not have access to this invoice.");
@@ -2653,13 +2862,14 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
       });
     }
 
-    const keyId = process.env.RAZORPAY_KEY_ID;
+    const { keyId, keySecret } = razorpayKeys();
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!razorpayReady()) {
+      console.error(`Checkout blocked: ${razorpayProblem()}.`);
 
-    if (!keyId || !keySecret) {
       return res.status(503).json({
-        error: "Razorpay is not configured yet.",
+        error:
+          "Payments are not available right now. Please try again in a little while or contact support.",
       });
     }
 
@@ -2694,10 +2904,19 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
     const order = await rp.json();
 
     if (!rp.ok) {
-      console.error("Razorpay order error:", order);
+      console.error(
+        `Razorpay order error (HTTP ${rp.status}):`,
+        order?.error?.description || order,
+      );
+
+      if (rp.status === 401) {
+        console.error(
+          "Razorpay rejected the keys. Check that RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are a matching pair from the same mode (both test or both live).",
+        );
+      }
 
       return res.status(502).json({
-        error: "Could not create Razorpay order.",
+        error: "Could not start the payment. Please try again in a moment.",
       });
     }
 
@@ -2759,13 +2978,16 @@ app.post("/api/verify-payment", requireLogin, (req, res) => {
       });
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = razorpayKeys().keySecret;
 
     if (!secret) {
+      console.error("Payment verification blocked: RAZORPAY_KEY_SECRET is empty.");
+
       return res.status(503).json({
         verified: false,
 
-        error: "Razorpay not configured.",
+        error:
+          "Payment could not be verified right now. If money was deducted, contact support with your payment ID.",
       });
     }
 
@@ -3003,62 +3225,154 @@ app.post("/api/webhooks/razorpay", (req, res) => {
 // ADMIN STATS
 // ============================================================
 
+// Day boundaries in the admin's own timezone (default IST, UTC+5:30).
+// Override with ADMIN_TZ_OFFSET_MIN in .env (minutes from UTC).
+const tzRaw = process.env.ADMIN_TZ_OFFSET_MIN;
+const ADMIN_TZ_MIN =
+  tzRaw !== undefined && tzRaw !== "" && Number.isFinite(Number(tzRaw))
+    ? Math.trunc(Number(tzRaw))
+    : 330;
+const TZ_MOD = `${ADMIN_TZ_MIN >= 0 ? "+" : "-"}${Math.abs(ADMIN_TZ_MIN)} minutes`;
+
+function adminDay(daysAgo = 0) {
+  return new Date(Date.now() + ADMIN_TZ_MIN * 60_000 - daysAgo * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+const dayOf = (col) => `date(${col}, '${TZ_MOD}')`;
+
+// Real money orders only. Free access given from the admin panel has amount 0.
+const REAL_PAID = "status='paid' AND amount>0";
+
+function dailySeries(table, valueSql, extraWhere, days) {
+  const rows = db
+    .prepare(
+      `
+      SELECT ${dayOf("created_at")} AS d, ${valueSql} AS v
+      FROM ${table}
+      WHERE ${dayOf("created_at")} >= ? ${extraWhere ? "AND " + extraWhere : ""}
+      GROUP BY d
+      `,
+    )
+    .all(adminDay(days - 1));
+
+  const map = new Map(rows.map((r) => [r.d, Number(r.v)]));
+
+  return Array.from({ length: days }, (_, i) => {
+    const date = adminDay(days - 1 - i);
+    return { date, value: map.get(date) || 0 };
+  });
+}
+
 app.get("/api/admin/stats", requireAdmin, (req, res) => {
-  const users = db
-    .prepare(
-      `
-        SELECT COUNT(*) AS n
-        FROM users
-        `,
-    )
-    .get().n;
+  const one = (sql, ...args) => db.prepare(sql).get(...args);
 
-  const orders = db
-    .prepare(
-      `
-        SELECT COUNT(*) AS n
-        FROM purchases
-        WHERE status='paid'
-        `,
-    )
-    .get().n;
+  const DAYS = 30;
+  const today = adminDay(0);
+  const from7 = adminDay(6);
+  const from30 = adminDay(29);
 
-  const revenue = db
+  const users = one("SELECT COUNT(*) AS n FROM users").n;
+
+  const orders = one(`SELECT COUNT(*) AS n FROM purchases WHERE ${REAL_PAID}`).n;
+
+  const revenueSince = (from) =>
+    one(
+      `SELECT COALESCE(SUM(amount),0) AS n FROM purchases
+       WHERE ${REAL_PAID} AND ${dayOf("created_at")} >= ?`,
+      from,
+    ).n;
+
+  const revenue = one(
+    `SELECT COALESCE(SUM(amount),0) AS n FROM purchases WHERE ${REAL_PAID}`,
+  ).n;
+
+  const payingUsers = one(
+    `SELECT COUNT(DISTINCT user_id) AS n FROM purchases WHERE ${REAL_PAID}`,
+  ).n;
+
+  const signupsSince = (from) =>
+    one(`SELECT COUNT(*) AS n FROM users WHERE ${dayOf("created_at")} >= ?`, from).n;
+
+  const activeSince = (from) =>
+    one(
+      `SELECT COUNT(DISTINCT user_id) AS n FROM (
+         SELECT user_id, created_at FROM prompt_history
+         UNION ALL
+         SELECT user_id, created_at FROM media_history
+       ) WHERE ${dayOf("created_at")} >= ?`,
+      from,
+    ).n;
+
+  const mediaByKind = Object.fromEntries(
+    db
+      .prepare("SELECT kind, COUNT(*) AS n FROM media_history GROUP BY kind")
+      .all()
+      .map((r) => [r.kind, r.n]),
+  );
+
+  const images = Number(mediaByKind.image || 0);
+  const videos = Object.entries(mediaByKind)
+    .filter(([k]) => k !== "image")
+    .reduce((sum, [, n]) => sum + Number(n), 0);
+
+  const soldRows = db
+    .prepare(
+      `SELECT product_id, COUNT(*) AS sales, COALESCE(SUM(amount),0) AS revenue
+       FROM purchases WHERE ${REAL_PAID} GROUP BY product_id`,
+    )
+    .all();
+
+  const soldMap = new Map(soldRows.map((r) => [r.product_id, r]));
+
+  const byProduct = [
+    ...Object.entries(products).map(([id, p]) => ({
+      id,
+      name: p.name,
+      price: p.price / 100,
+      sales: soldMap.get(id)?.sales || 0,
+      revenue: (soldMap.get(id)?.revenue || 0) / 100,
+    })),
+    ...soldRows
+      .filter((r) => !products[r.product_id])
+      .map((r) => ({
+        id: r.product_id,
+        name: r.product_id,
+        price: 0,
+        sales: r.sales,
+        revenue: r.revenue / 100,
+      })),
+  ];
+
+  const topUsers = db
     .prepare(
       `
+      SELECT * FROM (
         SELECT
-          COALESCE(
-            SUM(amount),
-            0
-          ) AS n
-        FROM purchases
-        WHERE status='paid'
-        `,
+          u.id, u.name, u.email,
+          (SELECT COUNT(*) FROM prompt_history h WHERE h.user_id=u.id) AS prompts,
+          (SELECT COUNT(*) FROM media_history m WHERE m.user_id=u.id) AS media
+        FROM users u
+      )
+      WHERE prompts + media > 0
+      ORDER BY prompts + media DESC
+      LIMIT 5
+      `,
     )
-    .get().n;
+    .all();
 
-  const prompts = db
-    .prepare(
-      `
-        SELECT COUNT(*) AS n
-        FROM prompt_history
-        `,
-    )
-    .get().n;
-
-  const productsCount = Object.keys(products).length;
+  const promptModes = db
+    .prepare("SELECT mode, COUNT(*) AS n FROM prompt_history GROUP BY mode ORDER BY n DESC")
+    .all();
 
   const recentUsers = db
     .prepare(
       `
-        SELECT
-          id,
-          name,
-          email,
-          created_at
+        SELECT id, name, email, created_at
         FROM users
         ORDER BY id DESC
-        LIMIT 10
+        LIMIT 8
         `,
     )
     .all();
@@ -3066,16 +3380,43 @@ app.get("/api/admin/stats", requireAdmin, (req, res) => {
   res.json({
     stats: {
       users,
-
       orders,
-
       revenue: revenue / 100,
+      prompts: one("SELECT COUNT(*) AS n FROM prompt_history").n,
+      products: Object.keys(products).length,
+      blocked: one("SELECT COUNT(*) AS n FROM blocked_emails").n,
 
-      prompts,
-
-      products: productsCount,
+      signupsToday: signupsSince(today),
+      signups7: signupsSince(from7),
+      active7: activeSince(from7),
+      revenueToday: revenueSince(today) / 100,
+      revenue7: revenueSince(from7) / 100,
+      revenue30: revenueSince(from30) / 100,
+      avgOrder: orders ? revenue / orders / 100 : 0,
+      payingUsers,
+      conversion: users ? Math.round((payingUsers / users) * 1000) / 10 : 0,
+      images,
+      videos,
+      granted: one(
+        "SELECT COUNT(*) AS n FROM purchases WHERE status='paid' AND amount=0",
+      ).n,
     },
 
+    series: {
+      signups: dailySeries("users", "COUNT(*)", "", DAYS),
+      revenue: dailySeries(
+        "purchases",
+        "COALESCE(SUM(amount),0) / 100.0",
+        REAL_PAID,
+        DAYS,
+      ),
+      prompts: dailySeries("prompt_history", "COUNT(*)", "", DAYS),
+      media: dailySeries("media_history", "COUNT(*)", "", DAYS),
+    },
+
+    byProduct,
+    topUsers,
+    promptModes,
     recentUsers,
   });
 });
@@ -3100,13 +3441,564 @@ app.get("/api/admin/orders", requireAdmin, (req, res) => {
 
         ORDER BY purchases.id DESC
 
-        LIMIT 100
+        LIMIT 500
         `,
     )
     .all();
 
   res.json({
     orders: rows,
+  });
+});
+
+// ============================================================
+// ADMIN LOGIN / LOGOUT / SESSION
+// ============================================================
+
+app.post(
+  "/api/admin/login",
+
+  rateLimit({
+    windowMs: 15 * 60_000,
+    max: 8,
+
+    message: "Too many admin login attempts. Try again in 15 minutes.",
+  }),
+
+  (req, res) => {
+    if (!adminConfigured()) {
+      return res.status(503).json({
+        error:
+          "Admin login is not set up. Add ADMIN_EMAIL and ADMIN_PASSWORD to .env and restart the server.",
+      });
+    }
+
+    const { email, password } = req.body || {};
+
+    const emailOk = safeEqual(
+      String(email || "").trim().toLowerCase(),
+      process.env.ADMIN_EMAIL.trim().toLowerCase(),
+    );
+
+    const passwordOk = verifyAdminPassword(String(password || ""));
+
+    if (!emailOk || !passwordOk) {
+      console.warn(`Admin login failed from ${req.ip}`);
+
+      logAdmin("login_failed", req.ip, `email tried: ${String(email || "").slice(0, 80)}`);
+
+      return res.status(401).json({
+        error: "Incorrect email or password.",
+      });
+    }
+
+    const previousUserId = req.session.userId;
+
+    req.session.regenerate((regenError) => {
+      if (regenError) {
+        console.error(regenError);
+
+        return res.status(500).json({
+          error: "Could not start admin session.",
+        });
+      }
+
+      req.session.isAdmin = true;
+      req.session.adminAt = Date.now();
+
+      if (previousUserId) req.session.userId = previousUserId;
+
+      req.session.save((saveError) => {
+        if (saveError) {
+          console.error(saveError);
+
+          return res.status(500).json({
+            error: "Could not save admin session.",
+          });
+        }
+
+        logAdmin("login", req.ip, "");
+
+        res.json({
+          ok: true,
+          email: process.env.ADMIN_EMAIL.trim().toLowerCase(),
+        });
+      });
+    });
+  },
+);
+
+app.get("/api/admin/me", (req, res) => {
+  const admin = isAdminSession(req);
+
+  res.json({
+    admin,
+    email: admin ? process.env.ADMIN_EMAIL.trim().toLowerCase() : null,
+    configured: adminConfigured(),
+  });
+});
+
+app.post("/api/admin/logout", (req, res) => {
+  delete req.session.isAdmin;
+  delete req.session.adminAt;
+
+  req.session.save(() =>
+    res.json({
+      ok: true,
+    }),
+  );
+});
+
+// ============================================================
+// ADMIN USERS + BLOCK LIST
+// ============================================================
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          u.id,
+          u.name,
+          u.email,
+          u.created_at,
+
+          (SELECT COUNT(*)
+             FROM purchases p
+            WHERE p.user_id=u.id AND p.status='paid') AS paid_orders,
+
+          (SELECT COALESCE(SUM(amount),0)
+             FROM purchases p
+            WHERE p.user_id=u.id AND p.status='paid') AS paid_amount,
+
+          (SELECT COUNT(*)
+             FROM prompt_history h
+            WHERE h.user_id=u.id) AS prompts
+
+        FROM users u
+        ORDER BY u.id DESC
+        LIMIT 2000
+        `,
+    )
+    .all();
+
+  const blocked = new Set(
+    db
+      .prepare("SELECT email FROM blocked_emails")
+      .all()
+      .map((row) => row.email),
+  );
+
+  res.json({
+    users: rows.map((row) => ({
+      ...row,
+      blocked: blocked.has(canonicalEmail(row.email)),
+    })),
+  });
+});
+
+app.get("/api/admin/blocked", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          shown_email AS email,
+          reason,
+          created_at
+        FROM blocked_emails
+        ORDER BY created_at DESC, rowid DESC
+        `,
+    )
+    .all();
+
+  res.json({
+    blocked: rows,
+  });
+});
+
+app.post("/api/admin/block", requireAdmin, (req, res) => {
+  const typed = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
+
+  const reason = String(req.body?.reason || "")
+    .trim()
+    .slice(0, 200);
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typed)) {
+    return res.status(400).json({
+      error: "Enter a valid email address.",
+    });
+  }
+
+  const key = canonicalEmail(typed);
+
+  if (
+    process.env.ADMIN_EMAIL &&
+    key === canonicalEmail(process.env.ADMIN_EMAIL)
+  ) {
+    return res.status(400).json({
+      error: "You cannot block the admin email.",
+    });
+  }
+
+  db.prepare(
+    `
+    INSERT INTO blocked_emails(email, shown_email, reason)
+    VALUES(?,?,?)
+    ON CONFLICT(email) DO UPDATE SET
+      shown_email=excluded.shown_email,
+      reason=excluded.reason
+    `,
+  ).run(key, typed, reason);
+
+  // Any login code that is still waiting for this address is now useless.
+  db.prepare("UPDATE otps SET consumed=1 WHERE email=?").run(typed);
+
+  logAdmin("block", typed, reason);
+
+  res.json({
+    ok: true,
+    email: typed,
+  });
+});
+
+app.post("/api/admin/unblock", requireAdmin, (req, res) => {
+  const typed = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
+
+  if (!typed) {
+    return res.status(400).json({
+      error: "Email is required.",
+    });
+  }
+
+  db.prepare("DELETE FROM blocked_emails WHERE email=?").run(
+    canonicalEmail(typed),
+  );
+
+  logAdmin("unblock", typed, "");
+
+  res.json({
+    ok: true,
+  });
+});
+
+// ============================================================
+// ADMIN: USER DETAIL, ORDER ACTIONS, ACTIVITY, SYSTEM, AUDIT LOG
+// ============================================================
+
+app.get("/api/admin/users/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+
+  const user = db
+    .prepare("SELECT id, name, email, created_at FROM users WHERE id=?")
+    .get(id);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const blockRow = db
+    .prepare("SELECT reason, created_at FROM blocked_emails WHERE email=?")
+    .get(canonicalEmail(user.email));
+
+  const purchases = db
+    .prepare(
+      `SELECT id, product_id, order_id, payment_id, amount, status, created_at
+       FROM purchases WHERE user_id=? ORDER BY id DESC`,
+    )
+    .all(id)
+    .map((row) => ({
+      ...row,
+      product_name: products[row.product_id]?.name || row.product_id,
+      granted: row.amount === 0,
+    }));
+
+  const prompts = db
+    .prepare(
+      `SELECT id, subject, prompt, mode, created_at
+       FROM prompt_history WHERE user_id=? ORDER BY id DESC LIMIT 15`,
+    )
+    .all(id)
+    .map((row) => ({ ...row, prompt: String(row.prompt).slice(0, 500) }));
+
+  const media = db
+    .prepare(
+      `SELECT id, kind, prompt, file, model, created_at
+       FROM media_history WHERE user_id=? ORDER BY id DESC LIMIT 12`,
+    )
+    .all(id)
+    .map((row) => ({
+      ...row,
+      prompt: String(row.prompt).slice(0, 300),
+      url: fs.existsSync(path.join(MEDIA_DIR, path.basename(row.file)))
+        ? `/api/media/file/${encodeURIComponent(row.file)}`
+        : null,
+    }));
+
+  const totals = db
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM prompt_history WHERE user_id=?) AS prompts,
+         (SELECT COUNT(*) FROM media_history WHERE user_id=?) AS media,
+         (SELECT COUNT(*) FROM favorites WHERE user_id=?) AS favorites`,
+    )
+    .get(id, id, id);
+
+  res.json({
+    user: {
+      ...user,
+      blocked: Boolean(blockRow),
+      block_reason: blockRow?.reason || "",
+    },
+    totals,
+    purchases,
+    prompts,
+    media,
+    products: Object.entries(products).map(([pid, p]) => ({
+      id: pid,
+      name: p.name,
+    })),
+  });
+});
+
+// Give a user a product for free (support, giveaways, replacing a failed payment).
+app.post("/api/admin/grant", requireAdmin, (req, res) => {
+  const userId = Number(req.body?.userId);
+  const productId = String(req.body?.productId || "");
+
+  const user = db
+    .prepare("SELECT id, email FROM users WHERE id=?")
+    .get(userId);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const product = products[productId];
+
+  if (!product) {
+    return res.status(400).json({ error: "Choose a valid product." });
+  }
+
+  const owned = db
+    .prepare(
+      "SELECT id FROM purchases WHERE user_id=? AND product_id=? AND status='paid'",
+    )
+    .get(userId, productId);
+
+  if (owned) {
+    return res.status(400).json({ error: "This user already owns that product." });
+  }
+
+  db.prepare(
+    `INSERT INTO purchases(user_id, product_id, order_id, payment_id, amount, status)
+     VALUES(?,?,?,?,0,'paid')`,
+  ).run(userId, productId, "admin-grant", `admin-grant-${Date.now()}`);
+
+  logAdmin("grant", user.email, product.name);
+
+  res.json({ ok: true });
+});
+
+// Turn access off (refund abuse, chargeback) or back on again. Money is never
+// moved here: refund the payment inside the Razorpay dashboard.
+app.post("/api/admin/order-status", requireAdmin, (req, res) => {
+  const purchaseId = Number(req.body?.purchaseId);
+  const action = String(req.body?.action || "");
+
+  if (!["revoke", "restore"].includes(action)) {
+    return res.status(400).json({ error: "Unknown action." });
+  }
+
+  const row = db
+    .prepare(
+      `SELECT purchases.id, purchases.status, purchases.product_id, users.email
+       FROM purchases JOIN users ON users.id=purchases.user_id
+       WHERE purchases.id=?`,
+    )
+    .get(purchaseId);
+
+  if (!row) {
+    return res.status(404).json({ error: "Order not found." });
+  }
+
+  const from = action === "revoke" ? "paid" : "revoked";
+  const to = action === "revoke" ? "revoked" : "paid";
+
+  if (row.status !== from) {
+    return res.status(400).json({
+      error: `Only ${from} orders can be ${action === "revoke" ? "revoked" : "restored"}.`,
+    });
+  }
+
+  db.prepare("UPDATE purchases SET status=? WHERE id=?").run(to, purchaseId);
+
+  logAdmin(
+    action,
+    row.email,
+    `${products[row.product_id]?.name || row.product_id} (order #${row.id})`,
+  );
+
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/activity", requireAdmin, (req, res) => {
+  const prompts = db
+    .prepare(
+      `SELECT h.id, h.subject, h.prompt, h.mode, h.created_at, u.id AS user_id, u.name, u.email
+       FROM prompt_history h JOIN users u ON u.id=h.user_id
+       ORDER BY h.id DESC LIMIT 100`,
+    )
+    .all()
+    .map((row) => ({
+      ...row,
+      subject: String(row.subject).slice(0, 200),
+      prompt: String(row.prompt).slice(0, 700),
+    }));
+
+  const media = db
+    .prepare(
+      `SELECT m.id, m.kind, m.prompt, m.file, m.model, m.created_at, u.id AS user_id, u.name, u.email
+       FROM media_history m JOIN users u ON u.id=m.user_id
+       ORDER BY m.id DESC LIMIT 60`,
+    )
+    .all()
+    .map((row) => ({
+      ...row,
+      prompt: String(row.prompt).slice(0, 400),
+      url: fs.existsSync(path.join(MEDIA_DIR, path.basename(row.file)))
+        ? `/api/media/file/${encodeURIComponent(row.file)}`
+        : null,
+    }));
+
+  res.json({ prompts, media });
+});
+
+app.get("/api/admin/log", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      "SELECT id, action, target, detail, created_at FROM admin_log ORDER BY id DESC LIMIT 100",
+    )
+    .all();
+
+  res.json({ log: rows });
+});
+
+// Shows which features are configured. Never returns any secret value.
+app.get("/api/admin/system", requireAdmin, (req, res) => {
+  const has = (name) => Boolean(String(process.env[name] || "").trim());
+  const secret = String(process.env.SESSION_SECRET || "");
+
+  const checks = [
+    {
+      label: "Admin login",
+      ok: adminConfigured(),
+      note: adminConfigured() ? "Configured" : "Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH",
+    },
+    {
+      label: "Email sending (SMTP)",
+      ok: smtpConfigured,
+      note: smtpConfigured ? "OTP + purchase emails work" : "OTP login and receipts will not be sent",
+    },
+    {
+      label: "Razorpay payments",
+      ok: razorpayReady(),
+      note: razorpayReady()
+        ? razorpayKeys().keyId.startsWith("rzp_live")
+          ? "Live keys"
+          : "Test keys"
+        : `${razorpayProblem()}. Buy button shows an error until this is fixed.`,
+    },
+    {
+      label: "Razorpay webhook",
+      ok: has("RAZORPAY_WEBHOOK_SECRET"),
+      note: has("RAZORPAY_WEBHOOK_SECRET")
+        ? "Secret set"
+        : "Missing: paid users may not get access if the browser closes early",
+    },
+    {
+      label: "Gemini AI",
+      ok: hasUsableGeminiKey(),
+      note: hasUsableGeminiKey() ? "Key present" : "No key: prompts use the local fallback",
+    },
+    {
+      label: "Hugging Face (free media)",
+      ok: has("HF_TOKEN"),
+      note: has("HF_TOKEN") ? "Token present" : "No token",
+    },
+    {
+      label: "Session secret",
+      ok: secret.length >= 32 && secret !== "dev-secret-change-me",
+      note:
+        secret.length >= 32 && secret !== "dev-secret-change-me"
+          ? "Strong"
+          : "Use a random value of 32+ characters",
+    },
+    {
+      label: "Production mode",
+      ok: isProduction,
+      note: isProduction ? "NODE_ENV=production" : "Development mode",
+    },
+    {
+      label: "Secure cookies",
+      ok: cookieSecure,
+      note: cookieSecure ? "Enabled" : "Off (fine on localhost, required on HTTPS)",
+    },
+    {
+      label: "Site URL",
+      ok: has("SITE_URL"),
+      note: has("SITE_URL") ? String(process.env.SITE_URL) : "SITE_URL not set",
+    },
+  ];
+
+  const fileSize = (file) => {
+    try {
+      return fs.statSync(file).size;
+    } catch {
+      return 0;
+    }
+  };
+
+  const dbFile = path.join(__dirname, "editprompt.db");
+  const dbBytes =
+    fileSize(dbFile) + fileSize(`${dbFile}-wal`) + fileSize(`${dbFile}-shm`);
+
+  let mediaFiles = 0;
+  let mediaBytes = 0;
+
+  try {
+    for (const name of fs.readdirSync(MEDIA_DIR)) {
+      mediaFiles += 1;
+      mediaBytes += fileSize(path.join(MEDIA_DIR, name));
+    }
+  } catch {}
+
+  const count = (table) =>
+    db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+
+  res.json({
+    checks,
+    info: {
+      node: process.version,
+      uptimeSeconds: Math.round(process.uptime()),
+      environment: isProduction ? "production" : "development",
+      timezoneOffsetMinutes: ADMIN_TZ_MIN,
+      dbBytes,
+      mediaFiles,
+      mediaBytes,
+      mediaTtlHours: Number(process.env.MEDIA_TTL_HOURS || 48),
+      rows: {
+        users: count("users"),
+        purchases: count("purchases"),
+        prompts: count("prompt_history"),
+        media: count("media_history"),
+        favorites: count("favorites"),
+        blocked: count("blocked_emails"),
+      },
+    },
   });
 });
 
@@ -4087,6 +4979,11 @@ app.get("/api/media/history", requireLogin, (req, res) => {
 // ============================================================
 // FRONTEND FALLBACK
 // ============================================================
+
+app.get("/admin", (req, res) => {
+  res.set("X-Robots-Tag", "noindex, nofollow");
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 
 app.get("*", (req, res) =>
   res.sendFile(path.join(__dirname, "public", "index.html")),

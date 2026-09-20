@@ -76,8 +76,8 @@ async function refreshUser() {
     config = await fetchJSON("/api/config");
 
     const checkoutStatus = config.razorpayKeyId
-      ? "Razorpay configured"
-      : "Add Razorpay test keys to .env";
+      ? "Razorpay checkout"
+      : "Checkout is being set up";
 
     $("integrationStatus").textContent =
       `Secure checkout • ${checkoutStatus} • Login required`;
@@ -279,7 +279,8 @@ $("logoutBtn").onclick = async () => {
    COPY SAMPLE PROMPTS
 ========================================================= */
 
-document.querySelectorAll(".copy").forEach((button) => {
+// button.copy only: the hero text block is also <div class="copy"> and contains the Buy button
+document.querySelectorAll("button.copy").forEach((button) => {
   button.onclick = async () => {
     const paragraph = button.parentElement.querySelector("p");
 
@@ -354,7 +355,9 @@ async function startCheckout(clickedButton) {
   }
 
   if (!config.razorpayKeyId) {
-    showToast("Razorpay is not configured");
+    showToast(
+      "Payments are not available right now. Please try again in a little while.",
+    );
 
     return;
   }
@@ -464,7 +467,8 @@ async function startCheckout(clickedButton) {
             "Payment verified • Opening My Library…";
 
           setTimeout(() => {
-            window.location.href = "/library.html";
+            window.location.href =
+              "/library.html?paid=" + encodeURIComponent(PRODUCT_ID);
           }, 900);
         } catch (error) {
           console.error("Payment verification error:", error);

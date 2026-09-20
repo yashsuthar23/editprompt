@@ -979,6 +979,10 @@ function openLoginModal() {
 
   modal.classList.add("show");
 
+  forceCustomer = false;
+
+  $("loginStepAdmin")?.classList.add("hide");
+
   $("loginStep1")?.classList.remove(
     "hide",
   );
@@ -1049,6 +1053,74 @@ document.addEventListener(
    SEND OTP
 ========================================================= */
 
+let forceCustomer = false;
+
+function showAdminStep() {
+  $("loginStep1")?.classList.add("hide");
+  $("loginStep2")?.classList.add("hide");
+  $("loginStepAdmin")?.classList.remove("hide");
+
+  if ($("adminPass")) {
+    $("adminPass").value = "";
+    $("adminPass").focus();
+  }
+}
+
+async function adminLogin() {
+  const button = $("adminLoginBtn");
+  const password = $("adminPass")?.value || "";
+
+  if (!password) {
+    return toast("Enter the admin password");
+  }
+
+  button.disabled = true;
+  button.textContent = "Signing in…";
+
+  try {
+    await apiRequest("/api/admin/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: pendingEmail,
+        password,
+      }),
+    });
+
+    location.href = "/admin.html";
+  } catch (error) {
+    toast(error.message || "Admin login failed");
+
+    button.disabled = false;
+    button.textContent = "Login as Admin";
+  }
+}
+
+if ($("adminLoginBtn")) {
+  $("adminLoginBtn").onclick = adminLogin;
+}
+
+if ($("adminPass")) {
+  $("adminPass").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") adminLogin();
+  });
+}
+
+if ($("adminCustomerBtn")) {
+  $("adminCustomerBtn").onclick = () => {
+    forceCustomer = true;
+
+    $("loginStepAdmin")?.classList.add("hide");
+    $("loginStep1")?.classList.remove("hide");
+
+    toast("Enter your name, then tap Send Code");
+
+    $("name")?.focus();
+  };
+}
+
 async function sendOtp({
   resend = false,
 } = {}) {
@@ -1060,10 +1132,6 @@ async function sendOtp({
       $("email")
         ?.value.trim()
         .toLowerCase() || "";
-  }
-
-  if (!pendingName) {
-    return toast("Enter your name");
   }
 
   if (!pendingEmail) {
@@ -1111,9 +1179,15 @@ async function sendOtp({
           body: JSON.stringify({
             name: pendingName,
             email: pendingEmail,
+            customer: forceCustomer,
           }),
         },
       );
+
+    if (data.admin) {
+      showAdminStep();
+      return;
+    }
 
     $("loginStep1")?.classList.add(
       "hide",
@@ -2680,7 +2754,10 @@ document
 
                   setTimeout(() => {
                     window.location.href =
-                      "/library.html";
+                      "/library.html?paid=" +
+                      encodeURIComponent(
+                        data.productId || productId,
+                      );
                   }, 700);
                 } catch (error) {
                   console.error(
@@ -2754,6 +2831,14 @@ document
   try {
     await loadConfig();
     await refreshUser();
+
+    if (
+      !currentUser &&
+      new URLSearchParams(location.search).get("login") === "1"
+    ) {
+      openLoginModal();
+      history.replaceState(null, "", location.pathname + location.hash);
+    }
   } catch (error) {
     console.error(
       "App initialization failed:",

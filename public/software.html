@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0c0c0c">
-    <meta name="description" content="Creator Software Hub by EditPrompt — video editors, audio, thumbnail, streaming and AI video tools for reel and content creators, all in one place.">
+    <meta name="description" content="Creator Software Hub by EditPrompt — video editors, photo retouching, poster and banner design, reels, wedding and event editing tools for creators, all in one place.">
     <title>Creator Software Hub — EditPrompt.in</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/software.css">
@@ -18,11 +18,17 @@
     </a>
     <nav aria-label="Main navigation">
         <a href="/#generator">AI Generator</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#categories">Categories</a>
         <a href="/#store">Store</a>
         <a href="/software.html">Software</a>
+        <a href="/#dashboard">Dashboard</a>
         <a href="/library.html">My Library</a>
     </nav>
-    <div class="right account"><a class="btn ghost" href="/">Home</a></div>
+    <div class="right account">
+        <button id="loginBtn" class="btn ghost" type="button">Login</button>
+        <button id="logoutBtn" class="btn ghost hide" type="button">Logout</button>
+    </div>
 </header>
 
 <main class="hub">
@@ -30,9 +36,9 @@
     <section class="hub-hero">
         <div class="eyebrow">CREATOR SOFTWARE HUB</div>
         <h1>Everything a creator needs.<br><span>One place.</span></h1>
-        <p class="lead">Video editors, audio, thumbnails, screen recording and AI video tools for reels and content creators. Tick what you want and get one install script.</p>
+        <p class="lead">Video editors, photo retouching, poster and banner design, reels, wedding and event editing tools. Tick what you want and get one install script.</p>
         <div class="hub-search">
-            <input id="q" type="search" placeholder="Search apps… (e.g. reels, audio, thumbnail)" aria-label="Search software">
+            <input id="q" type="search" placeholder="Search apps… (e.g. reels, wedding, photo, poster)" aria-label="Search software">
         </div>
     </section>
 
@@ -72,6 +78,8 @@
 </main>
 
 <script src="/software-data.js"></script>
+<script src="/software-info.js"></script>
 <script src="/software.js"></script>
+<script src="/nav.js" defer></script>
 </body>
 </html>
