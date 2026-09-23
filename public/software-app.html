@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0c0c0c">
+    <title>Software — EditPrompt.in</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/software.css">
+    <style>
+        .sa { max-width: 860px; margin: 0 auto; padding: 24px 24px 60px; }
+        .sa-back { display: inline-block; margin-bottom: 18px; color: var(--muted); font-size: 14px; text-decoration: none; }
+        .sa-back:hover { color: var(--text); }
+        .sa-card { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+        .sa-card h4 { margin: 0 0 8px; font-size: 14px; }
+        .sa-card .app-act { margin: 18px 0 8px; }
+        .sa-more { margin-top: 32px; }
+        .sa-more h3 { margin: 0 0 12px; }
+        .sa-more .quick { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+        .sa-cmd { margin: 0 0 12px; }
+        @media (max-width: 560px) { .sa { padding: 16px 14px 48px; } .sa-card { padding: 20px; } }
+    </style>
+</head>
+<body>
+
+<header class="nav">
+    <a class="brand" href="/" aria-label="EditPrompt home">
+        <div class="logo" aria-hidden="true">EP</div>
+        <div><b>EditPrompt</b><small>AI tools for video creators</small></div>
+    </a>
+    <nav aria-label="Main navigation">
+        <a href="/#generator">AI Generator</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#categories">Categories</a>
+        <a href="/#store">Store</a>
+        <a href="/software.html">Software</a>
+        <a href="/#dashboard">Dashboard</a>
+        <a href="/library.html">My Library</a>
+    </nav>
+    <div class="right account">
+        <button id="loginBtn" class="btn ghost" type="button">Login</button>
+        <button id="logoutBtn" class="btn ghost hide" type="button">Logout</button>
+    </div>
+</header>
+
+<main class="sa">
+    <a class="sa-back" href="/software.html">← All software</a>
+    <article class="sa-card" id="app" aria-live="polite"></article>
+    <section class="sa-more" id="more" hidden>
+        <h3>More like this</h3>
+        <ul class="quick" id="moreList"></ul>
+    </section>
+    <p class="hub-foot muted hb-sm">Download links go to the official website of each app. EditPrompt does not host third-party installers. Names and logos belong to their owners.</p>
+</main>
+
+<script src="/software-data.js"></script>
+<script src="/software-info.js"></script>
+<script src="/software-app.js"></script>
+<script src="/nav.js" defer></script>
+<script src="/site-status.js" defer></script>
+</body>
+</html>

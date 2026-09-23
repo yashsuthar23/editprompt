@@ -384,6 +384,7 @@ async function startCheckout(clickedButton) {
 
       body: JSON.stringify({
         productId: PRODUCT_ID,
+        couponCode: (document.getElementById("couponInput") || {}).value || "",
       }),
     });
 
@@ -545,3 +546,34 @@ $("otp").addEventListener("keydown", (event) => {
 $("otp").addEventListener("input", () => {
   $("otp").value = $("otp").value.replace(/\D/g, "").slice(0, 6);
 });
+
+
+/* Coupon box (checked live against /api/coupon/check; applied again server-side at checkout) */
+(function () {
+  var actions = document.querySelector(".actions");
+  if (!actions) return;
+  var box = document.createElement("div");
+  box.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px";
+  box.innerHTML = '<input id="couponInput" placeholder="Coupon code" maxlength="20" style="max-width:170px;text-transform:uppercase"><button type="button" class="secondary small" id="couponApply">Apply</button><span id="couponMsg" role="status" style="font-size:14px"></span>';
+  actions.parentNode.insertBefore(box, actions);
+  var input = document.getElementById("couponInput"), msg = document.getElementById("couponMsg");
+  input.value = (new URLSearchParams(location.search).get("coupon") || "").toUpperCase();
+  function check() {
+    if (!input.value.trim()) { msg.textContent = ""; return; }
+    fetch("/api/coupon/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: PRODUCT_ID, code: input.value }) })
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error); return d; }); })
+      .then(function (d) { msg.style.color = "#22c55e"; msg.textContent = "Applied: you pay ₹" + d.amount + " (save ₹" + d.off + ")"; })
+      .catch(function (e) { msg.style.color = "#f87171"; msg.textContent = e.message || "Invalid coupon."; });
+  }
+  document.getElementById("couponApply").addEventListener("click", check);
+  if (input.value) check();
+})();
+
+/* Keep the visible price text in sync with the price set in Admin > Pro Tools */
+fetch("/api/product-prices").then(function (r) { return r.json(); }).then(function (m) {
+  var price = m[PRODUCT_ID];
+  if (!price || price === 399) return;
+  document.querySelectorAll(".price-row strong,.checkout .price,[data-buy],.faq p").forEach(function (el) {
+    if (!el.children.length) el.textContent = el.textContent.replace(/₹\s?399/g, "₹" + price);
+  });
+}).catch(function () {});

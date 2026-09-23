@@ -235,6 +235,20 @@
         </div>
 
 
+        <div class="card" id="contactCard">
+            <div class="tag">MESSAGE US</div>
+            <h3>Send us a message</h3>
+            <p class="muted">We reply within one working day. Include your payment ID for payment or download issues.</p>
+            <form id="contactForm" style="display:grid;gap:10px;margin-top:12px">
+                <input name="name" placeholder="Your name" maxlength="80" required>
+                <input name="email" type="email" placeholder="Email address" maxlength="120" required>
+                <select name="topic"><option>General</option><option>Download</option><option>Account</option><option>Payment</option><option>Refund</option></select>
+                <textarea name="message" rows="5" placeholder="How can we help?" minlength="10" maxlength="2000" required></textarea>
+                <button class="btn small" type="submit">Send message</button>
+                <p id="contactMsg" class="muted" role="status"></p>
+            </form>
+        </div>
+
         <div class="card">
 
             <div class="tag">
@@ -283,6 +297,19 @@
 </footer>
 
 
+<script>
+document.getElementById("contactForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  var f = e.target, m = document.getElementById("contactMsg"), b = f.querySelector("button");
+  b.disabled = true; m.textContent = "Sending…";
+  fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.fromEntries(new FormData(f))) })
+    .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Could not send."); }); })
+    .then(function () { f.reset(); m.textContent = "Thanks! Your message has been sent. We will reply by email."; })
+    .catch(function (er) { m.textContent = er.message; })
+    .then(function () { b.disabled = false; });
+});
+</script>
 <script src="/nav.js" defer></script>
+<script src="/site-status.js" defer></script>
 </body>
 </html>

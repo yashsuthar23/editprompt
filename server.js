@@ -7,6 +7,8 @@ import session from "express-session";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
+import { initAdminPro } from "./admin-pro.js";
+import { mountSoftwareDownloads } from "./software-dl.js";
 
 dotenv.config();
 
@@ -220,6 +222,16 @@ CREATE TABLE IF NOT EXISTS media_history(
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS video_jobs(
+  id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+  prompt TEXT NOT NULL, provider TEXT NOT NULL DEFAULT 'auto', model TEXT NOT NULL DEFAULT '',
+  aspect_ratio TEXT NOT NULL DEFAULT '16:9', duration_seconds INTEGER NOT NULL DEFAULT 8,
+  fps INTEGER NOT NULL DEFAULT 24, camera_motion TEXT NOT NULL DEFAULT 'Natural',
+  motion_strength TEXT NOT NULL DEFAULT 'Medium', from_image INTEGER NOT NULL DEFAULT 0,
+  image_json TEXT, file TEXT, error TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS favorites(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -234,6 +246,9 @@ CREATE TABLE IF NOT EXISTS favorites(
 try {
   db.exec("ALTER TABLE otps ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
 } catch {}
+
+const pro = initAdminPro(db, __dirname);
+app.use("/api", pro.gate);
 
 // ============================================================
 // BLOCKED EMAILS (permanent block list managed from admin panel)
@@ -1147,6 +1162,29 @@ async function callGemini({
 // AI PROMPT CLEANER
 // ============================================================
 
+// ------------------------------------------------------------
+// HINGLISH / HINDI / GUJARATI INPUT DETECTION
+// Users often type the Subject (and other free-text fields) in
+// Devanagari, Gujarati script, or Roman-script Hinglish/Gujlish.
+// Gemini is told to silently translate this into professional
+// English inside the final prompt. When no Gemini key is
+// configured, the local fallback cannot translate, so we flag it
+// for the frontend instead of silently returning untranslated text.
+// ------------------------------------------------------------
+const INDIC_SCRIPT_RE = /[\u0900-\u097F\u0A80-\u0AFF]/; // Devanagari + Gujarati blocks
+
+// Common Hinglish/Gujlish romanized words — a lightweight heuristic,
+// not a full detector. False negatives are fine (Gemini still gets
+// the translation instruction regardless of this check).
+const ROMANIZED_HINTS_RE =
+  /\b(hu|hun|chhe|che|karo|karva|karava|maru|tamara|thi|sathi|nathi|joiye|mate|banavo|dekhao|hai|kar|karo|krupya|kripya|aur|nahi|kaise|wala|wali)\b/i;
+
+function looksLikeHinglishOrIndic(text) {
+  const value = String(text || "");
+  if (!value.trim()) return false;
+  return INDIC_SCRIPT_RE.test(value) || ROMANIZED_HINTS_RE.test(value);
+}
+
 function cleanGeneratedPrompt(text) {
   let output = String(text || "").trim();
 
@@ -1174,6 +1212,7 @@ function cleanGeneratedPrompt(text) {
     "Mood:",
     "Environment:",
     "Subject Movement:",
+    "Audio:",
     "Quality:",
     "Negative Prompt:",
   ];
@@ -1208,6 +1247,27 @@ function toList(value, fallback) {
   return list.length ? list : [fallback];
 }
 
+// Optional advanced fields: a clean list (max 6 items, 80 chars each) or [].
+function optionalList(value, max = 6) {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+
+  return [
+    ...new Set(
+      raw
+        .map((item) => String(item || "").trim().slice(0, 80))
+        .filter(Boolean),
+    ),
+  ].slice(0, max);
+}
+
+function optionalText(value, max = 300) {
+  return String(value || "").trim().slice(0, max);
+}
+
 function joinNatural(list) {
   return list.join(", ");
 }
@@ -1231,6 +1291,18 @@ function localPrompt({
   environment,
   movement,
   negative,
+  shotType,
+  cameraAngle,
+  composition,
+  focus,
+  motionSpeed,
+  colorGrade,
+  filmLook,
+  timeOfDay,
+  weather,
+  sound,
+  character,
+  extras,
 }) {
   const styles = toList(style, "Cinematic");
 
@@ -1258,16 +1330,48 @@ function localPrompt({
     negative ||
     "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps";
 
+  // Optional advanced settings are folded into the matching section.
+  const listLine = (label, list) =>
+    list && list.length ? `\n${label}: ${joinNatural(list)}.` : "";
+
+  const textLine = (label, text) => (text ? `\n${label}: ${text}.` : "");
+
+  const sceneBlock =
+    String(subject || "").trim() +
+    textLine("Character and wardrobe", character) +
+    textLine("Extra details", extras);
+
+  const styleBlock =
+    joinNatural(styles) +
+    listLine("Color grading", colorGrade) +
+    listLine("Film look", filmLook);
+
+  const cameraBlock =
+    `${joinNatural(cameras)}, captured with a ${lensText}.` +
+    listLine("Shot type", shotType) +
+    listLine("Camera angle", cameraAngle) +
+    listLine("Composition", composition) +
+    listLine("Focus", focus) +
+    listLine("Motion speed", motionSpeed);
+
+  const environmentBlock =
+    environmentText +
+    listLine("Time of day", timeOfDay) +
+    listLine("Weather and atmosphere", weather);
+
+  const audioBlock =
+    sound && sound.length ? `\n\nAudio:\n${joinNatural(sound)}` : "";
+
   return `Create a ${durationText} ${styles[0].toLowerCase()} AI video in ${ratioText} format at ${fpsText}.
 
 Scene:
-${String(subject || "").trim()}
+${sceneBlock}
 
 Visual Style:
-${joinNatural(styles)}
+${styleBlock}
 
 Camera:
-${joinNatural(cameras)}, captured with a ${lensText}.
+${cameraBlock}
 
 Lighting:
 ${joinNatural(lightings)}
@@ -1276,10 +1380,10 @@ Mood:
 ${joinNatural(moods)}
 
 Environment:
-${environmentText}
+${environmentBlock}
 
 Subject Movement:
-${movementText}
+${movementText}${audioBlock}
 
 Quality:
 Photorealistic, stable identity, realistic anatomy, natural motion, detailed textures, cinematic depth of field, realistic lighting, smooth movement, temporal consistency and professional color grading.
@@ -1307,10 +1411,11 @@ app.get("/api/config", (req, res) => {
     mediaEnabled: mediaEnabled(),
 
     mediaProvider: mediaProviderLabel(),
+    mediaProviders: mediaProviderSummary(),
 
     imageModel: hasUsableHFToken() ? (process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell") : (hasUsablePollinationsKey() ? (process.env.POLLINATIONS_IMAGE_MODEL || "flux") : getImageModel()),
 
-    videoModel: hasUsableHFToken() ? (process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.1-T2V-1.3B") : (hasUsablePollinationsKey() ? (process.env.POLLINATIONS_VIDEO_MODEL || "veo") : getVideoModel()),
+    videoModel: hasUsableHFToken() ? (process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B") : (hasUsablePollinationsKey() ? (process.env.POLLINATIONS_VIDEO_MODEL || "veo") : getVideoModel()),
 
     loggedIn: Boolean(req.session.userId),
   });
@@ -2156,26 +2261,38 @@ app.post(
       environment,
       movement,
       negative,
+      shotType,
+      cameraAngle,
+      composition,
+      focus,
+      motionSpeed,
+      colorGrade,
+      filmLook,
+      timeOfDay,
+      weather,
+      sound,
+      character,
+      extras,
     } = req.body || {};
 
-    if (!subject || String(subject).trim().length < 3) {
-      return res.status(400).json({
-        error: "Please enter a scene or subject.",
-      });
-    }
-
-    if (String(subject).length > 5000) {
+    if (String(subject || "").length > 5000) {
       return res.status(400).json({
         error: "Subject description is too long.",
       });
     }
+
+    // No subject typed? Use a random scene so a prompt is still created.
+    const subjectText =
+      String(subject || "").trim().length >= 3
+        ? String(subject).trim()
+        : mediaPromptOrDefault("");
 
     const inputData = {
       preset: String(preset || "custom").trim(),
 
       targetModel: String(targetModel || "general").trim(),
 
-      subject: String(subject).trim(),
+      subject: subjectText,
 
       style,
       ratio,
@@ -2190,6 +2307,19 @@ app.post(
       movement: String(movement || "").trim(),
 
       negative: String(negative || "").trim(),
+
+      shotType: optionalList(shotType),
+      cameraAngle: optionalList(cameraAngle),
+      composition: optionalList(composition),
+      focus: optionalList(focus),
+      motionSpeed: optionalList(motionSpeed),
+      colorGrade: optionalList(colorGrade),
+      filmLook: optionalList(filmLook),
+      timeOfDay: optionalList(timeOfDay),
+      weather: optionalList(weather),
+      sound: optionalList(sound),
+      character: optionalText(character),
+      extras: optionalText(extras),
     };
 
     let prompt;
@@ -2208,6 +2338,30 @@ app.post(
         const lightings = toList(lighting, "Warm cinematic");
 
         const moods = toList(mood, "Premium and confident");
+
+        // Advanced settings are only sent when the user actually chose them.
+        const advancedInput = [
+          ["Shot Type", inputData.shotType],
+          ["Camera Angle", inputData.cameraAngle],
+          ["Composition", inputData.composition],
+          ["Focus and Depth of Field", inputData.focus],
+          ["Motion Speed", inputData.motionSpeed],
+          ["Color Grading", inputData.colorGrade],
+          ["Film Look", inputData.filmLook],
+          ["Time of Day", inputData.timeOfDay],
+          ["Weather and Atmosphere", inputData.weather],
+          ["Sound and Audio", inputData.sound],
+          ["Character and Wardrobe", inputData.character],
+          ["Extra Details", inputData.extras],
+        ]
+          .filter(([, value]) =>
+            Array.isArray(value) ? value.length : Boolean(value),
+          )
+          .map(
+            ([label, value]) =>
+              `${label}:\n${Array.isArray(value) ? value.join(", ") : value}`,
+          )
+          .join("\n\n");
 
         const userInput = `
 Creator Preset:
@@ -2254,7 +2408,7 @@ ${
   negative ||
   "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps"
 }
-`;
+${advancedInput ? `\n${advancedInput}\n` : ""}`;
 
         const systemInstruction = `
 You are a senior cinematic AI video prompt engineer specializing in
@@ -2290,6 +2444,14 @@ IMPORTANT:
 23. Do NOT use contradictory camera movements.
 24. Do NOT change the requested duration, ratio or FPS.
 25. Keep the prompt visually detailed but practical.
+26. The user's Subject or other fields may be written in Hindi
+    (Devanagari), Gujarati script, or romanized Hinglish/Gujlish
+    (Hindi or Gujarati typed in English letters, e.g. "shaam ma
+    chai pi rahi chhe"). Silently read and fully understand this
+    text and write the ENTIRE final prompt in professional English
+    only. Preserve the exact meaning, setting and intent — never
+    guess a different scene. Never leave any Hindi/Gujarati words
+    or Hinglish/Gujlish phrases in the output.
 
 TARGET OPTIMIZATION:
 
@@ -2324,6 +2486,20 @@ Include photorealistic detail, realistic anatomy, stable identity,
 coherent geometry, natural motion, cinematic depth of field,
 realistic textures, professional color grading and temporal consistency.
 
+ADVANCED SETTINGS (only when the user provided them):
+
+Every advanced setting the user selected MUST appear in the final prompt.
+- Shot Type, Camera Angle, Composition, Focus and Depth of Field and
+  Motion Speed belong inside the Camera section.
+- Color Grading and Film Look belong inside the Visual Style section.
+- Time of Day and Weather and Atmosphere belong inside the Environment section.
+- Character and Wardrobe and Extra Details belong inside the Scene section.
+  Keep the character's look identical from start to end.
+- Sound and Audio goes in an extra "Audio:" section placed right after
+  Subject Movement. Add the Audio section ONLY when Sound and Audio is provided.
+  If Sound and Audio is provided, do not add spoken dialogue.
+Settings that were not provided must be left out. Do not invent them.
+
 The final prompt MUST use exactly these sections:
 
 Scene:
@@ -2333,6 +2509,7 @@ Lighting:
 Mood:
 Environment:
 Subject Movement:
+Audio: (only when Sound and Audio is provided)
 Quality:
 Negative Prompt:
 `;
@@ -2395,10 +2572,20 @@ Negative Prompt:
       historyId = Number(info.lastInsertRowid);
     }
 
+    // Local fallback is plain template text and cannot translate —
+    // only Gemini mode actually converts Hindi/Gujarati/Hinglish
+    // input into English. Tell the frontend so it can nudge the
+    // user instead of silently shipping untranslated text.
+    const languageNote =
+      mode === "local-fallback" && looksLikeHinglishOrIndic(inputData.subject)
+        ? "Hindi/Gujarati/Hinglish text detected in your Subject. Automatic English translation needs AI mode (GEMINI_API_KEY) — this local-fallback prompt kept your original wording as typed."
+        : null;
+
     res.json({
       prompt,
       mode,
       historyId,
+      ...(languageNote ? { languageNote } : {}),
     });
   },
 );
@@ -2474,6 +2661,10 @@ RULES:
 19. Return ONLY the improved prompt.
 20. Do not add explanations.
 21. Do not use markdown code blocks.
+22. If any part of the prompt is in Hindi (Devanagari), Gujarati
+    script, or romanized Hinglish/Gujlish, silently translate it
+    into professional English while preserving the exact meaning.
+    The improved prompt must be entirely in English.
 
 Use exactly these sections:
 
@@ -2862,6 +3053,12 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
       });
     }
 
+    const quote = pro.quote(req.body?.couponCode, product.price);
+
+    if (quote.error) {
+      return res.status(400).json({ error: quote.error });
+    }
+
     const { keyId, keySecret } = razorpayKeys();
 
     if (!razorpayReady()) {
@@ -2885,7 +3082,7 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
       },
 
       body: JSON.stringify({
-        amount: product.price,
+        amount: quote.amount,
 
         currency: "INR",
 
@@ -2919,6 +3116,8 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
         error: "Could not start the payment. Please try again in a moment.",
       });
     }
+
+    pro.logCheckout(order.id, req.session.userId, productId, order.amount, quote.coupon);
 
     res.json({
       orderId: order.id,
@@ -3026,7 +3225,7 @@ app.post("/api/verify-payment", requireLogin, (req, res) => {
       productId,
       razorpay_order_id,
       razorpay_payment_id,
-      product.price,
+      pro.paidAmount(razorpay_order_id, product.price),
     );
 
     res.json({
@@ -3159,7 +3358,7 @@ app.post("/api/webhooks/razorpay", (req, res) => {
             productId,
             payment.order_id,
             payment.id,
-            product.price,
+            pro.paidAmount(payment.order_id, product.price),
           );
 
           const purchase = db
@@ -3845,6 +4044,455 @@ app.post("/api/admin/order-status", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ============================================================
+// ADMIN: DELETE USERS, BULK ACTIONS, EDIT USER, CONTENT MODERATION
+// ============================================================
+
+// Every deleted account is copied here first (including its paid orders), so
+// accounting / GST / refund records are never lost when a user is removed.
+db.exec(`
+CREATE TABLE IF NOT EXISTS deleted_users(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  original_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  joined_at TEXT NOT NULL DEFAULT '',
+  paid_orders INTEGER NOT NULL DEFAULT 0,
+  paid_amount INTEGER NOT NULL DEFAULT 0,
+  purchases_json TEXT NOT NULL DEFAULT '[]',
+  prompts_count INTEGER NOT NULL DEFAULT 0,
+  media_count INTEGER NOT NULL DEFAULT 0,
+  blocked INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+function isAdminEmail(email) {
+  return Boolean(
+    (process.env.ADMIN_EMAIL || "").trim() &&
+      canonicalEmail(email) === canonicalEmail(process.env.ADMIN_EMAIL),
+  );
+}
+
+function blockEmailNow(typedEmail, reason = "") {
+  const typed = String(typedEmail || "").trim().toLowerCase();
+
+  db.prepare(
+    `
+    INSERT INTO blocked_emails(email, shown_email, reason)
+    VALUES(?,?,?)
+    ON CONFLICT(email) DO UPDATE SET
+      shown_email=excluded.shown_email,
+      reason=excluded.reason
+    `,
+  ).run(canonicalEmail(typed), typed, String(reason || "").slice(0, 200));
+
+  db.prepare("UPDATE otps SET consumed=1 WHERE lower(email)=?").run(typed);
+}
+
+// Generated images / videos live on disk. Remove a file only when no other
+// history row still points at it.
+function removeMediaFileIfUnused(file) {
+  const stored = String(file || "");
+  const name = path.basename(stored);
+
+  if (!name) return;
+
+  const stillUsed = db
+    .prepare("SELECT 1 FROM media_history WHERE file=? LIMIT 1")
+    .get(stored);
+
+  if (stillUsed) return;
+
+  try {
+    fs.unlinkSync(path.join(MEDIA_DIR, name));
+  } catch {}
+}
+
+// Removes a user and everything that belongs to them. Runs in one transaction:
+// either the whole account disappears or nothing changes.
+function deleteUserAccount(userId, { alsoBlock = false, reason = "" } = {}) {
+  const user = db
+    .prepare("SELECT id, name, email, created_at FROM users WHERE id=?")
+    .get(userId);
+
+  if (!user) return null;
+
+  const purchases = db
+    .prepare(
+      `SELECT product_id, order_id, payment_id, amount, status, created_at
+       FROM purchases WHERE user_id=? ORDER BY id`,
+    )
+    .all(userId)
+    .map((row) => ({
+      ...row,
+      product_name: products[row.product_id]?.name || row.product_id,
+    }));
+
+  const paid = purchases.filter((p) => p.status === "paid" && p.amount > 0);
+
+  const files = db
+    .prepare("SELECT file FROM media_history WHERE user_id=?")
+    .all(userId)
+    .map((row) => row.file);
+
+  const promptsCount = db
+    .prepare("SELECT COUNT(*) AS n FROM prompt_history WHERE user_id=?")
+    .get(userId).n;
+
+  db.exec("BEGIN IMMEDIATE");
+
+  try {
+    db.prepare(
+      `INSERT INTO deleted_users
+       (original_id, name, email, joined_at, paid_orders, paid_amount,
+        purchases_json, prompts_count, media_count, blocked)
+       VALUES(?,?,?,?,?,?,?,?,?,?)`,
+    ).run(
+      user.id,
+      user.name,
+      user.email,
+      user.created_at,
+      paid.length,
+      paid.reduce((sum, p) => sum + Number(p.amount || 0), 0),
+      JSON.stringify(purchases),
+      promptsCount,
+      files.length,
+      alsoBlock ? 1 : 0,
+    );
+
+    db.prepare("DELETE FROM favorites WHERE user_id=?").run(userId);
+    db.prepare("DELETE FROM prompt_history WHERE user_id=?").run(userId);
+    db.prepare("DELETE FROM media_history WHERE user_id=?").run(userId);
+    db.prepare("DELETE FROM purchases WHERE user_id=?").run(userId);
+    db.prepare("DELETE FROM otps WHERE lower(email)=?").run(
+      String(user.email).toLowerCase(),
+    );
+    db.prepare("DELETE FROM users WHERE id=?").run(userId);
+
+    if (alsoBlock) blockEmailNow(user.email, reason || "Account deleted by admin");
+
+    db.exec("COMMIT");
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {}
+
+    throw err;
+  }
+
+  // Files are removed only after the database change is safely committed.
+  for (const file of files) removeMediaFileIfUnused(file);
+
+  return {
+    user,
+    paidOrders: paid.length,
+    prompts: promptsCount,
+    media: files.length,
+  };
+}
+
+// ---- delete one user (admin must type the user's email to confirm) ----
+app.post("/api/admin/delete-user", requireAdmin, (req, res) => {
+  const userId = Number(req.body?.userId);
+
+  const user = db
+    .prepare("SELECT id, email FROM users WHERE id=?")
+    .get(userId);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const typed = String(req.body?.confirmEmail || "").trim().toLowerCase();
+
+  if (typed !== String(user.email).trim().toLowerCase()) {
+    return res.status(400).json({
+      error: "Type the user's email exactly to confirm the deletion.",
+    });
+  }
+
+  const alsoBlock = Boolean(req.body?.alsoBlock) && !isAdminEmail(user.email);
+
+  try {
+    const result = deleteUserAccount(userId, { alsoBlock });
+
+    logAdmin(
+      "delete_user",
+      result.user.email,
+      `${result.paidOrders} paid orders, ${result.prompts} prompts, ${result.media} media${alsoBlock ? ", email blocked" : ""}`,
+    );
+
+    res.json({ ok: true, ...result, blocked: alsoBlock });
+  } catch (err) {
+    console.error("Delete user failed:", err);
+
+    res.status(500).json({ error: "Could not delete this user. Nothing was changed." });
+  }
+});
+
+// ---- delete many users ----
+app.post("/api/admin/delete-users", requireAdmin, (req, res) => {
+  if (String(req.body?.confirm || "") !== "DELETE") {
+    return res.status(400).json({ error: 'Type DELETE to confirm.' });
+  }
+
+  const ids = [
+    ...new Set(
+      (Array.isArray(req.body?.ids) ? req.body.ids : [])
+        .map(Number)
+        .filter((n) => Number.isInteger(n) && n > 0),
+    ),
+  ];
+
+  if (!ids.length) {
+    return res.status(400).json({ error: "Select at least one user." });
+  }
+
+  if (ids.length > 100) {
+    return res.status(400).json({ error: "Delete at most 100 users at a time." });
+  }
+
+  const alsoBlock = Boolean(req.body?.alsoBlock);
+
+  let deleted = 0;
+  let paidOrders = 0;
+  const failed = [];
+
+  for (const id of ids) {
+    try {
+      const row = db.prepare("SELECT email FROM users WHERE id=?").get(id);
+
+      if (!row) {
+        failed.push({ id, error: "Not found" });
+        continue;
+      }
+
+      const block = alsoBlock && !isAdminEmail(row.email);
+      const result = deleteUserAccount(id, { alsoBlock: block });
+
+      deleted += 1;
+      paidOrders += result.paidOrders;
+
+      logAdmin(
+        "delete_user",
+        result.user.email,
+        `bulk: ${result.paidOrders} paid orders, ${result.prompts} prompts, ${result.media} media${block ? ", email blocked" : ""}`,
+      );
+    } catch (err) {
+      console.error("Bulk delete failed for user", id, err);
+      failed.push({ id, error: "Could not delete" });
+    }
+  }
+
+  res.json({ ok: true, deleted, paidOrders, failed });
+});
+
+// ---- block / unblock many users ----
+app.post("/api/admin/block-users", requireAdmin, (req, res) => {
+  const ids = [
+    ...new Set(
+      (Array.isArray(req.body?.ids) ? req.body.ids : [])
+        .map(Number)
+        .filter((n) => Number.isInteger(n) && n > 0),
+    ),
+  ].slice(0, 200);
+
+  const reason = String(req.body?.reason || "").trim().slice(0, 200);
+  const unblock = Boolean(req.body?.unblock);
+
+  if (!ids.length) {
+    return res.status(400).json({ error: "Select at least one user." });
+  }
+
+  let changed = 0;
+  let skipped = 0;
+
+  for (const id of ids) {
+    const row = db.prepare("SELECT email FROM users WHERE id=?").get(id);
+
+    if (!row || (!unblock && isAdminEmail(row.email))) {
+      skipped += 1;
+      continue;
+    }
+
+    if (unblock) {
+      db.prepare("DELETE FROM blocked_emails WHERE email=?").run(
+        canonicalEmail(row.email),
+      );
+      logAdmin("unblock", row.email, "bulk");
+    } else {
+      blockEmailNow(row.email, reason);
+      logAdmin("block", row.email, reason || "bulk");
+    }
+
+    changed += 1;
+  }
+
+  res.json({ ok: true, changed, skipped });
+});
+
+// ---- fix a user's name or email (support requests, typos) ----
+app.post("/api/admin/update-user", requireAdmin, (req, res) => {
+  const userId = Number(req.body?.userId);
+
+  const user = db
+    .prepare("SELECT id, name, email FROM users WHERE id=?")
+    .get(userId);
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found." });
+  }
+
+  const name = String(req.body?.name ?? user.name).trim().slice(0, 80);
+  const email = String(req.body?.email ?? user.email).trim().toLowerCase();
+
+  if (!name) {
+    return res.status(400).json({ error: "Name cannot be empty." });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
+    return res.status(400).json({ error: "Enter a valid email address." });
+  }
+
+  if (email !== user.email) {
+    const taken = db
+      .prepare("SELECT id FROM users WHERE lower(email)=? AND id<>?")
+      .get(email, userId);
+
+    if (taken) {
+      return res.status(400).json({
+        error: "Another account already uses that email.",
+      });
+    }
+
+    if (isEmailBlocked(email)) {
+      return res.status(400).json({
+        error: "That email is on the block list. Unblock it first.",
+      });
+    }
+  }
+
+  if (name === user.name && email === user.email) {
+    return res.json({ ok: true, unchanged: true });
+  }
+
+  db.prepare("UPDATE users SET name=?, email=? WHERE id=?").run(name, email, userId);
+
+  const changes = [];
+  if (name !== user.name) changes.push(`name: ${user.name} → ${name}`);
+  if (email !== user.email) changes.push(`email: ${user.email} → ${email}`);
+
+  logAdmin("edit_user", email, changes.join("; "));
+
+  res.json({ ok: true });
+});
+
+// ---- remove one prompt or one generated image/video (moderation) ----
+app.post("/api/admin/delete-prompt", requireAdmin, (req, res) => {
+  const id = Number(req.body?.id);
+
+  const row = db
+    .prepare(
+      `SELECT h.id, h.subject, u.email
+       FROM prompt_history h JOIN users u ON u.id=h.user_id WHERE h.id=?`,
+    )
+    .get(id);
+
+  if (!row) {
+    return res.status(404).json({ error: "Prompt not found." });
+  }
+
+  db.prepare("DELETE FROM favorites WHERE prompt_id=?").run(id);
+  db.prepare("DELETE FROM prompt_history WHERE id=?").run(id);
+
+  logAdmin("delete_prompt", row.email, String(row.subject || "").slice(0, 120));
+
+  res.json({ ok: true });
+});
+
+app.post("/api/admin/delete-media", requireAdmin, (req, res) => {
+  const id = Number(req.body?.id);
+
+  const row = db
+    .prepare(
+      `SELECT m.id, m.file, m.kind, u.email
+       FROM media_history m JOIN users u ON u.id=m.user_id WHERE m.id=?`,
+    )
+    .get(id);
+
+  if (!row) {
+    return res.status(404).json({ error: "Media not found." });
+  }
+
+  db.prepare("DELETE FROM media_history WHERE id=?").run(id);
+  removeMediaFileIfUnused(row.file);
+
+  logAdmin("delete_media", row.email, `${row.kind}: ${path.basename(row.file)}`);
+
+  res.json({ ok: true });
+});
+
+// ---- archive of deleted accounts ----
+app.get("/api/admin/deleted", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT id, original_id, name, email, joined_at, paid_orders, paid_amount,
+              purchases_json, prompts_count, media_count, blocked, deleted_at
+       FROM deleted_users ORDER BY id DESC LIMIT 1000`,
+    )
+    .all()
+    .map((row) => {
+      let purchases = [];
+
+      try {
+        purchases = JSON.parse(row.purchases_json);
+      } catch {}
+
+      const { purchases_json, ...rest } = row;
+
+      return { ...rest, blocked: Boolean(row.blocked), purchases };
+    });
+
+  res.json({
+    deleted: rows,
+    totalPaid: rows.reduce((sum, r) => sum + Number(r.paid_amount || 0), 0),
+  });
+});
+
+// ---- permanently erase one entry from the deleted-users archive ----
+app.post("/api/admin/erase-deleted", requireAdmin, (req, res) => {
+  const id = Number(req.body?.id);
+
+  const row = db
+    .prepare(
+      "SELECT id, email, paid_orders, paid_amount FROM deleted_users WHERE id=?",
+    )
+    .get(id);
+
+  if (!row) {
+    return res.status(404).json({ error: "Record not found." });
+  }
+
+  const typed = String(req.body?.confirmEmail || "").trim().toLowerCase();
+
+  if (typed !== String(row.email).trim().toLowerCase()) {
+    return res.status(400).json({
+      error: "Type the email exactly to confirm.",
+    });
+  }
+
+  db.prepare("DELETE FROM deleted_users WHERE id=?").run(id);
+
+  logAdmin(
+    "erase_record",
+    row.email,
+    `${row.paid_orders} paid orders (${Number(row.paid_amount || 0) / 100} INR) erased from archive`,
+  );
+
+  res.json({ ok: true });
+});
+
 app.get("/api/admin/activity", requireAdmin, (req, res) => {
   const prompts = db
     .prepare(
@@ -4022,6 +4670,10 @@ function getVideoModel() {
   return process.env.VIDEO_MODEL || "veo-3.1-fast-generate-preview";
 }
 
+function hasUsableGeminiVideoKey() {
+  return hasUsableGeminiKey() && String(process.env.GEMINI_VIDEO_ENABLED || "true").toLowerCase() !== "false";
+}
+
 function hasUsablePollinationsKey() {
   const key = process.env.POLLINATIONS_API_KEY || "";
   return key.length > 5;
@@ -4040,17 +4692,65 @@ function freeOnlyMediaMode() {
 }
 
 function mediaEnabled() {
-  if (freeOnlyMediaMode()) return hasUsableHFToken();
-  return hasUsableHFToken() || hasUsablePollinationsKey() || hasLocalMediaConfig();
+  return hasUsableHFToken() || hasUsablePollinationsKey() || hasLocalMediaConfig() || (!freeOnlyMediaMode() && (hasUsableGeminiKey() || hasUsableGeminiVideoKey()));
 }
 
 function mediaProviderLabel() {
   const providers = [];
-  if (hasUsableHFToken()) providers.push("huggingface-free");
-  if (!freeOnlyMediaMode() && hasUsablePollinationsKey()) providers.push("pollinations");
-  if (!freeOnlyMediaMode() && hasLocalMediaConfig()) providers.push("local");
-  return providers.join(" + ") || "none";
+  if (hasLocalMediaConfig()) providers.push("local-free");
+  if (hasUsableHFToken()) providers.push("huggingface-provider");
+  if (hasUsablePollinationsKey()) providers.push("pollinations");
+  if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey()) providers.push("gemini-veo");
+  return providers.join(" → ") || "none";
 }
+
+function mediaProviderSummary() {
+  return {
+    freeMode: freeOnlyMediaMode(),
+    local: hasLocalMediaConfig(),
+    huggingface: hasUsableHFToken(),
+    pollinations: hasUsablePollinationsKey(),
+    geminiConfigured: hasUsableGeminiKey(),
+    geminiVideoConfigured: hasUsableGeminiVideoKey(),
+    gemini: !freeOnlyMediaMode() && hasUsableGeminiVideoKey(),
+    label: mediaProviderLabel(),
+  };
+}
+
+
+// Provider diagnostics: never spends remote credits. Only checks local ComfyUI reachability.
+app.get("/api/media/providers/health", async (req, res) => {
+  const result = {
+    freeMode: freeOnlyMediaMode(),
+    local: { configured: hasLocalMediaConfig(), reachable: false, note: "Not configured" },
+    huggingface: { configured: hasUsableHFToken(), reachable: null, note: hasUsableHFToken() ? "Token configured; credit balance is not queried" : "Token not configured" },
+    pollinations: { configured: hasUsablePollinationsKey(), reachable: null, note: hasUsablePollinationsKey() ? "Key configured; balance is not queried" : "Key not configured" },
+    gemini: { configured: hasUsableGeminiKey(), enabled: !freeOnlyMediaMode() && hasUsableGeminiVideoKey(), reachable: null, note: hasUsableGeminiKey() ? (!freeOnlyMediaMode() ? "API key configured for Veo video" : "Configured but paid media mode is disabled (set FREE_ONLY_MEDIA=false)") : "API key not configured" },
+  };
+
+  if (result.local.configured) {
+    try {
+      const base = String(process.env.COMFYUI_URL).replace(/\/$/, "");
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
+      const response = await fetch(`${base}/system_stats`, { signal: controller.signal });
+      clearTimeout(timer);
+      result.local.reachable = response.ok;
+      result.local.note = response.ok ? "ComfyUI is running" : `ComfyUI returned HTTP ${response.status}`;
+    } catch (error) {
+      result.local.reachable = false;
+      result.local.note = "ComfyUI is configured but not reachable. Start ComfyUI.";
+    }
+  }
+
+  const available = [];
+  if (result.local.reachable) available.push("local");
+  if (result.huggingface.configured) available.push("huggingface");
+  if (result.pollinations.configured) available.push("pollinations");
+  if (result.gemini.enabled) available.push("gemini");
+
+  res.json({ ...result, available, recommended: available[0] || null });
+});
 
 // Aspect ratio helpers -----------------------------------------
 
@@ -4355,29 +5055,42 @@ async function generateWithComfyUI({ kind, prompt, aspectRatio, durationSeconds,
 async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
   if (!hasUsableHFToken()) throw new Error("Hugging Face token is not configured.");
   const model = process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-  const response = await fetch("https://router.huggingface.co/hf-inference/models/" + encodeURIComponent(model), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.HF_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ inputs: prompt }),
-    signal: AbortSignal.timeout(Number(process.env.HF_TIMEOUT_MS || 180000)),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Hugging Face image failed (${response.status}): ${text.slice(0, 500)}`);
+  // The old hf-inference endpoint no longer serves FLUX (HTTP 410). Route through the
+  // Inference Providers client instead: "auto" picks a partner provider that hosts the model.
+  const provider = String(process.env.HF_IMAGE_PROVIDER || "auto").trim().toLowerCase();
+
+  let InferenceClient;
+  try {
+    ({ InferenceClient } = await import("@huggingface/inference"));
+  } catch {
+    throw new Error("Hugging Face image needs the client package. Run: npm install");
+  }
+
+  const client = new InferenceClient(process.env.HF_TOKEN);
+  let blob;
+  try {
+    blob = await client.textToImage(
+      { provider, model, inputs: prompt },
+      { outputType: "blob", signal: AbortSignal.timeout(Number(process.env.HF_TIMEOUT_MS || 180000)) },
+    );
+  } catch (error) {
+    throw new Error(`Hugging Face image failed (provider ${provider}, model ${model}): ${String(error.message || error).slice(0, 500)}`);
   }
   return {
-    buffer: Buffer.from(await response.arrayBuffer()),
-    mimeType: response.headers.get("content-type") || "image/jpeg",
-    model: `huggingface:${model}`,
+    buffer: Buffer.from(await blob.arrayBuffer()),
+    mimeType: blob.type || "image/jpeg",
+    model: `huggingface:${provider}:${model}`,
   };
 }
 
 async function generateImageWithProviders({ prompt, aspectRatio }) {
   const errors = [];
-  if (freeOnlyMediaMode() && hasUsableHFToken()) {
+  // Local ComfyUI is genuinely free when it runs on the user's own machine.
+  if (hasLocalMediaConfig()) {
+    try { return await generateWithComfyUI({ kind: "image", prompt, aspectRatio }); }
+    catch (error) { errors.push(`Local: ${error.message}`); console.error(errors.at(-1)); }
+  }
+  if (hasUsableHFToken()) {
     try { return await generateImageWithHuggingFace({ prompt, aspectRatio }); }
     catch (error) { errors.push(`Hugging Face: ${error.message}`); console.error(errors.at(-1)); }
   }
@@ -4385,29 +5098,48 @@ async function generateImageWithProviders({ prompt, aspectRatio }) {
     try { return await generateImageWithPollinations({ prompt, aspectRatio }); }
     catch (error) { errors.push(`Pollinations: ${error.message}`); console.error(errors.at(-1)); }
   }
-  if (!freeOnlyMediaMode() && hasLocalMediaConfig()) {
-    try { return await generateWithComfyUI({ kind: "image", prompt, aspectRatio }); }
-    catch (error) { errors.push(`Local: ${error.message}`); console.error(errors.at(-1)); }
-  }
   if (!freeOnlyMediaMode() && hasUsableGeminiKey()) {
     try { return await generateImageWithGemini({ prompt, aspectRatio }); }
     catch (error) { errors.push(`Gemini: ${error.message}`); console.error(errors.at(-1)); }
   }
-  throw new Error(errors.join(" | ") || "No free image generation provider is configured.");
+  throw new Error(errors.join(" | ") || "No image generation provider is configured. Add local ComfyUI or a provider token.");
 }
 
-async function generateVideoWithHuggingFace({ prompt, durationSeconds }) {
+function friendlyVideoProviderError(provider, error) {
+  const message = String(error?.message || error || "Unknown error");
+  const lower = message.toLowerCase();
+
+  if (provider === "huggingface" && (lower.includes("depleted your monthly included credits") || lower.includes("purchase pre-paid credits") || lower.includes("402"))) {
+    return "Hugging Face free video credits are exhausted. No charge was made by EditPrompt. Configure Local ComfyUI for free generation or use a paid video provider.";
+  }
+
+  if (provider === "pollinations" && (lower.includes("insufficient balance") || lower.includes("payment_required") || lower.includes("402"))) {
+    return "Pollinations balance is 0, so this video request cannot run. Configure Local ComfyUI for free generation or add a funded Pollinations account.";
+  }
+
+  if (provider === "gemini" && (lower.includes("quota") || lower.includes("billing") || lower.includes("payment"))) {
+    return "Gemini video generation requires an available API quota/billing setup for the selected Veo model.";
+  }
+
+  if (provider === "local" && (lower.includes("econnrefused") || lower.includes("fetch failed") || lower.includes("comfyui"))) {
+    return "Local ComfyUI is configured but not reachable. Start ComfyUI and verify COMFYUI_URL (default: http://127.0.0.1:8188).";
+  }
+
+  return message;
+}
+
+async function generateVideoWithHuggingFace({ prompt, durationSeconds, image }) {
   if (!hasUsableHFToken()) throw new Error("Hugging Face token is not configured.");
   const provider = String(process.env.HF_VIDEO_PROVIDER || "").trim().toLowerCase();
-  const model = process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B";
 
-  // Hugging Face's own free inference (hf-inference / "auto") has no text-to-video.
-  // Video only runs through partner providers (fal-ai, replicate, novita) and is billed to HF credits.
-  if (!provider || provider === "auto" || provider === "hf-inference") {
+  // Hugging Face's own hf-inference has no video. Video runs through partner
+  // providers (fal-ai, replicate, novita...) billed to HF credits; "auto" lets HF pick one.
+  if (provider === "hf-inference") {
     throw new Error(
-      "Free Hugging Face does not offer video generation. Set HF_VIDEO_PROVIDER=fal-ai in .env (uses your Hugging Face credits) or use Pollinations with FREE_ONLY_MEDIA=false.",
+      "hf-inference does not offer video generation. Set HF_VIDEO_PROVIDER=auto or fal-ai in .env (uses your Hugging Face credits).",
     );
   }
+  const useProvider = provider || "auto";
 
   let InferenceClient;
   try {
@@ -4417,14 +5149,26 @@ async function generateVideoWithHuggingFace({ prompt, durationSeconds }) {
   }
 
   const client = new InferenceClient(process.env.HF_TOKEN);
-  const blob = await client.textToVideo(
-    { provider, model, inputs: prompt },
-    { signal: AbortSignal.timeout(Number(process.env.HF_VIDEO_TIMEOUT_MS || 900000)) },
-  );
+  const signal = AbortSignal.timeout(Number(process.env.HF_VIDEO_TIMEOUT_MS || 900000));
+  let blob, model;
+
+  if (image && image.data) {
+    // Animate Image: start from the picture the user already generated.
+    model = process.env.HF_I2V_MODEL || "Wan-AI/Wan2.1-I2V-14B-720P";
+    const imageBlob = new Blob([Buffer.from(image.data, "base64")], { type: image.mimeType || "image/png" });
+    blob = await client.imageToVideo(
+      { provider: useProvider, model, inputs: imageBlob, parameters: { prompt } },
+      { signal },
+    );
+  } else {
+    model = process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B";
+    blob = await client.textToVideo({ provider: useProvider, model, inputs: prompt }, { signal });
+  }
+
   return {
     buffer: Buffer.from(await blob.arrayBuffer()),
     mimeType: blob.type || "video/mp4",
-    model: `huggingface:${provider}:${model}`,
+    model: `huggingface:${useProvider}:${model}`,
   };
 }
 
@@ -4556,7 +5300,8 @@ async function startVideoJob({ prompt, aspectRatio, durationSeconds, image }) {
         parameters: {
           aspectRatio,
           durationSeconds,
-          resolution: "720p",
+          resolution: process.env.VEO_RESOLUTION || "720p",
+          numberOfVideos: 1,
 
           personGeneration:
             process.env.VEO_PERSON_GENERATION ||
@@ -4631,15 +5376,28 @@ async function pollVideoJob(operationName) {
   };
 }
 
-// In-memory job registry (video generation is long running)
+// Persistent video jobs: SQLite survives a server restart.
 const videoJobs = new Map();
 
-function pruneVideoJobs() {
-  const cutoff = Date.now() - 3600_000;
+function persistVideoJob(job) {
+  const now = Date.now();
+  db.prepare(`INSERT INTO video_jobs
+    (id,user_id,status,prompt,provider,model,aspect_ratio,duration_seconds,fps,camera_motion,motion_strength,from_image,image_json,file,error,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET status=excluded.status,model=excluded.model,file=excluded.file,error=excluded.error,updated_at=excluded.updated_at`).run(
+      job.id,job.userId,job.status||'pending',job.prompt,job.provider||'auto',job.model||'',job.aspectRatio||'16:9',job.durationSeconds||8,job.fps||24,job.cameraMotion||'Natural',job.motionStrength||'Medium',job.fromImage?1:0,job.image?JSON.stringify(job.image):null,job.file||null,job.error||null,job.createdAt||now,now);
+}
 
-  for (const [id, job] of videoJobs) {
-    if (job.createdAt < cutoff) videoJobs.delete(id);
-  }
+function loadVideoJob(id) {
+  const r=db.prepare('SELECT * FROM video_jobs WHERE id=?').get(id); if(!r)return null;
+  const job={id:r.id,userId:r.user_id,status:r.status,prompt:r.prompt,provider:r.provider,model:r.model,aspectRatio:r.aspect_ratio,durationSeconds:r.duration_seconds,fps:r.fps,cameraMotion:r.camera_motion,motionStrength:r.motion_strength,fromImage:Boolean(r.from_image),image:r.image_json?JSON.parse(r.image_json):null,file:r.file,error:r.error,createdAt:r.created_at,updatedAt:r.updated_at};
+  videoJobs.set(id,job); return job;
+}
+
+function pruneVideoJobs() {
+  const cutoff=Date.now()-48*3600_000;
+  db.prepare('DELETE FROM video_jobs WHERE updated_at < ?').run(cutoff);
+  for(const [id,job] of videoJobs) if(job.updatedAt<cutoff) videoJobs.delete(id);
 }
 
 // ============================================================
@@ -4678,6 +5436,33 @@ app.get("/api/media/file/:name", (req, res) => {
   res.send(file.buffer);
 });
 
+// ---------------- AUTO PROMPT ----------------
+// If a request arrives with no prompt (or only a word or two), the server
+// still produces a good one so image / video generation always works.
+
+const DEFAULT_MEDIA_PROMPTS = [
+  "A cinematic character walking through a rain-lit city street at night, neon reflections on wet pavement, shallow depth of field, slow push-in camera, moody film look",
+  "A luxury product rotating on a polished marble pedestal, soft golden studio lighting, crisp reflections, premium commercial advertisement style",
+  "A sweeping aerial shot over misty green mountains at sunrise, golden light breaking through clouds, ultra-detailed, calm and majestic atmosphere",
+  "A beautiful Indian wedding couple sharing a quiet moment under warm festival lights, soft bokeh, romantic cinematic colour grade",
+  "A futuristic city skyline at dusk with flying vehicles and glowing neon signs, rich atmosphere, wide cinematic frame",
+  "A close-up of steaming masala chai being poured into a glass cup on a rainy window sill, cosy warm lighting, shallow depth of field",
+];
+
+function mediaPromptOrDefault(raw) {
+  const text = String(raw || "").trim();
+
+  if (text.length >= 10) return text;
+
+  if (!text) {
+    return DEFAULT_MEDIA_PROMPTS[
+      Math.floor(Math.random() * DEFAULT_MEDIA_PROMPTS.length)
+    ];
+  }
+
+  return `A cinematic, highly detailed shot of ${text}, dramatic lighting, shallow depth of field, professional colour grading`;
+}
+
 // ---------------- IMAGE ----------------
 
 app.post(
@@ -4699,11 +5484,8 @@ app.post(
       });
     }
 
-    const prompt = String(req.body?.prompt || "").trim();
-
-    if (prompt.length < 10) {
-      return res.status(400).json({ error: "Generate a prompt first." });
-    }
+    // An empty or very short prompt never blocks generation.
+    const prompt = mediaPromptOrDefault(req.body?.prompt);
 
     if (prompt.length > 8000) {
       return res.status(400).json({ error: "Prompt is too long." });
@@ -4763,11 +5545,8 @@ app.post(
       });
     }
 
-    const prompt = String(req.body?.prompt || "").trim();
-
-    if (prompt.length < 10) {
-      return res.status(400).json({ error: "Generate a prompt first." });
-    }
+    // An empty or very short prompt never blocks generation.
+    const prompt = mediaPromptOrDefault(req.body?.prompt);
 
     if (prompt.length > 8000) {
       return res.status(400).json({ error: "Prompt is too long." });
@@ -4775,6 +5554,9 @@ app.post(
 
     const aspectRatio = videoAspectRatio(req.body?.ratio);
     const durationSeconds = videoDuration(req.body?.duration);
+    const fps = [24,30,60].includes(Number(req.body?.fps)) ? Number(req.body.fps) : 24;
+    const cameraMotion = String(req.body?.cameraMotion || 'Natural').slice(0,40);
+    const motionStrength = String(req.body?.motionStrength || 'Medium').slice(0,20);
 
     // Optional starting frame: an image created earlier in this flow
     let image = null;
@@ -4806,25 +5588,23 @@ app.post(
       pruneVideoJobs();
       const jobId = crypto.randomUUID();
 
-      videoJobs.set(jobId, {
-        provider: "auto",
-        prompt,
-        userId: req.session.userId,
-        createdAt: Date.now(),
-        file: null,
-        error: null,
-        fromImage: Boolean(image),
-        aspectRatio,
-        durationSeconds,
-        image,
-      });
+      const job = { id: jobId, provider: "auto",
+        prompt: `${prompt}\nCamera motion: ${cameraMotion}. Motion strength: ${motionStrength}. FPS: ${fps}.`,
+        userId: req.session.userId, createdAt: Date.now(), updatedAt: Date.now(), status: "pending",
+        file: null, model: "", error: null, fromImage: Boolean(image), aspectRatio, durationSeconds, fps,
+        cameraMotion, motionStrength, image };
+      videoJobs.set(jobId, job);
+      persistVideoJob(job);
 
       res.json({
         jobId,
         status: "pending",
         aspectRatio,
         durationSeconds,
-        model: "pollinations → local fallback",
+        fps,
+        cameraMotion,
+        motionStrength,
+        model: mediaProviderLabel(),
         estimatedSeconds: image ? 150 : 120,
       });
     } catch (error) {
@@ -4840,7 +5620,7 @@ app.post(
 // ---------------- VIDEO (status) ----------------
 
 app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
-  const job = videoJobs.get(req.params.jobId);
+  const job = videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
 
   if (!job || job.userId !== req.session.userId) {
     return res.status(404).json({ error: "Job not found." });
@@ -4850,6 +5630,8 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
     return res.json({
       status: "done",
       kind: "video",
+      model: job.model || "unknown",
+      provider: job.provider || "auto",
       file: job.file,
       url: `/api/media/file/${job.file}`,
       downloadUrl: `/api/media/file/${job.file}?download=1`,
@@ -4857,74 +5639,112 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
   }
 
   if (job.error) {
-    return res.status(502).json({ status: "failed", error: job.error });
+    return res.status(502).json({ status: "failed", error: job.error, model: job.model || "unknown" });
   }
 
   try {
-    // Text-to-video uses Pollinations first, then local ComfyUI.
-    // Image-to-video uses local first so the reference image can be preserved;
-    // if local is unavailable, it falls back to Pollinations text-to-video.
+    // Gemini/Veo is an asynchronous provider. Once started, poll the same
+    // operation instead of submitting a new paid request on every frontend poll.
+    if (job.provider === "gemini" && job.operationName) {
+      const operation = await pollVideoJob(job.operationName);
+      if (!operation.done) {
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        return res.json({
+          status: "processing",
+          provider: "gemini",
+          model: job.model || getVideoModel(),
+        });
+      }
+
+      const file = saveMediaBuffer(operation.buffer, "video/mp4");
+      job.file = file;
+      job.status = "done";
+      job.updatedAt = Date.now();
+      persistVideoJob(job);
+      recordMedia({ userId: job.userId, kind: job.fromImage ? "image-to-video" : "video", prompt: job.prompt, file, model: job.model || getVideoModel() });
+      return res.json({
+        status: "done",
+        kind: "video",
+        model: job.model || getVideoModel(),
+        provider: "gemini",
+        file,
+        url: `/api/media/file/${file}`,
+        downloadUrl: `/api/media/file/${file}?download=1`,
+      });
+    }
+
+    // Provider router: Gemini Veo first when explicitly enabled, then local,
+    // Hugging Face, and Pollinations. Failed/empty-credit providers are caught
+    // so another configured provider can be tried automatically.
     let result;
     let model;
     const errors = [];
 
-    if (freeOnlyMediaMode() && hasUsableHFToken()) {
+    if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey()) {
       try {
-        result = await generateVideoWithHuggingFace({ prompt: job.prompt, durationSeconds: job.durationSeconds });
-        model = result.model;
-      } catch (error) {
-        errors.push(`Hugging Face: ${error.message}`);
-      }
-    }
-
-    if (!freeOnlyMediaMode() && job.fromImage && hasLocalMediaConfig()) {
-      try {
-        result = await generateWithComfyUI({
-          kind: "video",
+        const started = await startVideoJob({
           prompt: job.prompt,
           aspectRatio: job.aspectRatio,
           durationSeconds: job.durationSeconds,
           image: job.image,
         });
-        model = result.model;
+        job.provider = "gemini";
+        job.operationName = started.operationName;
+        job.model = started.model;
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        return res.json({ status: "processing", provider: "gemini", model: started.model });
       } catch (error) {
-        errors.push(`Local: ${error.message}`);
+        errors.push(`Gemini: ${friendlyVideoProviderError("gemini", error)}`);
+      }
+    }
+
+    if (hasLocalMediaConfig()) {
+      try {
+        result = await generateWithComfyUI({ kind: "video", prompt: job.prompt, aspectRatio: job.aspectRatio, durationSeconds: job.durationSeconds, image: job.image });
+        model = result.model;
+        job.provider = "local";
+      } catch (error) {
+        errors.push(`Local: ${friendlyVideoProviderError("local", error)}`);
+      }
+    }
+
+    if (!result && hasUsableHFToken()) {
+      try {
+        result = await generateVideoWithHuggingFace({ prompt: job.prompt, durationSeconds: job.durationSeconds, image: job.image });
+        model = result.model;
+        job.provider = "huggingface";
+      } catch (error) {
+        errors.push(`Hugging Face: ${friendlyVideoProviderError("huggingface", error)}`);
       }
     }
 
     if (!result && !freeOnlyMediaMode() && hasUsablePollinationsKey()) {
       try {
-        result = await generateVideoWithPollinations({
-          prompt: job.prompt,
-          durationSeconds: job.durationSeconds,
-        });
+        result = await generateVideoWithPollinations({ prompt: job.prompt, durationSeconds: job.durationSeconds });
         model = result.model;
+        job.provider = "pollinations";
       } catch (error) {
-        errors.push(`Pollinations: ${error.message}`);
-      }
-    }
-
-    if (!freeOnlyMediaMode() && !result && !job.fromImage && hasLocalMediaConfig()) {
-      try {
-        result = await generateWithComfyUI({
-          kind: "video",
-          prompt: job.prompt,
-          aspectRatio: job.aspectRatio,
-          durationSeconds: job.durationSeconds,
-        });
-        model = result.model;
-      } catch (error) {
-        errors.push(`Local: ${error.message}`);
+        errors.push(`Pollinations: ${friendlyVideoProviderError("pollinations", error)}`);
       }
     }
 
     if (!result) {
-      throw new Error(errors.join(" | ") || "No free video generation provider is configured. Pollinations requires available free Pollen/credits.");
+      throw new Error(
+        errors.join(" | ") ||
+        "No video provider is currently available. For ₹0-cost generation, start Local ComfyUI with a compatible video workflow. Remote providers may require credits or billing."
+      );
     }
 
     const file = saveMediaBuffer(result.buffer, result.mimeType || "video/mp4");
     job.file = file;
     job.model = model || result.model || "unknown";
+    job.status = "done";
+    job.updatedAt = Date.now();
+    persistVideoJob(job);
 
     recordMedia({
       userId: job.userId,
@@ -4938,6 +5758,8 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
       status: "done",
       kind: "video",
       file,
+      model: job.model,
+      provider: job.provider || "auto",
       url: `/api/media/file/${file}`,
       downloadUrl: `/api/media/file/${file}?download=1`,
     });
@@ -4945,6 +5767,9 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
     console.error("Video poll error:", error.message);
 
     job.error = error.message || "Video generation failed.";
+    job.status = "failed";
+    job.updatedAt = Date.now();
+    persistVideoJob(job);
 
     res.status(502).json({ status: "failed", error: job.error });
   }
@@ -4979,6 +5804,10 @@ app.get("/api/media/history", requireLogin, (req, res) => {
 // ============================================================
 // FRONTEND FALLBACK
 // ============================================================
+
+pro.mount({ app, requireAdmin, logAdmin, products, razorpayKeys, razorpayReady, mailer });
+
+mountSoftwareDownloads(app);
 
 app.get("/admin", (req, res) => {
   res.set("X-Robots-Tag", "noindex, nofollow");

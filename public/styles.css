@@ -415,7 +415,7 @@ textarea:focus,
 select:focus {
     border-color: #666;
     background: #121212;
-    box-shadow: 0 0 0 3px rgba(229, 35, 41, 0.08);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
 }
 
 input::placeholder,
@@ -500,8 +500,17 @@ select option {
 }
 
 .output:empty::before {
-    content: "Your prompt will appear here.\A Generate a prompt to save it to your history.";
+    content: "Your prompt will appear here.\A Generate a prompt to save it to your history.\A\A Or paste your own complete prompt here, then click Generate Media.";
     color: #6f6a62;
+}
+
+.output {
+    cursor: text;
+}
+
+.output:focus {
+    outline: none;
+    border-color: var(--red, #e52329);
 }
 
 /* =========================
@@ -606,6 +615,36 @@ select option {
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
     max-height: 260px;
     overflow: auto;
+}
+
+.ms-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 38px;
+    margin-bottom: 7px;
+    padding: 8px 11px;
+    border: 1px solid #343434;
+    border-radius: 9px;
+    background: #0f0f0f;
+    color: #f2eee8;
+    outline: none;
+    font-size: 13px;
+}
+
+.ms-search-input::placeholder {
+    color: #77716a;
+}
+
+.ms-search-input:focus {
+    border-color: #666;
+    box-shadow: 0 0 0 3px rgba(229, 35, 41, 0.07);
+}
+
+.ms-no-results {
+    padding: 13px 10px;
+    color: #77716a;
+    font-size: 12px;
+    text-align: center;
 }
 
 .ms-dropdown label {
@@ -1151,13 +1190,23 @@ table tr:hover td {
 ========================= */
 
 button:focus-visible,
-a:focus-visible,
+a:focus-visible {
+    outline: 2px solid rgba(229, 35, 41, 0.7);
+    outline-offset: 2px;
+}
+
+/* Form fields already show a focus ring via the soft box-shadow in
+   input:focus/textarea:focus above. Giving them the same hard red
+   outline here made a field (e.g. Environment, right after clicking
+   a suggestion chip which calls .focus() programmatically) look
+   like a validation error instead of a normal focus state. */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 .ms-control:focus-visible {
-    outline: 2px solid rgba(229, 35, 41, 0.7);
-    outline-offset: 2px;
+    outline: none;
+    border-color: #666;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
 }
 
 /* =========================
@@ -1335,6 +1384,36 @@ select:focus-visible,
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 12px;
+}
+
+.mediacontrols {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.02);
+}
+
+.mediacontrols .formgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.mediacontrols label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.mediacontrols select {
+    width: 100%;
+}
+
+@media (max-width: 700px) {
+    .mediacontrols .formgrid { grid-template-columns: 1fr; }
 }
 
 .mediatypes {
@@ -1715,4 +1794,247 @@ html { overflow-x: clip; }
 .nav nav a.active {
     color: #fff;
     font-weight: 600;
+}
+
+
+/* =========================
+   ADVANCED CINEMATOGRAPHY
+========================= */
+
+.advfields {
+    margin: 18px 0 8px;
+    padding: 0 16px;
+    background: #121212;
+    border: 1px solid #2d2d2d;
+    border-radius: 14px;
+}
+
+.advfields summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0;
+    cursor: pointer;
+    list-style: none;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.advfields summary::-webkit-details-marker {
+    display: none;
+}
+
+.advfields summary::after {
+    content: "▾";
+    color: #8a857c;
+    transition: transform 0.18s ease;
+}
+
+.advfields:not([open]) summary::after {
+    transform: rotate(-90deg);
+}
+
+.advfields summary small {
+    margin-left: auto;
+    color: #9f9990;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.advfields[open] summary {
+    margin-bottom: 12px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.advhint {
+    margin: 0 0 14px;
+    color: #8a857c;
+    font-size: 12px;
+}
+
+.advfields #advClearBtn {
+    margin: 16px 0 18px;
+}
+
+.media-provider-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.media-provider-row .mini{flex:1}.btn.small{padding:6px 10px;font-size:12px}
+
+
+/* =========================
+   GENERATOR UI POLISH V7.3
+========================= */
+.generator-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:4px 0 8px}
+.generator-section-head label{margin:0;font-size:14px;font-weight:700;color:#f0ebe4}
+.section-kicker{font-size:10px;letter-spacing:.14em;color:#e52329;font-weight:800;margin-bottom:3px}
+.field-hint{font-size:11px;color:#77716a;margin-bottom:2px}
+.subject-wrap{position:relative}
+.subject-wrap textarea{padding-bottom:30px;min-height:118px;resize:vertical}
+.char-count{position:absolute;right:12px;bottom:9px;font-size:10px;color:#68635c;pointer-events:none}
+.quick-scenes{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 2px}
+.quick-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#77716a;font-weight:700;margin-right:2px}
+.scene-chip{appearance:none;border:1px solid #303030;background:#171717;color:#aaa49c;border-radius:999px;padding:7px 10px;font:inherit;font-size:11px;cursor:pointer;transition:all .16s ease}
+.scene-chip:hover{color:#f2eee8;border-color:#555;background:#202020;transform:translateY(-1px)}
+.scene-chip:active{transform:translateY(0)}
+#styleField,#ratio{margin-top:1px}
+.advfields{margin-top:16px;background:linear-gradient(180deg,#151515,#111);border-color:#303030;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.advfields summary{min-height:48px}
+.adv-title{display:flex;align-items:center;gap:10px}
+.adv-icon{width:30px;height:30px;display:grid;place-items:center;border:1px solid #303030;border-radius:9px;background:#1b1b1b;font-size:14px}
+.adv-title>span:last-child{display:flex;flex-direction:column;gap:2px}
+.adv-title b{font-size:13px;color:#e8e3dc}
+.adv-title small{font-size:10px;color:#77716a;font-weight:500}
+.advfields[open] .adv-icon{border-color:#514545;background:#211516}
+.generate-wrap{margin-top:18px;padding-top:14px;border-top:1px solid #252525}
+.generate-ai-btn{min-height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 10px 30px rgba(229,35,41,.12)}
+.generate-ai-btn:hover{transform:translateY(-1px);box-shadow:0 13px 34px rgba(229,35,41,.18)}
+.generate-ai-btn kbd{font:600 9px/1 system-ui,sans-serif;color:#ddd;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.2);padding:4px 5px;border-radius:5px;margin-left:4px}
+.generate-ai-btn .plus-key{opacity:.45;font-size:10px}
+.generate-note{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;color:#6f6a62;font-size:10px}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:#45c878;box-shadow:0 0 8px rgba(69,200,120,.35)}
+@media(max-width:760px){.generator-section-head{align-items:flex-start;flex-direction:column;gap:2px}.field-hint{margin:0}.generate-ai-btn kbd,.generate-ai-btn .plus-key{display:none}.quick-scenes{gap:6px}}
+
+/* =========================================================
+   PROFESSIONAL INLINE AUTOCOMPLETE MULTI-SELECT
+========================================================= */
+.ms-inline-search {
+    flex: 1 1 110px;
+    min-width: 72px;
+    width: 100%;
+    height: 31px;
+    padding: 3px 2px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ivory, #f2eee8);
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.ms-inline-search::placeholder {
+    color: #77716a;
+    opacity: 1;
+}
+
+.ms-inline-search::-webkit-search-cancel-button {
+    filter: grayscale(1);
+    opacity: .55;
+}
+
+.ms-control {
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ms-control .ms-chips {
+    flex: 0 1 auto;
+    width: auto;
+}
+
+.ms-control:has(.ms-inline-search:focus) {
+    border-color: var(--red, #e52329);
+    box-shadow: 0 0 0 3px rgba(229, 35, 41, 0.10);
+}
+
+.ms-dropdown {
+    padding-top: 6px;
+}
+
+.ms-dropdown::before {
+    content: "Suggestions";
+    display: block;
+    padding: 4px 9px 7px;
+    color: #77716a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ms-dropdown label[data-autocomplete-match="true"] {
+    border-left: 2px solid var(--red, #e52329);
+}
+
+@media (max-width: 640px) {
+    .ms-inline-search {
+        min-width: 90px;
+    }
+}
+
+/* =========================================================
+   PROFESSIONAL AI TOOL / ADVANCED FIELD POLISH
+========================================================= */
+.advfields .two.compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+.advfields .multiselect>label{display:block;margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.02em;color:#bcb6ad}
+.advfields .ms-control{min-height:46px;background:#0f1011;border-color:#2d3033;border-radius:10px}
+.advfields .ms-control:hover{border-color:#46494d;background:#121314}
+.advfields .ms-control:has(.ms-inline-search:focus){border-color:#a6a6a6;box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+.advfields .ms-dropdown{background:#151617;border-color:#34373a;max-height:285px}
+.advfields .ms-dropdown::before{content:"Search suggestions";color:#777c82}
+.advfields .ms-dropdown label:hover{background:#202225}
+.advfields .chip{background:#222427;border-color:#3b3e42;color:#ece9e4}
+.advfields .advhint{max-width:760px;line-height:1.55}
+.adv-text-field{position:relative;margin-top:13px}
+.adv-text-field>label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.adv-text-field>label .field-meta{font-size:10px;color:#656a70;font-weight:500}
+.adv-text-field textarea{min-height:92px;width:100%;resize:vertical;line-height:1.5;background:#0f1011;border-color:#2d3033;border-radius:10px;padding:11px 12px;color:#eee;box-sizing:border-box}
+.adv-text-field textarea:focus{border-color:#6b6f74;box-shadow:0 0 0 3px rgba(255,255,255,.05)}
+.adv-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.adv-suggestion{appearance:none;border:1px solid #2d3033;background:#151617;color:#9ea3a8;border-radius:999px;padding:6px 9px;font:inherit;font-size:10px;cursor:pointer;transition:.15s ease}
+.adv-suggestion:hover{color:#f2eee8;border-color:#555a60;background:#202225}
+.adv-suggestion:active{transform:translateY(1px)}
+.advfields #advClearBtn{margin-top:18px}
+@media(max-width:760px){.advfields .two.compact{grid-template-columns:1fr}.advfields{padding:0 12px}}
+
+/* Long-form generator fields: comfortable 3-line starting height */
+#environment,#movement,#negative{min-height:88px;resize:vertical;line-height:1.5}
+#environment:focus,#movement:focus,#negative:focus{border-color:#666;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+
+/* =========================================================
+   PROFESSIONAL VIDEO MODE
+   Keep camera/FPS controls in one place while generating video.
+========================================================= */
+body.video-generation-active #cameraField,
+body.video-generation-active #fpsField {
+    display: none !important;
+}
+
+.media-controls-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.media-controls-head .mediasteplabel {
+    margin-bottom: 3px;
+    color: var(--text, #f5f5f5);
+    letter-spacing: .06em;
+}
+
+.media-controls-hint {
+    color: var(--muted, #9a9a9a);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.media-controls-badge {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    color: var(--muted, #9a9a9a);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+body.video-generation-active #videoControls {
+    border-color: rgba(255,255,255,.14);
+    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+}
+
+@media (max-width: 700px) {
+    .media-controls-head { align-items: flex-start; }
+    .media-controls-badge { display: none; }
 }

@@ -14,6 +14,7 @@
     return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase();
   }
 
+  function pageUrl(a) { return "/software-app.html?app=" + encodeURIComponent(a.slug); }
   function slug(s) { return s.toLowerCase().replace(/&/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
   var alias = { "graphic-design": "Graphics & Thumbnails", "graphics": "Graphics & Thumbnails", "video": "Video Editing", "ai": "AI Video", "3d": "3D & Animation", "reels": "Reels & Shorts", "shorts": "Reels & Shorts", "wedding": "Wedding & Event", "event": "Wedding & Event", "photo": "Photo Editing", "retouch": "Photo Editing", "poster": "Poster & Social Design", "banner": "Poster & Social Design", "social": "Poster & Social Design", "multimedia": "Multimedia Suite" };
   function fromHash() {
@@ -44,9 +45,9 @@
     var c = el("article", "app");
     c.tabIndex = 0;
     c.setAttribute("role", "button");
-    c.setAttribute("aria-label", a.name + " details");
-    c.addEventListener("click", function (e) { if (!e.target.closest("a, label, input, button")) openModal(a); });
-    c.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === c) { e.preventDefault(); openModal(a); } });
+    c.setAttribute("aria-label", a.name + " page");
+    c.addEventListener("click", function (e) { if (!e.target.closest("a, label, input, button")) location.href = pageUrl(a); });
+    c.addEventListener("keydown", function (e) { if ((e.key === "Enter" || e.key === " ") && e.target === c) { e.preventDefault(); location.href = pageUrl(a); } });
     var ic = el("div", "app-ic", initials(a.name));
     ic.style.background = "linear-gradient(145deg," + a.color + ",#0b0b0b)";
     var img = document.createElement("img");
@@ -71,13 +72,9 @@
     body.appendChild(el("p", "muted", a.desc));
 
     var act = el("div", "app-act");
-    var dl = el("a", "btn primary", "Official download ↗");
-    dl.href = a.url; dl.target = "_blank"; dl.rel = "noopener noreferrer";
+    var dl = el("a", "btn primary", "Open page \u2192");
+    dl.href = pageUrl(a);
     act.appendChild(dl);
-    var det = el("button", "btn ghost", "Details");
-    det.type = "button";
-    det.addEventListener("click", function () { openModal(a); });
-    act.appendChild(det);
     if (a.winget) {
       var lab = el("label", "kit-add");
       var cb = document.createElement("input");
@@ -91,81 +88,6 @@
     return c;
   }
 
-
-  /* details popup */
-  var info = window.SW_INFO || {}, lastFocus = null;
-  var ov = el("div", "sw-ov"); ov.hidden = true;
-  var box = el("div", "sw-modal"); box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true");
-  ov.appendChild(box); document.body.appendChild(ov);
-
-  function row(k, v) { var r = el("div", "sw-row"); r.appendChild(el("span", "sw-k", k)); r.appendChild(el("span", "sw-v", v)); return r; }
-
-  function openModal(a) {
-    var d = info[a.slug] || {};
-    lastFocus = document.activeElement;
-    box.textContent = "";
-    var x = el("button", "sw-x", "\u00d7"); x.type = "button"; x.setAttribute("aria-label", "Close"); x.addEventListener("click", closeModal);
-    box.appendChild(x);
-
-    var head = el("div", "sw-head");
-    var ic = el("div", "app-ic", initials(a.name)); ic.style.background = "linear-gradient(145deg," + a.color + ",#0b0b0b)";
-    var img = document.createElement("img"); img.alt = "";
-    img.onload = function () { img.classList.add("ok"); }; img.onerror = function () { img.remove(); };
-    img.src = "/img/apps/" + a.slug + ".png"; ic.appendChild(img);
-    head.appendChild(ic);
-    var ht = el("div");
-    ht.appendChild(el("h2", "", a.name));
-    ht.appendChild(el("span", "hb-price", a.price));
-    head.appendChild(ht);
-    box.appendChild(head);
-
-    var meta = el("div", "app-meta");
-    a.cat.forEach(function (c) { meta.appendChild(el("span", "hb-chip hb-cat", c)); });
-    box.appendChild(meta);
-    box.appendChild(el("p", "muted sw-desc", a.desc));
-
-    var grid = el("div", "sw-grid");
-    if (d.size) grid.appendChild(row("Download size", d.size));
-    grid.appendChild(row("Platforms", a.plat.join(", ")));
-    if (d.level) grid.appendChild(row("Skill level", d.level));
-    if (d.best) grid.appendChild(row("Best for", d.best));
-    if (d.needs) grid.appendChild(row("Needs", d.needs));
-    box.appendChild(grid);
-
-    if (d.points && d.points.length) {
-      box.appendChild(el("h4", "", "Highlights"));
-      var ul = el("ul", "sw-pts");
-      d.points.forEach(function (p) { ul.appendChild(el("li", "", p)); });
-      box.appendChild(ul);
-    }
-
-    var act = el("div", "app-act");
-    var dl = el("a", "btn primary", "Official download \u2197");
-    dl.href = a.url; dl.target = "_blank"; dl.rel = "noopener noreferrer";
-    act.appendChild(dl);
-    if (a.winget) {
-      var lab = el("label", "kit-add"); var cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = !!kit[a.slug];
-      cb.addEventListener("change", function () { if (cb.checked) kit[a.slug] = a; else delete kit[a.slug]; renderKit(); });
-      lab.appendChild(cb); lab.appendChild(document.createTextNode(" Add to kit"));
-      act.appendChild(lab);
-    }
-    box.appendChild(act);
-    box.appendChild(el("p", "muted hb-tiny", "Size is approximate and changes with each version and platform. Check the official site for the latest."));
-
-    ov.hidden = false;
-    document.body.classList.add("sw-lock");
-    x.focus();
-  }
-  function closeModal() {
-    if (ov.hidden) return;
-    ov.hidden = true;
-    document.body.classList.remove("sw-lock");
-    render();
-    if (lastFocus && lastFocus.focus && document.body.contains(lastFocus)) lastFocus.focus();
-  }
-  ov.addEventListener("click", function (e) { if (e.target === ov) closeModal(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
 
   function render() {
     var list = $("list"); list.textContent = "";
@@ -207,7 +129,7 @@
   var quick = $("quick");
   ["davinci-resolve", "vn-editor", "inshot", "kdenlive", "canva", "audacity"].forEach(function (s) {
     var a = apps.filter(function (x) { return x.slug === s; })[0]; if (!a) return;
-    var li = el("li"); var lk = el("a", "", a.name); lk.href = a.url; lk.target = "_blank"; lk.rel = "noopener noreferrer";
+    var li = el("li"); var lk = el("a", "", a.name); lk.href = pageUrl(a);
     li.appendChild(lk); li.appendChild(el("span", "muted hb-tiny", a.price)); quick.appendChild(li);
   });
 

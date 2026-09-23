@@ -493,15 +493,31 @@
 
                     <!-- SUBJECT -->
 
-                    <label for="subject">
-                        Subject / Scene
-                    </label>
+                    <div class="generator-section-head">
+                        <div>
+                            <div class="section-kicker">01 · SCENE</div>
+                            <label for="subject">Subject / Scene</label>
+                        </div>
+                        <span class="field-hint">Describe what should happen — English, Hindi, Gujarati or Hinglish, all chalse</span>
+                    </div>
 
-                    <textarea
-                        id="subject"
-                        rows="4"
-                        autocomplete="off"
-                        placeholder="Example: Indian entrepreneur walking through a premium modern office"></textarea>
+                    <div class="subject-wrap">
+                        <textarea
+                            id="subject"
+                            rows="4"
+                            maxlength="1200"
+                            autocomplete="off"
+                            placeholder="Example: A young entrepreneur walking through a premium modern office during golden hour... (Hindi/Gujarati/Hinglish ma pan lakhi shakay — AI English ma convert kare chhe)"></textarea>
+                        <span id="subjectCount" class="char-count">0 / 1200</span>
+                    </div>
+
+                    <div class="quick-scenes" aria-label="Quick scene ideas">
+                        <span class="quick-label">Quick start</span>
+                        <button type="button" class="scene-chip" data-scene="A confident entrepreneur walking through a premium modern office during golden hour">🎬 Cinematic</button>
+                        <button type="button" class="scene-chip" data-scene="A luxury perfume bottle rotating slowly on a reflective black studio surface with dramatic lighting">🛍 Product Ad</button>
+                        <button type="button" class="scene-chip" data-scene="A fashion model walking naturally through a modern city street at sunset">👗 Fashion</button>
+                        <button type="button" class="scene-chip" data-scene="A cinematic aerial view of Ahmedabad city at golden hour with realistic traffic and atmospheric haze">🌆 City</button>
+                    </div>
 
 
                     <!-- STYLE + RATIO -->
@@ -722,6 +738,77 @@
                                     Anime
                                 </label>
 
+                            
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Noir">
+                                    Noir
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cyberpunk">
+                                    Cyberpunk
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Fantasy">
+                                    Fantasy
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Sci-Fi">
+                                    Sci-Fi
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Horror">
+                                    Horror
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Retro 80s">
+                                    Retro 80s
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Vlog and Influencer">
+                                    Vlog and Influencer
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Product Macro">
+                                    Product Macro
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Real Estate Walkthrough">
+                                    Real Estate Walkthrough
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Surreal">
+                                    Surreal
+                                </label>
+
                             </div>
 
                         </div>
@@ -801,6 +888,20 @@
                                 class="ms-dropdown hide"
                                 id="cameraDropdown"
                                 role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Natural camera movement">
+                                    Natural camera movement
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Static camera">
+                                    Static camera
+                                </label>
 
                                 <label>
                                     <input
@@ -928,6 +1029,112 @@
                                     Over-the-shoulder
                                 </label>
 
+                            
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Whip pan">
+                                    Whip pan
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Pan left">
+                                    Pan left
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Pan right">
+                                    Pan right
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tilt up">
+                                    Tilt up
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tilt down">
+                                    Tilt down
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Rack focus">
+                                    Rack focus
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Slow zoom in">
+                                    Slow zoom in
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Slow zoom out">
+                                    Slow zoom out
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dolly zoom (vertigo effect)">
+                                    Dolly zoom (vertigo effect)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="FPV drone flythrough">
+                                    FPV drone flythrough
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Jib arm sweep">
+                                    Jib arm sweep
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Gimbal walking shot">
+                                    Gimbal walking shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Handheld documentary">
+                                    Handheld documentary
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="360 degree orbit">
+                                    360 degree orbit
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Reveal from behind foreground object">
+                                    Reveal from behind foreground object
+                                </label>
+
                             </div>
 
                         </div>
@@ -983,6 +1190,38 @@
                                     Anamorphic lens
                                 </option>
 
+                            
+                                <option value="14mm ultra-wide lens">
+                                    14mm ultra-wide lens
+                                </option>
+
+                                <option value="18mm wide lens">
+                                    18mm wide lens
+                                </option>
+
+                                <option value="20mm wide lens">
+                                    20mm wide lens
+                                </option>
+
+                                <option value="135mm telephoto lens">
+                                    135mm telephoto lens
+                                </option>
+
+                                <option value="200mm telephoto lens">
+                                    200mm telephoto lens
+                                </option>
+
+                                <option value="Fisheye lens">
+                                    Fisheye lens
+                                </option>
+
+                                <option value="Tilt-shift lens">
+                                    Tilt-shift lens
+                                </option>
+
+                                <option value="Vintage lens">
+                                    Vintage lens
+                                </option>
                             </select>
 
                         </div>
@@ -1115,6 +1354,119 @@
                                     Hard directional lighting
                                 </label>
 
+                            
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Backlit silhouette">
+                                    Backlit silhouette
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Practical lights">
+                                    Practical lights
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Candlelight">
+                                    Candlelight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Firelight">
+                                    Firelight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Window light">
+                                    Window light
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Overcast soft light">
+                                    Overcast soft light
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Sunset backlight">
+                                    Sunset backlight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tungsten warm light">
+                                    Tungsten warm light
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cool teal cinematic light">
+                                    Cool teal cinematic light
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Chiaroscuro">
+                                    Chiaroscuro
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Split lighting">
+                                    Split lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Beauty lighting">
+                                    Beauty lighting
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Light through blinds">
+                                    Light through blinds
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cinematic lens flare">
+                                    Cinematic lens flare
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="God rays through haze">
+                                    God rays through haze
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Neon RGB accent lighting">
+                                    Neon RGB accent lighting
+                                </label>
+
                             </div>
 
                         </div>
@@ -1175,7 +1527,7 @@
 
                         <!-- FPS -->
 
-                        <div>
+                        <div id="fpsField">
 
                             <label for="fps">
                                 FPS
@@ -1347,6 +1699,98 @@
                                     Raw and realistic
                                 </label>
 
+                            
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Nostalgic">
+                                    Nostalgic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Melancholic">
+                                    Melancholic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Intense and gritty">
+                                    Intense and gritty
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Playful and fun">
+                                    Playful and fun
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Serene and dreamy">
+                                    Serene and dreamy
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tense and thrilling">
+                                    Tense and thrilling
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Luxurious and aspirational">
+                                    Luxurious and aspirational
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Warm and intimate">
+                                    Warm and intimate
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Powerful and motivational">
+                                    Powerful and motivational
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Whimsical">
+                                    Whimsical
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Lonely and quiet">
+                                    Lonely and quiet
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hopeful">
+                                    Hopeful
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Bold and edgy">
+                                    Bold and edgy
+                                </label>
+
                             </div>
 
                         </div>
@@ -1354,16 +1798,1084 @@
                     </div>
 
 
+
+                    <!-- =====================================
+                         ADVANCED CINEMATOGRAPHY (optional)
+                    ====================================== -->
+
+                    <details class="advfields" id="advFields">
+
+                        <summary>
+                            <span class="adv-title"><span class="adv-icon">🎥</span><span><b>More cinematography options</b><small>Optional • AI chooses when left empty</small></span></span>
+                            <small id="advCount">Optional</small>
+                        </summary>
+
+                        <p class="advhint">Fine-tune the shot, camera, focus, color and atmosphere. Leave anything empty and AI will choose. </p>
+
+                        <div class="two compact">
+
+                            <!-- SHOT TYPE -->
+
+                            <div
+                                class="multiselect"
+                                id="shotField">
+
+                                <label for="shotControl">
+                                    Shot Type
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="shotControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="shotChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="shotDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Extreme close-up">
+                                    Extreme close-up
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Close-up">
+                                    Close-up
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Medium close-up">
+                                    Medium close-up
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Medium shot">
+                                    Medium shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cowboy shot (medium wide)">
+                                    Cowboy shot (medium wide)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Full body shot">
+                                    Full body shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Wide shot">
+                                    Wide shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Extreme wide shot">
+                                    Extreme wide shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Point-of-view (POV)">
+                                    Point-of-view (POV)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Two-shot">
+                                    Two-shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Insert detail shot">
+                                    Insert detail shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Establishing shot">
+                                    Establishing shot
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- CAMERA ANGLE -->
+
+                            <div
+                                class="multiselect"
+                                id="angleField">
+
+                                <label for="angleControl">
+                                    Camera Angle
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="angleControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="angleChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="angleDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Eye level">
+                                    Eye level
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Low angle hero shot">
+                                    Low angle hero shot
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="High angle">
+                                    High angle
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Top-down bird eye view">
+                                    Top-down bird eye view
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Worm eye view">
+                                    Worm eye view
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dutch angle (tilted)">
+                                    Dutch angle (tilted)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Over-the-shoulder view">
+                                    Over-the-shoulder view
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Profile side view">
+                                    Profile side view
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Front facing">
+                                    Front facing
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Three-quarter view">
+                                    Three-quarter view
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- COMPOSITION -->
+
+                            <div
+                                class="multiselect"
+                                id="compositionField">
+
+                                <label for="compositionControl">
+                                    Composition
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="compositionControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="compositionChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="compositionDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Rule of thirds">
+                                    Rule of thirds
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Centered symmetry">
+                                    Centered symmetry
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Leading lines">
+                                    Leading lines
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Negative space">
+                                    Negative space
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Foreground framing">
+                                    Foreground framing
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Frame within a frame">
+                                    Frame within a frame
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Golden ratio">
+                                    Golden ratio
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Foreground, midground and background layers">
+                                    Foreground, midground and background layers
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Subject isolation">
+                                    Subject isolation
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- FOCUS AND DEPTH OF FIELD -->
+
+                            <div
+                                class="multiselect"
+                                id="focusField">
+
+                                <label for="focusControl">
+                                    Focus and Depth of Field
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="focusControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="focusChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="focusDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Shallow depth of field">
+                                    Shallow depth of field
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Deep focus (everything sharp)">
+                                    Deep focus (everything sharp)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Rack focus">
+                                    Rack focus
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Soft focus">
+                                    Soft focus
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Creamy bokeh">
+                                    Creamy bokeh
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tilt-shift miniature look">
+                                    Tilt-shift miniature look
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Focus pull to subject">
+                                    Focus pull to subject
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- MOTION SPEED -->
+
+                            <div
+                                class="multiselect"
+                                id="speedField">
+
+                                <label for="speedControl">
+                                    Motion Speed
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="speedControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="speedChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="speedDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Real-time natural speed">
+                                    Real-time natural speed
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Slow motion">
+                                    Slow motion
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Ultra slow motion">
+                                    Ultra slow motion
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Time-lapse">
+                                    Time-lapse
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hyper-lapse">
+                                    Hyper-lapse
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Speed ramp (slow to fast)">
+                                    Speed ramp (slow to fast)
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Smooth slow push">
+                                    Smooth slow push
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- COLOR GRADING -->
+
+                            <div
+                                class="multiselect"
+                                id="gradeField">
+
+                                <label for="gradeControl">
+                                    Color Grading
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="gradeControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="gradeChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="gradeDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Teal and orange">
+                                    Teal and orange
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Warm golden tones">
+                                    Warm golden tones
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cool blue tones">
+                                    Cool blue tones
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Muted and desaturated">
+                                    Muted and desaturated
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="High contrast and punchy">
+                                    High contrast and punchy
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Soft pastel tones">
+                                    Soft pastel tones
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Black and white">
+                                    Black and white
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Bleach bypass">
+                                    Bleach bypass
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Kodak Portra film tones">
+                                    Kodak Portra film tones
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Natural true-to-life colors">
+                                    Natural true-to-life colors
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Vibrant neon colors">
+                                    Vibrant neon colors
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Sepia vintage">
+                                    Sepia vintage
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- FILM LOOK -->
+
+                            <div
+                                class="multiselect"
+                                id="filmField">
+
+                                <label for="filmControl">
+                                    Film Look
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="filmControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="filmChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="filmDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="35mm film grain">
+                                    35mm film grain
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="16mm film">
+                                    16mm film
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Super 8 vintage">
+                                    Super 8 vintage
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Anamorphic lens flares">
+                                    Anamorphic lens flares
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="IMAX large format">
+                                    IMAX large format
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Clean digital sharpness">
+                                    Clean digital sharpness
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Halation glow">
+                                    Halation glow
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Vintage VHS">
+                                    Vintage VHS
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Light film grain">
+                                    Light film grain
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- TIME OF DAY -->
+
+                            <div
+                                class="multiselect"
+                                id="todField">
+
+                                <label for="todControl">
+                                    Time of Day
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="todControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="todChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="todDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dawn and sunrise">
+                                    Dawn and sunrise
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Early morning">
+                                    Early morning
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Midday sun">
+                                    Midday sun
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Afternoon">
+                                    Afternoon
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Sunset">
+                                    Sunset
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dusk and twilight">
+                                    Dusk and twilight
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Night">
+                                    Night
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Midnight">
+                                    Midnight
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- WEATHER AND ATMOSPHERE -->
+
+                            <div
+                                class="multiselect"
+                                id="weatherField">
+
+                                <label for="weatherControl">
+                                    Weather and Atmosphere
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="weatherControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="weatherChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="weatherDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Clear sky">
+                                    Clear sky
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Partly cloudy">
+                                    Partly cloudy
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Overcast">
+                                    Overcast
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Light rain">
+                                    Light rain
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Heavy rain">
+                                    Heavy rain
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Fog and mist">
+                                    Fog and mist
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Snowfall">
+                                    Snowfall
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Dusty wind">
+                                    Dusty wind
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Thunderstorm">
+                                    Thunderstorm
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Hazy atmosphere">
+                                    Hazy atmosphere
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Smoke and embers">
+                                    Smoke and embers
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Falling petals">
+                                    Falling petals
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                            <!-- SOUND AND AUDIO -->
+
+                            <div
+                                class="multiselect"
+                                id="soundField">
+
+                                <label for="soundControl">
+                                    Sound and Audio
+                                </label>
+
+                                <div
+                                    class="ms-control"
+                                    id="soundControl"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="listbox"
+                                    aria-expanded="false">
+
+                                    <div
+                                        class="ms-chips"
+                                        id="soundChips">
+                                    </div>
+
+                                </div>
+
+                                <div
+                                    class="ms-dropdown hide"
+                                    id="soundDropdown"
+                                    role="listbox">
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Natural ambient sound">
+                                    Natural ambient sound
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Cinematic orchestral score">
+                                    Cinematic orchestral score
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Upbeat music">
+                                    Upbeat music
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Soft piano">
+                                    Soft piano
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Ocean waves">
+                                    Ocean waves
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="City ambience">
+                                    City ambience
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Footsteps and foley">
+                                    Footsteps and foley
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Wind and nature sounds">
+                                    Wind and nature sounds
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Crowd and traffic">
+                                    Crowd and traffic
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Tense low drone">
+                                    Tense low drone
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        value="Silent (no audio)">
+                                    Silent (no audio)
+                                </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <label for="character">
+                            Character / Wardrobe
+                        </label>
+
+                        <input
+                            id="character"
+                            maxlength="300"
+                            autocomplete="off"
+                            placeholder="Describe character, clothing, appearance or styling…">
+
+                        <label for="extras">
+                            Extra Details
+                        </label>
+
+                        <input
+                            id="extras"
+                            maxlength="300"
+                            autocomplete="off"
+                            placeholder="Add props, background details, atmosphere or other details…">
+
+                        <button
+                            id="advClearBtn"
+                            class="btn ghost small"
+                            type="button">
+                            Clear advanced options
+                        </button>
+
+                    </details>
+
                     <!-- ENVIRONMENT -->
 
                     <label for="environment">
                         Environment
                     </label>
 
-                    <input
+                    <textarea
                         id="environment"
+                        rows="3"
+                        maxlength="1200"
                         autocomplete="off"
-                        placeholder="Default: detailed realistic environment">
+                        placeholder="Describe the environment, location and background…"></textarea>
 
 
                     <!-- MOVEMENT -->
@@ -1372,10 +2884,12 @@
                         Subject Movement
                     </label>
 
-                    <input
+                    <textarea
                         id="movement"
+                        rows="3"
+                        maxlength="1200"
                         autocomplete="off"
-                        placeholder="Default: subtle natural movement">
+                        placeholder="Describe subject movement, gestures and motion…"></textarea>
 
 
                     <!-- NEGATIVE -->
@@ -1384,22 +2898,26 @@
                         Negative Prompt
                     </label>
 
-                    <input
+                    <textarea
                         id="negative"
+                        rows="3"
+                        maxlength="1200"
                         autocomplete="off"
-                        placeholder="Default: flicker, warping, text artifacts">
+                        placeholder="Things to avoid: flicker, distortion, text, watermark…"></textarea>
 
 
                     <!-- GENERATE -->
 
-                    <button
-                        id="generateBtn"
-                        class="btn primary full"
-                        type="button">
-
-                        ✨ Generate with AI
-
-                    </button>
+                    <div class="generate-wrap">
+                        <button
+                            id="generateBtn"
+                            class="btn primary full generate-ai-btn"
+                            type="button">
+                            <span>✨ Generate with AI</span>
+                            <kbd>Ctrl</kbd><span class="plus-key">+</span><kbd>Enter</kbd>
+                        </button>
+                        <div class="generate-note"><span class="ai-dot"></span> AI will fill missing cinematic details automatically</div>
+                    </div>
 
                 </div>
 
@@ -1444,7 +2962,7 @@
                     </div>
 
 
-                    <div id="output" class="output" aria-live="polite"></div>
+                    <div id="output" class="output" role="textbox" aria-multiline="true" aria-label="Generated prompt. You can also paste your own complete prompt here." spellcheck="false"></div>
 
 
                     <!-- GENERATE MEDIA -->
@@ -1510,6 +3028,48 @@
 
                                 </button>
 
+                            </div>
+
+                            <div id="videoControls" class="mediacontrols hide">
+                                <div class="media-controls-head">
+                                    <div>
+                                        <div class="mediasteplabel">Video Controls</div>
+                                        <div class="media-controls-hint">Camera movement, motion intensity and frame rate for the final video.</div>
+                                    </div>
+                                    <span class="media-controls-badge">VIDEO</span>
+                                </div>
+                                <div class="formgrid">
+                                    <label>Camera Motion
+                                        <select id="videoCameraMotion">
+                                            <option>Natural</option>
+                                            <option>Static</option>
+                                            <option>Slow Push In</option>
+                                            <option>Pull Out</option>
+                                            <option>Pan Left</option>
+                                            <option>Pan Right</option>
+                                            <option>Orbit</option>
+                                            <option>Handheld</option>
+                                        </select>
+                                    </label>
+                                    <label>Motion Strength
+                                        <select id="videoMotionStrength">
+                                            <option>Low</option>
+                                            <option selected>Medium</option>
+                                            <option>High</option>
+                                        </select>
+                                    </label>
+                                    <label>FPS
+                                        <select id="videoFps">
+                                            <option value="24" selected>24 fps</option>
+                                            <option value="30">30 fps</option>
+                                            <option value="60">60 fps</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="media-provider-row">
+                                    <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
+                                    <button id="mediaProviderCheckBtn" class="btn small" type="button">↻ Check</button>
+                                </div>
                             </div>
 
                             <button
@@ -2505,6 +4065,7 @@
         });
     })();
     </script>
+<script src="/site-status.js" defer></script>
 </body>
 
 </html>

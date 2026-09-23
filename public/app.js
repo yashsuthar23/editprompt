@@ -112,6 +112,17 @@ async function copyText(text) {
   }
 }
 
+// Text of the Generated Prompt box (keeps line breaks, ignores the placeholder).
+function outputText() {
+  const box = $("output");
+
+  if (!box) return "";
+
+  return String(box.innerText ?? box.textContent ?? "")
+    .replace(/\r/g, "")
+    .trim();
+}
+
 function isPlaceholderPrompt(text) {
   return (
     !text ||
@@ -149,247 +160,174 @@ function createMultiSelect({
   const chips = $(chipsId);
   const dropdown = $(dropdownId);
 
-  if (
-    !field ||
-    !control ||
-    !chips ||
-    !dropdown
-  ) {
-    console.warn(
-      `MultiSelect missing: ${fieldId}`,
-    );
-
-    return {
-      values: [],
-      selectOnly() {},
-      selectValues() {},
-      clear() {},
-    };
+  if (!field || !control || !chips || !dropdown) {
+    console.warn(`MultiSelect missing: ${fieldId}`);
+    return { values: [], selectOnly() {}, selectValues() {}, clear() {} };
   }
 
-  const checkboxes = [
-    ...dropdown.querySelectorAll(
-      'input[type="checkbox"]',
-    ),
-  ];
+  const checkboxes = [...dropdown.querySelectorAll('input[type="checkbox"]')];
+  const optionLabels = checkboxes.map((checkbox) => checkbox.closest('label')).filter(Boolean);
+  let selected = checkboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
 
-  let selected = checkboxes
-    .filter(
-      (checkbox) => checkbox.checked,
-    )
-    .map((checkbox) => checkbox.value);
+  // Inline autocomplete input: the user can type directly inside the field
+  // (e.g. Camera -> "c") and see filtered suggestions immediately below.
+  let searchInput = control.querySelector('.ms-inline-search');
+  if (!searchInput) {
+    searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.className = 'ms-inline-search';
+    searchInput.autocomplete = 'off';
+    searchInput.spellcheck = false;
+    searchInput.setAttribute('aria-label', `Search ${placeholder}`);
+    searchInput.placeholder = placeholder;
+    control.appendChild(searchInput);
+  }
 
-  control.setAttribute(
-    "role",
-    "button",
-  );
-
-  control.setAttribute(
-    "tabindex",
-    "0",
-  );
-
-  control.setAttribute(
-    "aria-expanded",
-    "false",
-  );
+  function filterOptions(term = '') {
+    const q = String(term).trim().toLowerCase();
+    let visible = 0;
+    optionLabels.forEach((label) => {
+      const checkbox = label.querySelector('input[type="checkbox"]');
+      const text = (checkbox?.value || label.textContent || '').toLowerCase();
+      const match = !q || text.includes(q);
+      label.style.display = match ? 'flex' : 'none';
+      if (match) visible += 1;
+    });
+    const empty = dropdown.querySelector('.ms-no-results');
+    if (empty) empty.remove();
+    if (!visible) {
+      const noResults = document.createElement('div');
+      noResults.className = 'ms-no-results';
+      noResults.textContent = `No matching ${placeholder.replace(/[.…]+$/, '').toLowerCase()} found`;
+      dropdown.appendChild(noResults);
+    }
+  }
 
   function setOpen(open) {
-    dropdown.classList.toggle(
-      "hide",
-      !open,
-    );
-
-    control.classList.toggle(
-      "open",
-      open,
-    );
-
-    control.setAttribute(
-      "aria-expanded",
-      String(open),
-    );
+    dropdown.classList.toggle('hide', !open);
+    control.classList.toggle('open', open);
+    control.setAttribute('aria-expanded', String(open));
+    if (open) {
+      filterOptions(searchInput.value);
+    }
   }
 
   function render() {
+    // The inline search input already displays the placeholder.
+    // Do not render the same placeholder again inside the chips row.
     if (!selected.length) {
-      chips.innerHTML = `
-        <span class="ms-placeholder">
-          ${esc(placeholder)}
-        </span>
-      `;
+      chips.innerHTML = '';
     } else {
-      chips.innerHTML = selected
-        .map(
-          (value) => `
-            <span class="chip">
-              ${esc(value)}
-              <button
-                type="button"
-                data-v="${esc(value)}"
-                aria-label="Remove ${esc(value)}"
-              >×</button>
-            </span>
-          `,
-        )
-        .join("");
+      chips.innerHTML = selected.map((value) => `
+        <span class="chip">
+          ${esc(value)}
+          <button type="button" data-v="${esc(value)}" aria-label="Remove ${esc(value)}">×</button>
+        </span>
+      `).join('');
     }
 
-    chips
-      .querySelectorAll("button")
-      .forEach((button) => {
-        button.onclick = (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-
-          const value =
-            button.dataset.v || "";
-
-          selected = selected.filter(
-            (item) => item !== value,
-          );
-
-          const checkbox =
-            checkboxes.find(
-              (item) =>
-                item.value === value,
-            );
-
-          if (checkbox) {
-            checkbox.checked = false;
-          }
-
-          render();
-        };
-      });
+    chips.querySelectorAll('button').forEach((button) => {
+      button.onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const value = button.dataset.v || '';
+        selected = selected.filter((item) => item !== value);
+        const checkbox = checkboxes.find((item) => item.value === value);
+        if (checkbox) checkbox.checked = false;
+        render();
+        filterOptions(searchInput.value);
+      };
+    });
   }
 
   checkboxes.forEach((checkbox) => {
-    checkbox.addEventListener(
-      "change",
-      () => {
-        if (checkbox.checked) {
-          if (
-            !selected.includes(
-              checkbox.value,
-            )
-          ) {
-            selected.push(
-              checkbox.value,
-            );
-          }
-        } else {
-          selected = selected.filter(
-            (value) =>
-              value !==
-              checkbox.value,
-          );
-        }
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        if (!selected.includes(checkbox.value)) selected.push(checkbox.value);
+      } else {
+        selected = selected.filter((value) => value !== checkbox.value);
+      }
+      render();
+      // Keep the suggestion list open while selecting multiple options.
+      setOpen(true);
+    });
+  });
 
-        render();
-      },
-    );
+  searchInput.addEventListener('focus', () => {
+    setOpen(true);
+    filterOptions(searchInput.value);
+  });
+  searchInput.addEventListener('input', () => {
+    setOpen(true);
+    filterOptions(searchInput.value);
+  });
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      const visible = optionLabels.filter((label) => label.style.display !== 'none');
+      if (visible.length === 1) {
+        event.preventDefault();
+        const checkbox = visible[0].querySelector('input[type="checkbox"]');
+        if (checkbox) {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      searchInput.value = '';
+      filterOptions('');
+      setOpen(false);
+    }
   });
 
   control.onclick = (event) => {
+    if (event.target.closest('.chip button')) return;
+    if (event.target === searchInput || event.target.closest('.ms-inline-search')) return;
     event.preventDefault();
     event.stopPropagation();
-
-    const isOpen =
-      !dropdown.classList.contains(
-        "hide",
-      );
-
+    const isOpen = !dropdown.classList.contains('hide');
     setOpen(!isOpen);
   };
 
   control.onkeydown = (event) => {
-    if (
-      event.key === "Enter" ||
-      event.key === " "
-    ) {
+    if (event.target === searchInput) return;
+    if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       control.click();
     }
-
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       event.preventDefault();
       setOpen(false);
     }
   };
 
-  document.addEventListener(
-    "click",
-    (event) => {
-      if (!field.contains(event.target)) {
-        setOpen(false);
-      }
-    },
-  );
+  document.addEventListener('click', (event) => {
+    if (!field.contains(event.target)) {
+      setOpen(false);
+    }
+  });
 
   render();
 
   return {
-    get values() {
-      return [...selected];
-    },
-
+    get values() { return [...selected]; },
     selectOnly(value) {
-      checkboxes.forEach(
-        (checkbox) => {
-          checkbox.checked =
-            checkbox.value === value;
-        },
-      );
-
-      selected = checkboxes.some(
-        (checkbox) =>
-          checkbox.value === value,
-      )
-        ? [value]
-        : [];
-
+      checkboxes.forEach((checkbox) => { checkbox.checked = checkbox.value === value; });
+      selected = checkboxes.some((checkbox) => checkbox.value === value) ? [value] : [];
       render();
     },
-
     selectValues(values = []) {
-      const wanted = Array.isArray(
-        values,
-      )
-        ? values
-        : [values];
-
-      checkboxes.forEach(
-        (checkbox) => {
-          checkbox.checked =
-            wanted.includes(
-              checkbox.value,
-            );
-        },
-      );
-
-      selected = checkboxes
-        .filter(
-          (checkbox) =>
-            checkbox.checked,
-        )
-        .map(
-          (checkbox) =>
-            checkbox.value,
-        );
-
+      const wanted = Array.isArray(values) ? values : [values];
+      checkboxes.forEach((checkbox) => { checkbox.checked = wanted.includes(checkbox.value); });
+      selected = checkboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
       render();
     },
-
     clear() {
-      checkboxes.forEach(
-        (checkbox) => {
-          checkbox.checked = false;
-        },
-      );
-
+      checkboxes.forEach((checkbox) => { checkbox.checked = false; });
       selected = [];
-
+      searchInput.value = '';
+      filterOptions('');
       render();
     },
   };
@@ -430,6 +368,193 @@ const moodSelect = createMultiSelect({
   dropdownId: "moodDropdown",
   placeholder: "Select mood(s)…",
 });
+
+/* ---------- ADVANCED CINEMATOGRAPHY FIELDS ---------- */
+
+const ADV_SELECTS = {
+  shotType: createMultiSelect({
+    fieldId: "shotField",
+    controlId: "shotControl",
+    chipsId: "shotChips",
+    dropdownId: "shotDropdown",
+    placeholder: "Select shot type(s)…",
+  }),
+  cameraAngle: createMultiSelect({
+    fieldId: "angleField",
+    controlId: "angleControl",
+    chipsId: "angleChips",
+    dropdownId: "angleDropdown",
+    placeholder: "Select camera angle(s)…",
+  }),
+  composition: createMultiSelect({
+    fieldId: "compositionField",
+    controlId: "compositionControl",
+    chipsId: "compositionChips",
+    dropdownId: "compositionDropdown",
+    placeholder: "Select composition…",
+  }),
+  focus: createMultiSelect({
+    fieldId: "focusField",
+    controlId: "focusControl",
+    chipsId: "focusChips",
+    dropdownId: "focusDropdown",
+    placeholder: "Select focus style…",
+  }),
+  motionSpeed: createMultiSelect({
+    fieldId: "speedField",
+    controlId: "speedControl",
+    chipsId: "speedChips",
+    dropdownId: "speedDropdown",
+    placeholder: "Select motion speed…",
+  }),
+  colorGrade: createMultiSelect({
+    fieldId: "gradeField",
+    controlId: "gradeControl",
+    chipsId: "gradeChips",
+    dropdownId: "gradeDropdown",
+    placeholder: "Select color grade(s)…",
+  }),
+  filmLook: createMultiSelect({
+    fieldId: "filmField",
+    controlId: "filmControl",
+    chipsId: "filmChips",
+    dropdownId: "filmDropdown",
+    placeholder: "Select film look…",
+  }),
+  timeOfDay: createMultiSelect({
+    fieldId: "todField",
+    controlId: "todControl",
+    chipsId: "todChips",
+    dropdownId: "todDropdown",
+    placeholder: "Select time of day…",
+  }),
+  weather: createMultiSelect({
+    fieldId: "weatherField",
+    controlId: "weatherControl",
+    chipsId: "weatherChips",
+    dropdownId: "weatherDropdown",
+    placeholder: "Select weather…",
+  }),
+  sound: createMultiSelect({
+    fieldId: "soundField",
+    controlId: "soundControl",
+    chipsId: "soundChips",
+    dropdownId: "soundDropdown",
+    placeholder: "Select sound…",
+  }),
+};
+
+// Everything from the advanced section, ready to send to the server.
+function advancedPayload() {
+  const out = {};
+
+  for (const [key, select] of Object.entries(ADV_SELECTS)) {
+    out[key] = select.values;
+  }
+
+  out.character = $("character")?.value.trim() || "";
+  out.extras = $("extras")?.value.trim() || "";
+
+  return out;
+}
+
+function updateAdvancedCount() {
+  const total =
+    Object.values(ADV_SELECTS).reduce(
+      (sum, select) => sum + select.values.length,
+      0,
+    ) +
+    ($("character")?.value.trim() ? 1 : 0) +
+    ($("extras")?.value.trim() ? 1 : 0);
+
+  if ($("advCount")) {
+    $("advCount").textContent = total ? `${total} selected` : "Optional";
+  }
+}
+
+(function setupAdvancedFields() {
+  const box = $("advFields");
+
+  if (!box) return;
+
+  // capture phase: chip "x" buttons stop bubbling, so listen on the way down
+  ["click", "change", "input"].forEach((type) =>
+    box.addEventListener(type, () => setTimeout(updateAdvancedCount, 0), true),
+  );
+
+  $("advClearBtn")?.addEventListener("click", () => {
+    Object.values(ADV_SELECTS).forEach((select) => select.clear());
+
+    if ($("character")) $("character").value = "";
+    if ($("extras")) $("extras").value = "";
+
+    updateAdvancedCount();
+  });
+})();
+
+
+
+/* =========================================================
+   SMART TEXT SUGGESTIONS FOR LONG-FORM FIELDS
+========================================================= */
+(function setupSmartTextSuggestions(){
+  const groups = {
+    environment: [
+      "Modern city street", "Luxury office interior", "Cinematic studio set", "Futuristic city skyline",
+      "Natural forest landscape", "Beach at golden hour", "Busy urban market", "Minimal architectural interior",
+      "Rainy street with reflections", "Mountain landscape with atmospheric depth"
+    ],
+    movement: [
+      "Walking naturally toward camera", "Walking away from camera", "Slow deliberate movement", "Natural hand gestures",
+      "Turning slowly toward camera", "Looking around naturally", "Hair and clothing moving in a light breeze",
+      "Subtle body movement with realistic weight", "Smooth cinematic camera-follow movement"
+    ],
+    negative: [
+      "Flickering", "Face distortion", "Extra fingers or malformed hands", "Unnatural body movement", "Warping or morphing",
+      "Duplicate people", "Text or subtitles", "Watermark or logo", "Jittery camera movement", "Frame interpolation artifacts"
+    ],
+    character: [
+      "Young professional wearing a tailored suit", "Casual modern streetwear", "Elegant formal attire",
+      "Traditional Indian clothing", "Natural hairstyle and realistic skin texture", "Confident relaxed expression"
+    ],
+    extras: [
+      "Subtle background pedestrians", "Natural traffic movement", "Soft atmospheric haze", "Realistic reflections",
+      "Distant city lights", "Gentle wind moving nearby objects", "Cinematic background details"
+    ]
+  };
+
+  Object.entries(groups).forEach(([id, values]) => {
+    const el = $(id);
+    if (!el || !el.parentElement) return;
+    const wrap = el.closest('.adv-text-field') || el.parentElement;
+    let box = wrap.querySelector('.adv-suggestions');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'adv-suggestions';
+      el.insertAdjacentElement('afterend', box);
+    }
+    const render = () => {
+      const q = (el.value || '').trim().toLowerCase();
+      const used = new Set((el.value || '').split(/[,\n]/).map(x => x.trim().toLowerCase()).filter(Boolean));
+      const matches = values.filter(v => !used.has(v.toLowerCase()) && (!q || v.toLowerCase().includes(q) || v.toLowerCase().split(/\s+/).some(w => w.startsWith(q)))).slice(0, 6);
+      box.innerHTML = matches.map(v => `<button type="button" class="adv-suggestion" data-value="${esc(v)}">${esc(v)}</button>`).join('');
+      box.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+        const value = btn.dataset.value || '';
+        const current = el.value.trim();
+        el.value = current ? `${current.replace(/[ ,]+$/, '')}, ${value}` : value;
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+        el.focus();
+        // Hide the suggestion list after a pick instead of re-rendering
+        // it (the input/focus listeners above already re-ran render()
+        // synchronously, so clearing it last is what actually sticks).
+        box.innerHTML = '';
+      }));
+    };
+    el.addEventListener('focus', render);
+    el.addEventListener('input', render);
+    el.addEventListener('blur', () => setTimeout(() => { box.innerHTML = ''; }, 180));
+  });
+})();
 
 /* =========================================================
    GLOBAL STATE
@@ -1426,6 +1551,79 @@ if ($("dashboardLink")) {
 }
 
 /* =========================================================
+   GENERATED PROMPT BOX IS EDITABLE
+   Paste a prompt made anywhere else (ChatGPT, Gemini ...) straight into it,
+   then use Generate Media.
+========================================================= */
+
+(function setupEditableOutput() {
+  const box = $("output");
+
+  if (!box) return;
+
+  box.contentEditable = "plaintext-only";
+
+  if (box.contentEditable !== "plaintext-only") {
+    box.contentEditable = "true";
+  }
+
+  const settle = () => {
+    // Emptied by the user? Remove leftovers so the placeholder shows again.
+    if (!box.textContent.trim()) box.innerHTML = "";
+
+    // The subject box must not override what was typed/pasted here.
+    lastPromptSource = ($("subject")?.value || "").trim();
+  };
+
+  // Always paste as plain text so line breaks and sections stay intact.
+  box.addEventListener("paste", (event) => {
+    const text = event.clipboardData?.getData("text/plain");
+
+    if (text == null) return;
+
+    event.preventDefault();
+
+    const selection = window.getSelection();
+
+    if (selection && selection.rangeCount) {
+      const range = selection.getRangeAt(0);
+      const node = document.createTextNode(text);
+
+      range.deleteContents();
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.collapse(true);
+
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else {
+      box.textContent += text;
+    }
+
+    settle();
+
+    // Ratio and duration written in the pasted prompt are applied at once.
+    if (looksLikeFullPrompt(outputText())) {
+      syncSettingsFromPrompt(outputText());
+    }
+  });
+
+  let typingTimer = null;
+
+  box.addEventListener("input", () => {
+    settle();
+
+    clearTimeout(typingTimer);
+
+    typingTimer = setTimeout(() => {
+      const text = outputText();
+
+      if (looksLikeFullPrompt(text)) syncSettingsFromPrompt(text);
+    }, 400);
+  });
+})();
+
+/* =========================================================
    GENERATE PROMPT
 ========================================================= */
 
@@ -1435,16 +1633,26 @@ if ($("generateBtn")) {
       const button =
         $("generateBtn");
 
-      const subject =
+      let subject =
         $("subject")
           ?.value.trim() || "";
 
+      // Nothing typed? Pick a random scene so a prompt is still created.
       if (!subject) {
-        $("subject")?.focus();
+        subject = randomSceneIdea();
 
-        return toast(
-          "Enter a subject or scene first.",
-        );
+        if ($("subject")) {
+          $("subject").value = subject;
+        }
+
+        toast("No scene entered, so a random idea was used ✨");
+      }
+
+      // A complete, ready-made prompt was pasted: use it exactly as written.
+      if (looksLikeFullPrompt(subject)) {
+        useFullPromptAsIs(subject);
+
+        return toast("Full prompt detected - using it as it is ✓");
       }
 
       const payload = {
@@ -1491,6 +1699,8 @@ if ($("generateBtn")) {
         negative:
           $("negative")
             ?.value.trim() || "",
+
+        ...advancedPayload(),
       };
 
       lastGeneratedPayload =
@@ -1532,6 +1742,8 @@ if ($("generateBtn")) {
             finalPrompt;
         }
 
+        lastPromptSource = subject;
+
         lastHistoryId =
           data.historyId ||
           null;
@@ -1549,6 +1761,10 @@ if ($("generateBtn")) {
             ? "AI prompt generated ✨"
             : "Prompt generated ✓",
         );
+
+        if (data.languageNote) {
+          toast(data.languageNote);
+        }
 
         if (currentUser) {
           await loadDashboard();
@@ -1578,9 +1794,7 @@ if ($("generateBtn")) {
 if ($("copyBtn")) {
   $("copyBtn").onclick =
     async () => {
-      const text =
-        $("output")
-          ?.textContent.trim() || "";
+      const text = outputText();
 
       if (isPlaceholderPrompt(text)) {
         return toast(
@@ -1626,9 +1840,7 @@ if ($("favoriteOutputBtn")) {
 if ($("improveBtn")) {
   $("improveBtn").onclick =
     async () => {
-      const prompt =
-        $("output")
-          ?.textContent.trim() || "";
+      const prompt = outputText();
 
       if (isPlaceholderPrompt(prompt)) {
         return toast(
@@ -2852,6 +3064,19 @@ document
    Image flow also offers: Animate Image -> Image-to-Video
 ========================================================= */
 
+// Keep only one Video Controls panel if an older/merged UI accidentally
+// contains the section more than once. The first panel is the canonical one.
+function dedupeVideoControls() {
+  const panels = document.querySelectorAll('#videoControls');
+  if (panels.length <= 1) return;
+
+  panels.forEach((panel, index) => {
+    if (index > 0) panel.remove();
+  });
+}
+
+dedupeVideoControls();
+
 const mediaState = {
   type: "image",
   kind: null,
@@ -2922,7 +3147,7 @@ function mediaUpdateGenerateLabel() {
 }
 
 function mediaCurrentPrompt() {
-  return $("output")?.textContent.trim() || "";
+  return outputText();
 }
 
 function mediaRenderPreview({ kind, url }) {
@@ -2989,7 +3214,23 @@ function mediaShowResult({ kind, file, url, downloadUrl }) {
 function mediaFail(message) {
   mediaStopProgress();
 
-  toast(message || "Media generation failed");
+  const raw = String(message || "Media generation failed");
+  let friendly = raw;
+
+  if (raw.includes("Hugging Face free video credits are exhausted")) {
+    friendly = "⚠️ Hugging Face free video credits are exhausted. Configure Local ComfyUI for free video generation.";
+  } else if (raw.includes("Pollinations balance is 0")) {
+    friendly = "⚠️ Pollinations has 0 balance. Configure Local ComfyUI or a funded video provider.";
+  } else if (raw.includes("Local ComfyUI is configured but not reachable")) {
+    friendly = "⚠️ ComfyUI is configured but not running. Start ComfyUI and try again.";
+  } else if (raw.includes("No video provider is currently available")) {
+    friendly = "⚠️ No video provider is currently available. Start Local ComfyUI for ₹0-cost generation.";
+  }
+
+  toast(friendly);
+
+  const animate = $("mediaAnimateBtn");
+  if (animate) animate.disabled = false;
 
   mediaShowStep("type");
 }
@@ -3109,6 +3350,12 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
         duration: $("duration")?.value || "",
 
+        fps: $("videoFps")?.value || "24",
+
+        cameraMotion: $("videoCameraMotion")?.value || "Natural",
+
+        motionStrength: $("videoMotionStrength")?.value || "Medium",
+
         imageFile: fromImage ? mediaState.sourceImageFile : null,
       }),
     });
@@ -3127,16 +3374,169 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
   }
 }
 
+/* ---------- AUTO PROMPT ----------
+   If nobody has written a prompt yet, one is created automatically so that
+   image / video generation always works. */
+
+const FALLBACK_SCENE_IDEAS = [
+  "A cinematic character walking through a rain-lit city street at night",
+  "A luxury product rotating on a marble pedestal with soft golden light",
+  "A drone shot flying over misty mountains at sunrise",
+  "An Indian wedding couple sharing a quiet moment under warm festival lights",
+  "A futuristic city skyline at dusk with flying vehicles and neon reflections",
+];
+
+function randomSceneIdea() {
+  let ideas = [];
+
+  try {
+    ideas = Object.values(smartPresets || {})
+      .map((preset) => preset && preset.subject)
+      .filter(Boolean);
+  } catch {}
+
+  if (!ideas.length) ideas = FALLBACK_SCENE_IDEAS;
+
+  return ideas[Math.floor(Math.random() * ideas.length)];
+}
+
+// The subject text that the current output came from (so a newly pasted
+// prompt can be told apart from one that was already turned into output).
+let lastPromptSource = "";
+
+// A complete prompt (like the ones this tool creates: "Scene:", "Camera:" ...
+// or simply a long paragraph) does not need to be rewritten by the AI.
+function looksLikeFullPrompt(text) {
+  const t = String(text || "").trim();
+
+  const hasSections =
+    /(^|\n)\s*(scene|visual style|camera|lighting|mood|environment|subject movement|quality|negative prompt)\s*:/i.test(t);
+
+  return (hasSections && t.length >= 120) || t.length >= 300;
+}
+
+// Reads "9:16" and "8 seconds" out of the prompt and sets the dropdowns,
+// so the video really is made in the format the prompt asks for.
+function syncSettingsFromPrompt(text) {
+  const t = String(text || "");
+
+  const ratioMatch = t.match(/\b(9:16|16:9|1:1|4:5|2:3|21:9|2\.39:1)\b/);
+  const durationMatch = t.match(/\b(\d{1,2})\s*seconds?\b/i);
+
+  const pick = (select, startsWith) => {
+    if (!select) return;
+
+    const option = [...select.options].find((o) =>
+      String(o.value).startsWith(startsWith),
+    );
+
+    if (option) select.value = option.value;
+  };
+
+  if (ratioMatch) pick($("ratio"), ratioMatch[1]);
+  if (durationMatch) pick($("duration"), durationMatch[1] + " seconds");
+}
+
+function useFullPromptAsIs(text) {
+  const prompt = String(text || "").trim();
+
+  if ($("output")) $("output").textContent = prompt;
+
+  lastPromptSource = prompt;
+  lastHistoryId = null;
+
+  syncSettingsFromPrompt(prompt);
+
+  return prompt;
+}
+
+// Returns a usable prompt. A pasted full prompt is used directly. When there
+// is nothing at all, it fills the subject with a random idea and generates one.
+async function ensurePromptForMedia() {
+  const typed = $("subject")?.value.trim() || "";
+  let prompt = mediaCurrentPrompt();
+
+  if (
+    looksLikeFullPrompt(typed) &&
+    (isPlaceholderPrompt(prompt) || typed !== lastPromptSource)
+  ) {
+    return useFullPromptAsIs(typed);
+  }
+
+  if (!isPlaceholderPrompt(prompt)) return prompt;
+
+  const subjectBox = $("subject");
+
+  if (subjectBox && !subjectBox.value.trim()) {
+    subjectBox.value = randomSceneIdea();
+  }
+
+  const generateButton = $("generateBtn");
+
+  if (generateButton && typeof generateButton.onclick === "function") {
+    await generateButton.onclick();
+  }
+
+  prompt = mediaCurrentPrompt();
+
+  if (!isPlaceholderPrompt(prompt)) return prompt;
+
+  // Prompt generation failed: use the scene text itself so media still works.
+  const scene = subjectBox?.value.trim() || randomSceneIdea();
+
+  if ($("output")) $("output").textContent = scene;
+
+  return scene;
+}
+
 /* ---------- CONTROLS ---------- */
+
+async function loadMediaProviderStatus() {
+  const el = $("mediaProviderStatus");
+  if (!el) return;
+  el.textContent = "Checking media providers…";
+  try {
+    const data = await apiRequest("/api/media/providers/health");
+    const parts = [];
+    if (data.local?.reachable) parts.push("🟢 Local / ComfyUI ready");
+    else if (data.local?.configured) parts.push("🔴 ComfyUI offline");
+    if (data.huggingface?.configured) parts.push("🟡 Hugging Face credits");
+    if (data.pollinations?.configured) parts.push("🟠 Pollinations balance");
+    if (data.gemini?.enabled) parts.push("🔵 Gemini/Veo paid");
+    else if (data.gemini?.configured) parts.push("⚪ Gemini configured / paid mode off");
+
+    if (!parts.length) {
+      el.textContent = "⚠️ No usable video provider configured";
+      return;
+    }
+
+    const recommended = data.recommended ? ` · Recommended: ${data.recommended}` : "";
+    el.textContent = `${parts.join(" · ")}${recommended}`;
+    el.title = [
+      `Local: ${data.local?.note || "—"}`,
+      `Hugging Face: ${data.huggingface?.note || "—"}`,
+      `Pollinations: ${data.pollinations?.note || "—"}`,
+      `Gemini: ${data.gemini?.note || "—"}`,
+    ].join("\n");
+  } catch {
+    el.textContent = "Provider status unavailable";
+  }
+}
+
+const mediaProviderCheckBtn = $("mediaProviderCheckBtn");
+if (mediaProviderCheckBtn) {
+  mediaProviderCheckBtn.onclick = async () => {
+    mediaProviderCheckBtn.disabled = true;
+    await loadMediaProviderStatus();
+    mediaProviderCheckBtn.disabled = false;
+    toast("Provider status refreshed");
+  };
+}
+
+loadMediaProviderStatus();
 
 if ($("generateMediaBtn")) {
   $("generateMediaBtn").onclick = () => {
-    const prompt = mediaCurrentPrompt();
-
-    if (isPlaceholderPrompt(prompt)) {
-      return toast("Generate a prompt first");
-    }
-
     if (!currentUser) {
       toast("Log in to generate media");
 
@@ -3165,6 +3565,52 @@ if ($("generateMediaBtn")) {
   };
 }
 
+const VIDEO_CAMERA_TO_PROMPT = {
+  "Natural": "Natural camera movement",
+  "Static": "Static camera",
+  "Slow Push In": "Slow push-in",
+  "Pull Out": "Slow pull-out",
+  "Pan Left": "Pan left",
+  "Pan Right": "Pan right",
+  "Orbit": "Orbit around subject",
+  "Handheld": "Handheld tracking",
+};
+
+function syncVideoControlsToPrompt() {
+  const cameraMotion = $("videoCameraMotion")?.value || "Natural";
+  const motionValue = VIDEO_CAMERA_TO_PROMPT[cameraMotion];
+  if (motionValue && cameraSelect?.selectValues) {
+    cameraSelect.selectValues([motionValue]);
+  }
+
+  const fpsValue = $("videoFps")?.value || "24";
+  const promptFps = $("fps");
+  if (promptFps) {
+    const target = `${fpsValue} fps`;
+    const option = [...promptFps.options].find((item) => item.value === target);
+    if (option) promptFps.value = target;
+  }
+}
+
+function updateVideoControls() {
+  const isVideo = mediaState.type === "video";
+  $("videoControls")?.classList.toggle("hide", !isVideo);
+  document.body.classList.toggle("video-generation-active", isVideo);
+
+  const provider = $("mediaProviderStatus");
+  if (provider && !isVideo) provider.textContent = "";
+
+  if (isVideo) {
+    syncVideoControlsToPrompt();
+  }
+}
+
+$("videoCameraMotion")?.addEventListener("change", syncVideoControlsToPrompt);
+$("videoFps")?.addEventListener("change", syncVideoControlsToPrompt);
+$("videoMotionStrength")?.addEventListener("change", () => {
+  // Motion strength is sent directly to the video provider.
+});
+
 document.querySelectorAll(".mediatype").forEach((button) => {
   button.onclick = () => {
     document
@@ -3175,14 +3621,31 @@ document.querySelectorAll(".mediatype").forEach((button) => {
 
     mediaState.type = button.dataset.type || "image";
 
+    updateVideoControls();
     mediaUpdateGenerateLabel();
   };
 });
 
 if ($("mediaGenerateBtn")) {
-  $("mediaGenerateBtn").onclick = () => {
+  $("mediaGenerateBtn").onclick = async () => {
+    const button = $("mediaGenerateBtn");
+
+    // Pasted a full prompt -> use it directly. No prompt at all -> create one.
+    button.disabled = true;
+
     if (isPlaceholderPrompt(mediaCurrentPrompt())) {
-      return toast("Generate a prompt first");
+      button.textContent = "Creating prompt…";
+    }
+
+    try {
+      await ensurePromptForMedia();
+    } finally {
+      button.disabled = false;
+      mediaUpdateGenerateLabel();
+    }
+
+    if (isPlaceholderPrompt(mediaCurrentPrompt())) {
+      return toast("Could not create a prompt. Please try again.");
     }
 
     if (mediaState.type === "video") {
@@ -3237,3 +3700,34 @@ if ($("mediaCancelBtn")) {
     toast("Cancelled");
   };
 }
+
+
+/* =========================
+   GENERATOR UI POLISH V7.3
+========================= */
+(() => {
+  const subject = document.getElementById("subject");
+  const count = document.getElementById("subjectCount");
+  const updateCount = () => {
+    if (subject && count) count.textContent = `${subject.value.length} / 1200`;
+  };
+  subject?.addEventListener("input", updateCount);
+  updateCount();
+
+  document.querySelectorAll(".scene-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      if (!subject) return;
+      subject.value = chip.dataset.scene || "";
+      subject.dispatchEvent(new Event("input", { bubbles: true }));
+      subject.focus();
+      subject.setSelectionRange(subject.value.length, subject.value.length);
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      const button = document.getElementById("generateBtn");
+      if (button && !button.disabled) button.click();
+    }
+  });
+})();

@@ -168,6 +168,26 @@
       .media-grid.tight { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
       @media (max-width: 560px) { .mini-stats { grid-template-columns: repeat(2, 1fr); } }
 
+      /* ---------- bulk select + confirm modal ---------- */
+      .adm-bulk {
+        display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;
+        padding: 10px 14px; background: #1c1414; border: 1px solid rgba(239,68,68,.35); border-radius: 12px;
+      }
+      .adm-bulk b { font-size: 13px; }
+      .adm-check-col { width: 34px; }
+      .admin-table input[type="checkbox"], .adm-check input { width: 16px; height: 16px; cursor: pointer; accent-color: #e11d2e; }
+      .adm-check { display: flex; gap: 10px; align-items: center; font-size: 13px; color: #ccc; cursor: pointer; text-align: left; }
+      .btn.danger-ghost { background: transparent; color: #f87171; border: 1px solid rgba(239,68,68,.45); }
+      .btn.danger-ghost:hover { background: rgba(239,68,68,.12); }
+      .adm-modal { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(0,0,0,.72); }
+      .adm-modal-card { width: min(480px, 100%); background: #171717; border: 1px solid var(--border, #303030); border-radius: 16px; padding: 22px; display: grid; gap: 14px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+      .adm-modal-card h3 { margin: 0; font-size: 19px; }
+      .adm-modal-card p { margin: 0; font-size: 13px; line-height: 1.55; color: #bbb; }
+      #modalBody { display: grid; gap: 10px; }
+      .adm-warn { background: rgba(234,179,8,.10); border: 1px solid rgba(234,179,8,.3); color: #facc15 !important; border-radius: 10px; padding: 10px 12px; }
+      .adm-modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+      .item-del { margin-left: 8px; }
+
       @media (max-width: 700px) {
         .admin-actions { width: 100%; }
         .admin-actions .btn { flex: 1; }
@@ -223,7 +243,7 @@
           <div>
             <div class="eyebrow">ADMIN</div>
             <h2>Management Dashboard</h2>
-            <p class="admin-subtitle">Users, orders, activity and blocked emails.</p>
+            <p class="admin-subtitle">Users, orders, activity, blocked and deleted accounts.</p>
           </div>
         </div>
 
@@ -233,6 +253,7 @@
           <button class="adm-tab-btn" data-tab="orders" role="tab" aria-selected="false" type="button">Orders <span class="tab-badge" id="ordersBadge"></span></button>
           <button class="adm-tab-btn" data-tab="activity" role="tab" aria-selected="false" type="button">Activity</button>
           <button class="adm-tab-btn" data-tab="blocked" role="tab" aria-selected="false" type="button">Blocked <span class="tab-badge" id="blockedBadge"></span></button>
+          <button class="adm-tab-btn" data-tab="deleted" role="tab" aria-selected="false" type="button">Deleted <span class="tab-badge" id="deletedBadge"></span></button>
           <button class="adm-tab-btn" data-tab="system" role="tab" aria-selected="false" type="button">System &amp; Log</button>
         </div>
 
@@ -297,7 +318,33 @@
               <button id="exportUsers" class="btn ghost small" type="button">Export CSV</button>
             </div>
 
+            <div id="bulkBar" class="adm-bulk adm-hide">
+              <b id="bulkCount"></b>
+              <button class="btn danger-ghost small" data-bulk="block" type="button">Block</button>
+              <button class="btn ghost small" data-bulk="unblock" type="button">Unblock</button>
+              <button class="btn danger small" data-bulk="delete" type="button">Delete selected</button>
+              <span class="spacer" style="flex:1"></span>
+              <button class="btn ghost small" data-bulk="clear" type="button">Clear</button>
+            </div>
+
             <div id="users"><div class="admin-loading">Loading users…</div></div>
+          </div>
+        </div>
+
+        <!-- ===== DELETED USERS ===== -->
+        <div id="tab-deleted" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3>Deleted Users</h3>
+            <p class="muted" style="margin: 0 0 12px">A record of every account you removed. Their prompts and media are gone, but the paid orders are kept here for your accounting. Use Erase to remove a record for good.</p>
+
+            <div class="adm-tools">
+              <input id="deletedSearch" class="adm-input grow" type="search" placeholder="Search name or email" aria-label="Search deleted users" />
+              <span id="deletedSummary" class="muted"></span>
+              <span class="spacer"></span>
+              <button id="exportDeleted" class="btn ghost small" type="button">Export CSV</button>
+            </div>
+
+            <div id="deleted"><div class="admin-loading">Loading…</div></div>
           </div>
         </div>
 
@@ -399,6 +446,23 @@
       </section>
     </main>
 
+    <!-- ================= CONFIRM MODAL ================= -->
+    <div id="modal" class="adm-modal adm-hide" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="adm-modal-card">
+        <h3 id="modalTitle"></h3>
+        <div id="modalBody"></div>
+        <div id="modalTypeWrap" class="adm-field">
+          <label id="modalTypeLabel" for="modalType"></label>
+          <input id="modalType" class="adm-input" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+        <label id="modalCheckWrap" class="adm-check"><input id="modalCheck" type="checkbox" /> <span id="modalCheckLabel"></span></label>
+        <div class="adm-modal-actions">
+          <button id="modalCancel" class="btn ghost" type="button">Cancel</button>
+          <button id="modalOk" class="btn danger" type="button">Delete</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= USER DRAWER ================= -->
     <div id="drawer" class="adm-drawer" aria-hidden="true">
       <div class="adm-backdrop" data-close-drawer></div>
@@ -414,12 +478,14 @@
 
       let allUsers = [];
       let allOrders = [];
+      let allDeleted = [];
+      let selectedUsers = new Set();
       let activityData = null;
       let activityKind = "prompts";
       let openUserId = null;
       let lastFocus = null;
 
-      const TABS = ["overview", "users", "orders", "activity", "blocked", "system"];
+      const TABS = ["overview", "users", "orders", "activity", "blocked", "deleted", "system"];
       let currentTab = "overview";
 
       let productNames = {
@@ -523,6 +589,65 @@
       }
 
       const post = (url, body) => api(url, { method: "POST", body: JSON.stringify(body || {}) });
+
+      /* ---------- confirm modal (used for deleting users) ---------- */
+
+      // Resolves { checked } when confirmed, or null when cancelled.
+      function askConfirm({ title, bodyHtml, typeText, typeLabel, checkLabel, okLabel = "Delete" }) {
+        return new Promise((resolve) => {
+          const modal = $("modal");
+          const input = $("modalType");
+          const ok = $("modalOk");
+          const cancel = $("modalCancel");
+          const check = $("modalCheck");
+          const prevFocus = document.activeElement;
+
+          $("modalTitle").textContent = title;
+          $("modalBody").innerHTML = bodyHtml;
+          ok.textContent = okLabel;
+
+          $("modalTypeWrap").classList.toggle("adm-hide", !typeText);
+          $("modalTypeLabel").textContent = typeLabel || "";
+          input.value = "";
+          ok.disabled = Boolean(typeText);
+
+          $("modalCheckWrap").classList.toggle("adm-hide", !checkLabel);
+          $("modalCheckLabel").textContent = checkLabel || "";
+          check.checked = false;
+
+          modal.classList.remove("adm-hide");
+          (typeText ? input : cancel).focus();
+
+          const matches = () => !typeText || input.value.trim().toLowerCase() === String(typeText).toLowerCase();
+
+          const finish = (value) => {
+            modal.classList.add("adm-hide");
+            input.removeEventListener("input", onInput);
+            ok.removeEventListener("click", onOk);
+            cancel.removeEventListener("click", onCancel);
+            modal.removeEventListener("keydown", onKey);
+            modal.removeEventListener("mousedown", onBackdrop);
+            if (prevFocus && prevFocus.focus) prevFocus.focus();
+            resolve(value);
+          };
+
+          const onInput = () => (ok.disabled = !matches());
+          const onOk = () => matches() && finish({ checked: check.checked });
+          const onCancel = () => finish(null);
+          const onBackdrop = (e) => e.target === modal && finish(null);
+          const onKey = (e) => {
+            e.stopPropagation(); // do not let Escape also close the user drawer behind it
+            if (e.key === "Escape") finish(null);
+            if (e.key === "Enter" && e.target === input && matches()) onOk();
+          };
+
+          input.addEventListener("input", onInput);
+          ok.addEventListener("click", onOk);
+          cancel.addEventListener("click", onCancel);
+          modal.addEventListener("keydown", onKey);
+          modal.addEventListener("mousedown", onBackdrop);
+        });
+      }
 
       /* ---------- views + tabs ---------- */
 
@@ -713,16 +838,25 @@
         const list = filteredUsers();
         $("userCount").textContent = list.length + " of " + allUsers.length;
 
+        // forget selections for users that no longer exist
+        const existing = new Set(allUsers.map((u) => u.id));
+        selectedUsers = new Set([...selectedUsers].filter((id) => existing.has(id)));
+
         if (!list.length) {
           $("users").innerHTML = '<div class="empty-state">No users found.</div>';
+          updateBulkBar();
           return;
         }
 
+        const allChecked = list.every((u) => selectedUsers.has(u.id));
+
         $("users").innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr>
+          <th class="adm-check-col"><input type="checkbox" id="selAll" aria-label="Select all shown users" ${allChecked ? "checked" : ""} /></th>
           <th>ID</th><th>User</th><th>Registered</th><th>Paid orders</th><th>Prompts</th><th>Status</th><th></th>
         </tr></thead><tbody>${list
           .map(
             (u) => `<tr>
+              <td class="adm-check-col"><input type="checkbox" data-sel="${escapeHtml(u.id)}" aria-label="Select ${escapeHtml(u.email)}" ${selectedUsers.has(u.id) ? "checked" : ""} /></td>
               <td>#${escapeHtml(u.id)}</td>
               <td>${userLink(u)}</td>
               <td>${formatDate(u.created_at)}</td>
@@ -734,12 +868,86 @@
                 ${
                   u.blocked
                     ? `<button class="btn ghost small" data-unblock="${escapeHtml(u.email)}" type="button">Unblock</button>`
-                    : `<button class="btn danger small" data-block="${escapeHtml(u.email)}" type="button">Block</button>`
+                    : `<button class="btn danger-ghost small" data-block="${escapeHtml(u.email)}" type="button">Block</button>`
                 }
+                <button class="btn danger small" data-delete-user="${escapeHtml(u.id)}" type="button">Delete</button>
               </td>
             </tr>`,
           )
           .join("")}</tbody></table></div>`;
+
+        updateBulkBar();
+      }
+
+      function updateBulkBar() {
+        const n = selectedUsers.size;
+        $("bulkBar").classList.toggle("adm-hide", n === 0);
+        $("bulkCount").textContent = n + " selected";
+      }
+
+      const rupees = (paise) => "₹" + formatMoney(Number(paise || 0) / 100);
+
+      async function deleteUsersFlow(ids) {
+        const users = ids.map((id) => allUsers.find((u) => u.id === id)).filter(Boolean);
+        if (!users.length) return;
+
+        const paidOrders = users.reduce((n, u) => n + Number(u.paid_orders || 0), 0);
+        const paidAmount = users.reduce((n, u) => n + Number(u.paid_amount || 0), 0);
+        const single = users.length === 1 ? users[0] : null;
+
+        const warn = paidOrders
+          ? `<p class="adm-warn">${single ? "This user has" : "These users have"} <b>${paidOrders} paid order${paidOrders > 1 ? "s" : ""}</b> (${rupees(paidAmount)}). They will disappear from Orders and the revenue numbers. A copy is saved in the <b>Deleted</b> tab.</p>`
+          : "";
+
+        const result = await askConfirm({
+          title: single ? "Delete this user?" : `Delete ${users.length} users?`,
+          bodyHtml: single
+            ? `<p><b>${escapeHtml(single.name || "Unknown")}</b> (${escapeHtml(single.email)}) and all of their prompts, images/videos, favorites and purchases will be permanently deleted. They are signed out immediately. This cannot be undone.</p>${warn}`
+            : `<p>${users.length} accounts and all of their prompts, images/videos, favorites and purchases will be permanently deleted. This cannot be undone.</p>${warn}`,
+          typeText: single ? single.email : "DELETE",
+          typeLabel: single ? "Type the user's email to confirm" : "Type DELETE to confirm",
+          checkLabel: "Also block the email so they cannot sign up again",
+          okLabel: single ? "Delete user" : `Delete ${users.length} users`,
+        });
+
+        if (!result) return;
+
+        if (single) {
+          await post("/api/admin/delete-user", { userId: single.id, confirmEmail: single.email, alsoBlock: result.checked });
+          if (openUserId === single.id) closeDrawer();
+        } else {
+          const r = await post("/api/admin/delete-users", { ids: users.map((u) => u.id), alsoBlock: result.checked, confirm: "DELETE" });
+          if (r.failed && r.failed.length) alert(`Deleted ${r.deleted}. Could not delete ${r.failed.length} user(s).`);
+        }
+
+        selectedUsers.clear();
+        await afterChange();
+      }
+
+      async function bulkAction(kind) {
+        const ids = [...selectedUsers];
+        if (kind === "clear") {
+          selectedUsers.clear();
+          renderUsers();
+          return;
+        }
+        if (!ids.length) return;
+
+        if (kind === "delete") return deleteUsersFlow(ids);
+
+        if (kind === "block") {
+          if (!confirm(`Block ${ids.length} selected user(s)?`)) return;
+          const reason = prompt("Reason (optional):", "");
+          if (reason === null) return;
+          const r = await post("/api/admin/block-users", { ids, reason });
+          if (r.skipped) alert(`Blocked ${r.changed}. Skipped ${r.skipped} (the admin email cannot be blocked).`);
+        } else {
+          if (!confirm(`Unblock ${ids.length} selected user(s)?`)) return;
+          await post("/api/admin/block-users", { ids, unblock: true });
+        }
+
+        selectedUsers.clear();
+        await afterChange();
       }
 
       async function loadUsers() {
@@ -755,6 +963,82 @@
           `editprompt-users-${stamp()}.csv`,
           ["ID", "Name", "Email", "Registered", "Paid orders", "Spent (INR)", "Prompts", "Status"],
           list.map((u) => [u.id, u.name || "", u.email, u.created_at, Number(u.paid_orders || 0), Number(u.paid_amount || 0) / 100, Number(u.prompts || 0), u.blocked ? "Blocked" : "Active"]),
+        );
+      }
+
+      /* ---------- deleted users ---------- */
+
+      async function loadDeleted() {
+        const data = await api("/api/admin/deleted");
+        allDeleted = data.deleted || [];
+        $("deletedBadge").textContent = allDeleted.length || "";
+        $("deletedSummary").textContent = allDeleted.length ? `${allDeleted.length} deleted · ${rupees(data.totalPaid)} paid by them` : "";
+        renderDeleted();
+      }
+
+      function filteredDeleted() {
+        const q = $("deletedSearch").value.trim().toLowerCase();
+        return allDeleted.filter((d) => !q || (d.name || "").toLowerCase().includes(q) || (d.email || "").toLowerCase().includes(q));
+      }
+
+      function renderDeleted() {
+        const list = filteredDeleted();
+
+        if (!list.length) {
+          $("deleted").innerHTML = '<div class="empty-state">No deleted users.</div>';
+          return;
+        }
+
+        $("deleted").innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr>
+          <th>User</th><th>Joined</th><th>Deleted</th><th>Paid orders</th><th>Prompts</th><th>Media</th><th>Email</th><th></th>
+        </tr></thead><tbody>${list
+          .map((d) => {
+            const orders = d.purchases.length
+              ? `<details><summary class="admin-meta" style="cursor:pointer">Show ${d.purchases.length} order(s)</summary>${d.purchases
+                  .map((p) => `<div class="admin-meta">${escapeHtml(p.product_name)} · ${p.amount ? rupees(p.amount) : "free grant"} · ${escapeHtml(p.status)} · ${escapeHtml(p.payment_id)}</div>`)
+                  .join("")}</details>`
+              : "";
+            return `<tr>
+              <td><b>${escapeHtml(d.name || "Unknown")}</b><div class="admin-meta">${escapeHtml(d.email)} · was #${escapeHtml(d.original_id)}</div></td>
+              <td>${formatDate(d.joined_at)}</td>
+              <td>${formatDate(d.deleted_at)}</td>
+              <td>${Number(d.paid_orders || 0)} <span class="admin-meta">(${rupees(d.paid_amount)})</span>${orders}</td>
+              <td>${Number(d.prompts_count || 0)}</td>
+              <td>${Number(d.media_count || 0)}</td>
+              <td><span class="status-pill ${d.blocked ? "status-blocked" : "status-other"}">${d.blocked ? "Blocked" : "Not blocked"}</span></td>
+              <td class="nowrap"><button class="btn danger small" data-erase-deleted="${escapeHtml(d.id)}" type="button">Erase</button></td>
+            </tr>`;
+          })
+          .join("")}</tbody></table></div>`;
+      }
+
+      async function eraseDeletedFlow(id) {
+        const d = allDeleted.find((x) => x.id === id);
+        if (!d) return;
+
+        const warn = Number(d.paid_orders)
+          ? `<p class="adm-warn">This record contains <b>${Number(d.paid_orders)} paid order(s)</b> (${rupees(d.paid_amount)}). Erasing it removes the only copy of that payment record. Use <b>Export CSV</b> first if you need it for accounting.</p>`
+          : "";
+
+        const result = await askConfirm({
+          title: "Erase this record?",
+          bodyHtml: `<p><b>${escapeHtml(d.name || "Unknown")}</b> (${escapeHtml(d.email)}) will be removed from the Deleted list permanently. This cannot be undone.</p>${warn}`,
+          typeText: d.email,
+          typeLabel: "Type the email to confirm",
+          okLabel: "Erase permanently",
+        });
+
+        if (!result) return;
+
+        await post("/api/admin/erase-deleted", { id: d.id, confirmEmail: d.email });
+        await afterChange();
+      }
+
+      function exportDeleted() {
+        downloadCsv(
+          `editprompt-deleted-users-${stamp()}.csv`,
+          ["Old ID", "Name", "Email", "Joined", "Deleted", "Paid orders", "Paid (INR)", "Prompts", "Media", "Email blocked"],
+          filteredDeleted().map((d) => [d.original_id, d.name || "", d.email, d.joined_at, d.deleted_at, Number(d.paid_orders || 0), Number(d.paid_amount || 0) / 100, Number(d.prompts_count || 0), Number(d.media_count || 0), d.blocked ? "Yes" : "No"]),
         );
       }
 
@@ -916,7 +1200,7 @@
                   (p) => `<div class="feed-item">
                     <div class="feed-top">
                       <span>${userLink({ id: p.user_id, name: p.name }, p.email)}</span>
-                      <span><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span> &nbsp; ${formatDate(p.created_at)}</span>
+                      <span><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span> &nbsp; ${formatDate(p.created_at)}<button class="btn danger-ghost small item-del" data-del-prompt="${escapeHtml(p.id)}" type="button">Delete</button></span>
                     </div>
                     <details><summary>${escapeHtml(p.subject || "(no subject)")}</summary><pre>${escapeHtml(p.prompt)}</pre></details>
                   </div>`,
@@ -945,6 +1229,7 @@
           <p>${escapeHtml(m.prompt)}</p>
           ${showUser ? `<span>${userLink({ id: m.user_id, name: m.name }, m.email)}</span>` : ""}
           <span><span class="status-pill status-other">${escapeHtml(m.kind)}</span> ${formatDate(m.created_at)}</span>
+          <span><button class="btn danger-ghost small" data-del-media="${escapeHtml(m.id)}" type="button">Delete</button></span>
         </div></div>`;
       }
 
@@ -1052,7 +1337,7 @@
         const prompts = d.prompts.length
           ? d.prompts
               .map(
-                (p) => `<div class="feed-item"><div class="feed-top"><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span><span>${formatDate(p.created_at)}</span></div>
+                (p) => `<div class="feed-item"><div class="feed-top"><span class="status-pill ${/fallback/i.test(p.mode) ? "status-pending" : "status-active"}">${escapeHtml(p.mode)}</span><span>${formatDate(p.created_at)}<button class="btn danger-ghost small item-del" data-del-prompt="${escapeHtml(p.id)}" type="button">Delete</button></span></div>
                   <details><summary>${escapeHtml(p.subject || "(no subject)")}</summary><pre>${escapeHtml(p.prompt)}</pre></details></div>`,
               )
               .join("")
@@ -1091,6 +1376,17 @@
             }
             <button class="btn ghost small" data-copy="${escapeHtml(u.email)}" type="button">Copy email</button>
             <a class="btn ghost small" href="mailto:${escapeHtml(u.email)}">Send email</a>
+            <button class="btn danger small" data-delete-user="${escapeHtml(u.id)}" type="button">Delete user</button>
+          </div>
+
+          <div class="drawer-sec">
+            <h4>Edit details</h4>
+            <div class="adm-row">
+              <div class="adm-field"><label for="editName">Name</label><input id="editName" class="adm-input" type="text" maxlength="80" value="${escapeHtml(u.name || "")}" /></div>
+              <div class="adm-field"><label for="editEmail">Email</label><input id="editEmail" class="adm-input" type="email" maxlength="200" value="${escapeHtml(u.email)}" /></div>
+              <button class="btn primary small" data-save-user="${escapeHtml(u.id)}" type="button">Save</button>
+            </div>
+            <p id="editMsg" class="adm-err" style="margin-top:8px"></p>
           </div>
 
           <div class="drawer-sec">
@@ -1126,12 +1422,13 @@
             ["users", loadUsers()],
             ["blocked", loadBlocked()],
             ["orders", loadOrders()],
+            ["deleted", loadDeleted()],
           ];
           const results = await Promise.allSettled(jobs.map((j) => j[1]));
           results.forEach((r, i) => {
             if (r.status === "rejected") {
               console.error("Admin load error (" + jobs[i][0] + "):", r.reason);
-              const target = { overview: "stats", users: "users", blocked: "blocked", orders: "orders" }[jobs[i][0]];
+              const target = { overview: "stats", users: "users", blocked: "blocked", orders: "orders", deleted: "deleted" }[jobs[i][0]];
               $(target).innerHTML = errBox(r.reason && r.reason.message ? r.reason.message : "Could not load.");
             }
           });
@@ -1145,6 +1442,7 @@
 
       async function afterChange() {
         await refreshAll();
+        if (activityData) await loadActivity();
         if (openUserId) await reloadDrawer();
       }
 
@@ -1186,6 +1484,23 @@
       $("activitySearch").addEventListener("input", renderActivity);
       $("exportUsers").addEventListener("click", exportUsers);
       $("exportOrders").addEventListener("click", exportOrders);
+      $("exportDeleted").addEventListener("click", exportDeleted);
+      $("deletedSearch").addEventListener("input", renderDeleted);
+
+      // row checkboxes + select-all
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.id === "selAll") {
+          filteredUsers().forEach((u) => (t.checked ? selectedUsers.add(u.id) : selectedUsers.delete(u.id)));
+          renderUsers();
+        } else if (t.matches && t.matches("[data-sel]")) {
+          const id = Number(t.getAttribute("data-sel"));
+          t.checked ? selectedUsers.add(id) : selectedUsers.delete(id);
+          updateBulkBar();
+          const all = $("selAll");
+          if (all) all.checked = filteredUsers().every((u) => selectedUsers.has(u.id));
+        }
+      });
 
       document.querySelectorAll(".seg button").forEach((b) =>
         b.addEventListener("click", () => {
@@ -1220,6 +1535,11 @@
         const rs = t.closest("[data-restore]");
         const gr = t.closest("[data-grant]");
         const cp = t.closest("[data-copy]");
+        const du = t.closest("[data-delete-user]");
+        const su = t.closest("[data-save-user]");
+        const bk = t.closest("[data-bulk]");
+        const dp = t.closest("[data-del-prompt]");
+        const dm = t.closest("[data-del-media]");
 
         try {
           if (close) {
@@ -1244,6 +1564,31 @@
             const productId = $("grantSelect").value;
             if (!confirm("Give this user free access to " + productName(productId) + "?")) return;
             await post("/api/admin/grant", { userId: Number(gr.getAttribute("data-grant")), productId });
+            await afterChange();
+          } else if (du) {
+            await deleteUsersFlow([Number(du.getAttribute("data-delete-user"))]);
+          } else if (t.closest("[data-erase-deleted]")) {
+            await eraseDeletedFlow(Number(t.closest("[data-erase-deleted]").getAttribute("data-erase-deleted")));
+          } else if (bk) {
+            await bulkAction(bk.getAttribute("data-bulk"));
+          } else if (su) {
+            $("editMsg").textContent = "";
+            su.disabled = true;
+            try {
+              await post("/api/admin/update-user", { userId: Number(su.getAttribute("data-save-user")), name: $("editName").value, email: $("editEmail").value });
+              await afterChange();
+            } catch (err) {
+              $("editMsg").textContent = err.message;
+            } finally {
+              su.disabled = false;
+            }
+          } else if (dp) {
+            if (!confirm("Delete this prompt permanently?")) return;
+            await post("/api/admin/delete-prompt", { id: Number(dp.getAttribute("data-del-prompt")) });
+            await afterChange();
+          } else if (dm) {
+            if (!confirm("Delete this image/video permanently?")) return;
+            await post("/api/admin/delete-media", { id: Number(dm.getAttribute("data-del-media")) });
             await afterChange();
           } else if (cp) {
             const email = cp.getAttribute("data-copy");
@@ -1276,5 +1621,6 @@
         }
       })();
     </script>
+    <script src="/admin-pro-ui.js" defer></script>
   </body>
 </html>
