@@ -1703,17 +1703,35 @@ html { overflow-x: clip; }
 .thumb.playing .thumb-video { opacity: 1; }
 .thumb.playing { font-size: 0; }
 
-#store .thumb[data-preview]::after {
-    content: "▶ PREVIEW";
-    inset: auto 10px 10px auto;
-    background: rgba(0,0,0,.55);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    font-size: 10px; font-weight: 700; letter-spacing: .12em;
-    color: var(--ivory);
-    padding: 5px 9px;
-    border-radius: 999px;
-    z-index: 3;
+
+.store-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.store-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 12px;
+}
+#store .product {
+    position: relative;
+    transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+#store .product:hover {
+    transform: translateY(-5px);
+    border-color: rgba(229,35,41,.5);
+    box-shadow: 0 18px 50px rgba(0,0,0,.28);
+}
+#store .thumb.fashion { background: linear-gradient(135deg,#7c234e,#e6a7b9); }
+#store .thumb.travel { background: linear-gradient(135deg,#164a67,#e3b65d); }
+#store .thumb.automotive { background: linear-gradient(135deg,#101010,#9b1c24); }
+#store .thumb.realestate { background: linear-gradient(135deg,#26374b,#bfa77a); }
+#store .thumb.social { background: linear-gradient(135deg,#33205c,#d44774); }
+#store .thumb.food { background: linear-gradient(135deg,#54251d,#d49a54); }
+@media (max-width: 900px) { .store-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 600px) { .store-grid { grid-template-columns: 1fr; } .store-meta { flex-direction: column; gap: 7px; } }
 
 @media (prefers-reduced-motion: reduce) {
     #store .thumb, #store .thumb::before { animation: none !important; }
@@ -1869,6 +1887,7 @@ html { overflow-x: clip; }
 .field-hint{font-size:11px;color:#77716a;margin-bottom:2px}
 .subject-wrap{position:relative}
 .subject-wrap textarea{padding-bottom:30px;min-height:118px;resize:vertical}
+.subject-wrap textarea.input-error{border-color:#ff4d4f;box-shadow:0 0 0 2px rgba(255,77,79,.2)}
 .char-count{position:absolute;right:12px;bottom:9px;font-size:10px;color:#68635c;pointer-events:none}
 .quick-scenes{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 2px}
 .quick-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#77716a;font-weight:700;margin-right:2px}
@@ -2037,4 +2056,281 @@ body.video-generation-active #videoControls {
 @media (max-width: 700px) {
     .media-controls-head { align-items: flex-start; }
     .media-controls-badge { display: none; }
+}
+
+/* =========================
+   PROMPT PACK VISUAL PREVIEWS
+========================= */
+#store .thumb[data-preview-image] {
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    isolation: isolate;
+    transition: transform .35s ease, filter .35s ease;
+}
+#store .thumb[data-preview-image]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 35%, rgba(255,255,255,.13) 48%, transparent 61%);
+    transform: translateX(-120%);
+    transition: transform .8s ease;
+    z-index: 3;
+}
+#store .thumb[data-preview-image]:hover::before { transform: translateX(120%); }
+/* Keep Prompt Pack cards visually stable; only the preview action opens the video. */
+#store .thumb[data-preview-image]:hover { transform: none; filter: none; }
+body.preview-open { overflow: hidden; }
+.pack-preview-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 9999;
+}
+.pack-preview-modal.show { display: flex; }
+.pack-preview-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.76);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+}
+.pack-preview-dialog {
+    position: relative;
+    width: min(900px, 94vw);
+    max-height: 92vh;
+    overflow: auto;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(29,29,31,.98), rgba(14,14,16,.99));
+    box-shadow: 0 30px 100px rgba(0,0,0,.58);
+    z-index: 1;
+}
+.pack-preview-dialog > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.pack-preview-content { padding: 24px 26px 28px; }
+.pack-preview-content h3 { margin: 6px 0 8px; font-size: clamp(22px,3vw,32px); }
+.pack-preview-content p { margin: 0; color: var(--muted); line-height: 1.65; }
+.pack-preview-note {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 9px 12px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.pack-preview-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(0,0,0,.62);
+    color: #fff;
+    font-size: 25px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 3;
+}
+.pack-preview-close:hover { background: rgba(0,0,0,.82); }
+
+/* Prompt pack video preview */
+.pack-preview-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #050505;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.pack-preview-media video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #050505;
+}
+#store .thumb[data-preview-image] {
+    cursor: pointer;
+}
+#store .thumb[data-preview-image]:focus-visible {
+    outline: 2px solid rgba(255,255,255,.9);
+    outline-offset: 3px;
+}
+@media (max-width: 600px) {
+    .pack-preview-modal { padding: 12px; }
+    .pack-preview-dialog { width: 100%; border-radius: 18px; }
+    .pack-preview-content { padding: 18px; }
+}
+/* Store cards: no visible PREVIEW/PREVIEW PACK badge. Image remains the click target for video preview. */
+#store .thumb[data-preview-image]::after{content:none!important;display:none!important}
+
+
+/* =========================================================
+   PREMIUM STORE — FINAL PROFESSIONAL STATIC CARD SYSTEM
+   Stable cards; image is the only video-preview trigger.
+   ========================================================= */
+#store .store-grid{
+    align-items: stretch;
+    gap: 18px;
+}
+#store .product{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    min-height:100%;
+    padding:16px;
+    border-radius:18px;
+    background:linear-gradient(180deg,#191919 0%,#121212 100%);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 10px 30px rgba(0,0,0,.20);
+    transform:none !important;
+    transition:none !important;
+}
+#store .product:hover,
+#store .product:focus-within{
+    transform:none !important;
+    box-shadow:0 10px 30px rgba(0,0,0,.20);
+    border-color:rgba(255,255,255,.14);
+}
+#store .thumb[data-preview-image]{
+    flex:0 0 auto;
+    width:100%;
+    aspect-ratio:16/9;
+    min-height:0;
+    margin:0 0 15px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background-position:center;
+    background-size:cover;
+    background-repeat:no-repeat;
+    background-color:#101010;
+    cursor:pointer;
+    overflow:hidden;
+    isolation:isolate;
+    animation:none !important;
+    transform:none !important;
+    filter:none !important;
+    transition:none !important;
+}
+#store .thumb[data-preview-image]::before{
+    content:none !important;
+    display:none !important;
+    animation:none !important;
+}
+#store .thumb[data-preview-image]::after{
+    content:"";
+    display:block !important;
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.22) 100%);
+    z-index:1;
+}
+#store .thumb[data-preview-image]:hover,
+#store .thumb[data-preview-image]:active{
+    transform:none !important;
+    filter:none !important;
+}
+#store .thumb[data-preview-image]:focus-visible{
+    outline:2px solid rgba(255,255,255,.9);
+    outline-offset:3px;
+}
+#store .cover-click-hint{
+    position:absolute;
+    left:14px;
+    bottom:12px;
+    z-index:2;
+    opacity:0;
+    pointer-events:none;
+    font-size:11px;
+    font-weight:600;
+}
+#store .tag{
+    align-self:flex-start;
+    margin:0 0 8px;
+    padding:5px 8px;
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:999px;
+    color:#bcbcbc;
+    background:rgba(255,255,255,.035);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.08em;
+}
+#store .product h3{
+    margin:0 0 7px;
+    min-height:52px;
+    font-size:20px;
+    line-height:1.22;
+    letter-spacing:-.02em;
+    color:#f4f4f4;
+}
+#store .product > p{
+    margin:0;
+    min-height:43px;
+    color:#9b9b9b;
+    font-size:13px;
+    line-height:1.55;
+}
+#store .pack-specs{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:14px 0 14px;
+}
+#store .pack-specs span{
+    display:inline-flex;
+    align-items:center;
+    min-height:27px;
+    padding:5px 8px;
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:7px;
+    background:rgba(255,255,255,.025);
+    color:#a9a9a9;
+    font-size:10px;
+    font-weight:650;
+    white-space:nowrap;
+}
+#store .pack-specs span:first-child{
+    color:#e8e8e8;
+}
+#store .product .price{
+    margin-top:auto;
+    margin-bottom:11px;
+    font-size:25px;
+    line-height:1;
+    font-weight:800;
+    color:#f1f1f1;
+}
+#store .product .btn.full{
+    width:100%;
+    min-height:44px;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:750;
+    transition:none !important;
+}
+#store .product .btn.full:hover{
+    transform:none !important;
+    filter:none !important;
+}
+@media (max-width:900px){
+    #store .product h3{min-height:auto;}
+    #store .product > p{min-height:auto;}
+}
+@media (max-width:600px){
+    #store .product{padding:13px;}
+    #store .thumb[data-preview-image]{border-radius:12px;}
 }

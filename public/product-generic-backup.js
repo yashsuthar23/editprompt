@@ -20,7 +20,7 @@ const showToast = (message) => {
 let user = null;
 let config = {};
 
-const PRODUCT_ID = new URLSearchParams(window.location.search).get("id") || "cinematic";
+const PRODUCT_ID = "cinematic";
 
 /* =========================================================
    SAFE JSON FETCH

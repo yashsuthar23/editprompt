@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Premium Prompt Pack — EditPrompt.in</title>
+<meta id="metaDescription" name="description" content="Premium AI video prompt pack from EditPrompt.in.">
+<link rel="stylesheet" href="/product.css">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+/* Stable, professional pack gallery — no motion, tilt, shimmer or floating cards. */
+.pack-visual{position:relative;min-height:520px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:22px;padding:20px 10px}
+.pack-image-card{position:relative;width:100%;max-width:300px;justify-self:center;aspect-ratio:4/5;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:#151515;box-shadow:0 24px 55px rgba(0,0,0,.36);transform:none!important;transition:none!important}
+.pack-image-card.second{transform:none!important;margin:0!important}
+.pack-image-card img{width:100%;height:100%;display:block;object-fit:cover;transform:none!important;transition:none!important}
+.pack-image-card .image-label{position:absolute;z-index:2;left:14px;top:14px;padding:6px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(0,0,0,.68);font-size:10px;letter-spacing:.14em;color:#ddd}
+.pack-page .pack-image-card:hover,.pack-page .pack-image-card:hover img{transform:none!important;filter:none!important}
+@media(max-width:800px){.pack-visual{min-height:420px;gap:14px}.pack-image-card{max-width:260px}}
+@media(max-width:600px){.pack-visual{min-height:340px;gap:10px;padding:12px 0}.pack-image-card{max-width:none;border-radius:12px}.pack-image-card .image-label{left:9px;top:9px}}
+</style>
+</head>
+<body class="pack-page">
+<header>
+<a class="brand" href="/"><span>EP</span><div><b>EditPrompt</b><small>AI tools for video creators</small></div></a>
+<nav><a href="#inside">What's Inside</a><a href="#samples">Samples</a><a href="#faq">FAQ</a><a href="/library.html">My Library</a></nav>
+<div class="account"><button id="loginBtn" class="secondary small">Login</button><button id="logoutBtn" class="secondary small hide">Logout</button><a class="buy small" href="#buy" id="headerBuy">Buy Now</a></div>
+</header>
+<main>
+<section class="hero">
+<div class="copy">
+<div class="eyebrow" id="eyebrow">EDITPROMPT PREMIUM • DIGITAL DOWNLOAD</div>
+<h1 id="title">Premium AI<br><em>Prompt Pack</em></h1>
+<p class="lead" id="lead"></p>
+<div class="badges" id="badges"></div>
+<div class="price-row"><strong id="price">₹299</strong><div><b>Instant access after payment</b><small>Purchased pack appears in My Library</small></div></div>
+<div class="actions"><button class="buy" data-buy id="heroBuy">Buy Now</button><a class="secondary" href="#samples">View Samples</a></div>
+<p class="micro" id="integrationStatus">Checking checkout…</p>
+</div>
+<div class="visual pack-visual">
+<div class="pack-image-card"><span class="image-label">PACK PREVIEW</span><img id="image1" alt="Prompt pack preview"></div>
+<div class="pack-image-card second"><span class="image-label">INSIDE</span><img id="image2" alt="Prompt pack inside preview"></div>
+</div>
+</section>
+<section class="proof"><span>GOOGLE FLOW / VEO</span><span>RUNWAY</span><span>KLING</span><span>PIKA</span><span>AI VIDEO WORKFLOWS</span></section>
+<section id="inside" class="section"><div class="section-title"><div class="eyebrow">WHAT YOU GET</div><h2 id="insideTitle">Production-ready prompts.</h2><p id="insideCopy"></p></div><div class="categories" id="categories"></div></section>
+<section id="samples" class="section"><div class="section-title"><div class="eyebrow">TRY BEFORE YOU BUY</div><h2>Sample prompt style</h2></div><div class="sample-grid" id="sampleGrid"></div></section>
+<section class="section benefits"><div><div class="eyebrow">BUILT FOR WORKING CREATORS</div><h2>Less prompt writing.<br>More creating.</h2></div><div class="benefit-list"><p><b>Production-oriented structure.</b> Scene direction, camera behavior, lighting, motion and quality control.</p><p><b>Easy to customize.</b> Replace the subject, product, environment or mood while keeping the framework.</p><p><b>Useful across client work.</b> Ads, pitches, reels, product campaigns and concept development.</p></div></section>
+<section id="buy" class="purchase"><div><div class="eyebrow">GET THE FULL PACK</div><h2 id="purchaseTitle">Premium AI Video Prompts</h2><p>Verified purchase unlocks the real ZIP inside My Library.</p></div><div class="checkout"><div class="price" id="checkoutPrice">₹299</div><button class="buy" data-buy>Buy Now & Unlock</button><a class="library-link" href="/library.html">Already purchased? Open My Library →</a></div></section>
+<section id="faq" class="section faq"><div class="section-title"><div class="eyebrow">FAQ</div><h2>Before you purchase</h2></div><details open><summary>How do I receive the pack?</summary><p>After successful payment verification, the purchase is stored against your logged-in account and the protected download appears in My Library.</p></details><details><summary>Is this a subscription?</summary><p>No. This is a one-time purchase for this prompt pack.</p></details><details><summary>Can I redistribute the pack?</summary><p>No. The prompt pack itself should not be redistributed or resold.</p></details></section>
+</main>
+<div id="loginModal" class="modal"><div class="modalbox"><button id="closeLogin" class="x">×</button><div id="loginStep1"><h2>Login / Create Account</h2><p>We'll email you a 6-digit code — no password needed.</p><input id="name" placeholder="Your name"><input id="email" placeholder="Email address"><button id="sendOtpBtn" class="buy full">Send Code</button></div><div id="loginStep2" class="hide"><h2>Enter Code</h2><p id="otpHint">Check your email for the 6-digit code.</p><input id="otp" placeholder="6-digit code" maxlength="6" inputmode="numeric"><button id="verifyOtpBtn" class="buy full">Verify & Login</button><button id="resendOtpBtn" class="secondary full small">Resend code</button></div></div></div>
+<footer><div><b>EditPrompt.in</b><span>AI tools & creative assets for video editors.</span></div><div>© 2026 EditPrompt</div></footer><div id="toast"></div>
+<script src="/pack-page.js"></script><script src="/product.js"></script><script src="/site-status.js" defer></script>
+</body></html>

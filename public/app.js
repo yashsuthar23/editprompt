@@ -499,20 +499,6 @@ function updateAdvancedCount() {
 ========================================================= */
 (function setupSmartTextSuggestions(){
   const groups = {
-    environment: [
-      "Modern city street", "Luxury office interior", "Cinematic studio set", "Futuristic city skyline",
-      "Natural forest landscape", "Beach at golden hour", "Busy urban market", "Minimal architectural interior",
-      "Rainy street with reflections", "Mountain landscape with atmospheric depth"
-    ],
-    movement: [
-      "Walking naturally toward camera", "Walking away from camera", "Slow deliberate movement", "Natural hand gestures",
-      "Turning slowly toward camera", "Looking around naturally", "Hair and clothing moving in a light breeze",
-      "Subtle body movement with realistic weight", "Smooth cinematic camera-follow movement"
-    ],
-    negative: [
-      "Flickering", "Face distortion", "Extra fingers or malformed hands", "Unnatural body movement", "Warping or morphing",
-      "Duplicate people", "Text or subtitles", "Watermark or logo", "Jittery camera movement", "Frame interpolation artifacts"
-    ],
     character: [
       "Young professional wearing a tailored suit", "Casual modern streetwear", "Elegant formal attire",
       "Traditional Indian clothing", "Natural hairstyle and realistic skin texture", "Confident relaxed expression"
@@ -1627,6 +1613,10 @@ if ($("dashboardLink")) {
    GENERATE PROMPT
 ========================================================= */
 
+$("subject")?.addEventListener("input", () => {
+  $("subject")?.classList.remove("input-error");
+});
+
 if ($("generateBtn")) {
   $("generateBtn").onclick =
     async () => {
@@ -1637,15 +1627,16 @@ if ($("generateBtn")) {
         $("subject")
           ?.value.trim() || "";
 
-      // Nothing typed? Pick a random scene so a prompt is still created.
+      // Subject is required. Do not silently fill in a random scene.
       if (!subject) {
-        subject = randomSceneIdea();
+        toast("Please enter a subject first ⚠️");
 
         if ($("subject")) {
-          $("subject").value = subject;
+          $("subject").classList.add("input-error");
+          $("subject").focus();
         }
 
-        toast("No scene entered, so a random idea was used ✨");
+        return;
       }
 
       // A complete, ready-made prompt was pasted: use it exactly as written.

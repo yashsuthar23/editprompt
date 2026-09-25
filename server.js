@@ -395,6 +395,42 @@ const products = {
     price: 49900,
     file: "ads-pack.txt",
   },
+
+  fashion: {
+    name: "Fashion & Editorial Prompt Pack",
+    price: 34900,
+    file: "fashion-pack.txt",
+  },
+
+  travel: {
+    name: "Travel & Destination Prompt Pack",
+    price: 29900,
+    file: "travel-pack.txt",
+  },
+
+  automotive: {
+    name: "Automotive Cinematic Prompt Pack",
+    price: 44900,
+    file: "automotive-pack.txt",
+  },
+
+  realestate: {
+    name: "Real Estate & Architecture Prompt Pack",
+    price: 34900,
+    file: "realestate-pack.txt",
+  },
+
+  social: {
+    name: "Social Media Reels Prompt Pack",
+    price: 24900,
+    file: "social-pack.txt",
+  },
+
+  food: {
+    name: "Food & Beverage Commercial Prompt Pack",
+    price: 29900,
+    file: "food-pack.txt",
+  },
 };
 
 // ============================================================
@@ -2281,11 +2317,16 @@ app.post(
       });
     }
 
-    // No subject typed? Use a random scene so a prompt is still created.
-    const subjectText =
-      String(subject || "").trim().length >= 3
-        ? String(subject).trim()
-        : mediaPromptOrDefault("");
+    const trimmedSubject = String(subject || "").trim();
+
+    // Subject is required. Do not silently substitute a random scene.
+    if (trimmedSubject.length < 3) {
+      return res.status(400).json({
+        error: "Please enter a subject/scene before generating a prompt.",
+      });
+    }
+
+    const subjectText = trimmedSubject;
 
     const inputData = {
       preset: String(preset || "custom").trim(),
