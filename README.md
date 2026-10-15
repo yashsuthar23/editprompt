@@ -34,3 +34,21 @@ Before public launch
 - Add Privacy Policy, Terms, Refund/Cancellation Policy, Contact
 - Use cloud database/storage for production if scaling beyond a single server
 - Configure backups
+
+
+## V7.5 Creator Platform update
+
+Added:
+- Creator Library for generated images/videos and saved prompts
+- Revocable public media share links with optional expiry
+- Prompt version save/restore
+- Expanded creator utilities (video size, frame count, social safe-area presets, caption counter, export presets, palette helper)
+- Software Hub favorites, free/Windows/Web filters and comparison selection
+- 30-day default local media retention
+- PUBLIC_MEDIA_BASE_URL configuration for production share links
+
+### Local share links
+Local development may return a localhost URL. That URL only works on the same machine. For another device, use a temporary tunnel or set `PUBLIC_MEDIA_BASE_URL` to your hosted HTTPS origin.
+
+### Production
+Use a persistent session store, managed database/object storage, HTTPS, signed/expiring media links, and webhook-confirmed payments before public launch.

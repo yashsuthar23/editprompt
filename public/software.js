@@ -1,6 +1,6 @@
 (function () {
   var apps = window.SW_APPS || [], cats = window.SW_CATS || [];
-  var state = { cat: "All", q: "" }, kit = {};
+  var state = { cat: "All", q: "", filter: "all" }, kit = {}, favorites = JSON.parse(localStorage.getItem("editprompt-sw-favorites") || "{}"), compare = {};
   var $ = function (id) { return document.getElementById(id); };
 
   function el(tag, cls, text) {
@@ -69,6 +69,28 @@
     a.plat.forEach(function (x) { meta.appendChild(el("span", "hb-chip", x)); });
     body.appendChild(meta);
 
+    var fav = el("button", "app-fav" + (favorites[a.slug] ? " on" : ""), favorites[a.slug] ? "★" : "☆");
+    fav.type = "button"; fav.title = "Favorite";
+    fav.addEventListener("click", function(e) {
+      e.stopPropagation();
+      if (favorites[a.slug]) delete favorites[a.slug]; else favorites[a.slug] = true;
+      localStorage.setItem("editprompt-sw-favorites", JSON.stringify(favorites));
+      render();
+    });
+    top.appendChild(fav);
+
+    var compareLabel = el("label", "app-compare");
+    var compareBox = document.createElement("input");
+    compareBox.type = "checkbox"; compareBox.checked = !!compare[a.slug];
+    compareBox.addEventListener("change", function(e) {
+      e.stopPropagation();
+      if (compareBox.checked) compare[a.slug] = true; else delete compare[a.slug];
+      renderCompareBar();
+    });
+    compareLabel.appendChild(compareBox); compareLabel.appendChild(document.createTextNode(" Compare"));
+    body.appendChild(el("div","muted hb-tiny", a.winget ? "✓ Windows install kit available" : "Official source"));
+    body.appendChild(compareLabel);
+
     body.appendChild(el("p", "muted", a.desc));
 
     var act = el("div", "app-act");
@@ -94,7 +116,13 @@
     var out = apps.filter(function (a) {
       var okC = state.cat === "All" || a.cat.indexOf(state.cat) > -1;
       var hay = (a.name + " " + a.desc + " " + a.cat.join(" ")).toLowerCase();
-      return okC && (!state.q || hay.indexOf(state.q) > -1);
+      var okF = state.filter === "all" ||
+        (state.filter === "compare" && !!compare[a.slug]) ||
+        (state.filter === "free" && /free|open source|freemium/i.test(a.price)) ||
+        (state.filter === "windows" && a.plat.indexOf("Windows") > -1) ||
+        (state.filter === "web" && a.plat.indexOf("Web") > -1) ||
+        (state.filter === "favorites" && !!favorites[a.slug]);
+      return okC && okF && (!state.q || hay.indexOf(state.q) > -1);
     });
     if (!out.length) { list.appendChild(el("p", "muted empty", "No apps found. Try another word or category.")); return; }
     out.forEach(function (a) { list.appendChild(card(a)); });
@@ -125,6 +153,46 @@
     document.body.appendChild(a); a.click(); a.remove();
   });
 
+  /* enhanced filters */
+  document.querySelectorAll(".hub-filter").forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.filter = b.dataset.filter || "all";
+      document.querySelectorAll(".hub-filter").forEach(function (x) { x.classList.toggle("on", x === b); });
+      render();
+      renderCompareBar();
+    });
+  });
+
+  function renderCompareBar() {
+    var keys = Object.keys(compare);
+    var bar = $("compareBar");
+    if (!bar) return;
+    bar.hidden = !keys.length;
+    $("compareCount").textContent = keys.length;
+    $("compareBtn").disabled = keys.length < 2;
+  }
+  $("clearCompare")?.addEventListener("click", function(){ compare={}; renderCompareBar(); render(); });
+  $("compareBtn")?.addEventListener("click", function(){
+    var selected = apps.filter(function(a){ return !!compare[a.slug]; });
+    if (selected.length < 2) return;
+    if (selected.length > 4) return alert("Compare up to 4 apps.");
+    var modal = $("compareModal"), head = $("compareHead"), body = $("compareBody");
+    if (!modal || !head || !body) return;
+    head.innerHTML = "<tr><th>Feature</th>" + selected.map(a=>"<th>"+escapeHtml(a.name)+"</th>").join("") + "</tr>";
+    var rows = [
+      ["Price", a=>a.price],
+      ["Platforms", a=>a.plat.join(", ")],
+      ["Categories", a=>a.cat.slice(0,4).join(", ")],
+      ["Windows install kit", a=>a.winget ? "Available" : "Official source"],
+      ["Website", a=>a.url]
+    ];
+    body.innerHTML = rows.map(r=>"<tr><td>"+escapeHtml(r[0])+"</td>"+selected.map(a=>"<td>"+escapeHtml(r[1](a))+"</td>").join("")+"</tr>").join("");
+    modal.hidden = false;
+  });
+  $("closeCompare")?.addEventListener("click", function(){ $("compareModal").hidden = true; });
+  $("compareModal")?.addEventListener("click", function(e){ if (e.target === $("compareModal")) $("compareModal").hidden = true; });
+  function escapeHtml(v){ return String(v ?? "").replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];}); }
+
   /* quick picks */
   var quick = $("quick");
   ["davinci-resolve", "vn-editor", "inshot", "kdenlive", "canva", "audacity"].forEach(function (s) {
@@ -138,5 +206,5 @@
     Array.prototype.forEach.call(tabs.children, function (x) { x.classList.toggle("on", x.textContent === state.cat); });
     render();
   });
-  render(); renderKit();
+  render(); renderKit(); renderCompareBar();
 })();

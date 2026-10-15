@@ -551,6 +551,14 @@ let config = {};
 let lastHistoryId = null;
 let lastGeneratedPayload = null;
 
+// V7.6 safe bridge for optional enhancement UI without exposing internal state as globals.
+Object.defineProperty(window, "__editPromptState", {
+  configurable: true,
+  value: {},
+});
+Object.defineProperty(window.__editPromptState, "lastHistoryId", { get: () => lastHistoryId, set: (v) => { lastHistoryId = v; } });
+Object.defineProperty(window.__editPromptState, "mediaState", { get: () => mediaState });
+
 let pendingEmail = "";
 let pendingName = "";
 
@@ -3075,6 +3083,11 @@ const mediaState = {
   url: null,
   downloadUrl: null,
   sourceImageFile: null,
+  uploadedImageFile: null,
+  uploadedImageUrl: null,
+  lastVideoMeta: null,
+  batch: null,
+  selectedIndex: 0,
   jobId: null,
   polling: false,
   cancelled: false,
@@ -3141,14 +3154,20 @@ function mediaCurrentPrompt() {
   return outputText();
 }
 
-function mediaRenderPreview({ kind, url }) {
+function mediaRenderPreview({ kind, url, file = "" }) {
   const holder = $("mediaPreview");
 
   if (!holder) return;
 
   holder.innerHTML = "";
 
-  if (kind === "video") {
+  // GIF is an image format, not a <video> source, so using <video> here
+  // prevents the animation from playing. Render GIF results as <img>; the
+  // browser will animate them automatically. MP4/WebM/MOV still use <video>.
+  const mediaName = String(file || url || "").split("?")[0].toLowerCase();
+  const isAnimatedGif = mediaName.endsWith(".gif");
+
+  if (kind === "video" && !isAnimatedGif) {
     const video = document.createElement("video");
 
     video.src = url;
@@ -3156,31 +3175,122 @@ function mediaRenderPreview({ kind, url }) {
     video.playsInline = true;
     video.autoplay = true;
     video.loop = true;
+    video.preload = "metadata";
 
     holder.appendChild(video);
   } else {
     const image = document.createElement("img");
 
     image.src = url;
-    image.alt = "AI generated image";
+    image.alt = kind === "video" ? "AI generated animated video" : "AI generated image";
+    image.decoding = "async";
 
     holder.appendChild(image);
   }
 }
 
-function mediaShowResult({ kind, file, url, downloadUrl }) {
+function mediaRenderBatch(images, selectedIndex) {
+  const holder = $("mediaBatch");
+
+  if (!holder) return;
+
+  if (!images || images.length < 2) {
+    holder.classList.add("hide");
+    holder.innerHTML = "";
+    return;
+  }
+
+  holder.classList.remove("hide");
+  holder.innerHTML = "";
+
+  const label = document.createElement("div");
+  label.className = "mediabatch-label";
+  label.textContent = "Choose one image, then download it:";
+  holder.appendChild(label);
+
+  const grid = document.createElement("div");
+  grid.className = "mediabatch-grid";
+
+  images.forEach((img, index) => {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "mediabatch-tile" + (index === selectedIndex ? " is-selected" : "");
+    tile.setAttribute("aria-pressed", String(index === selectedIndex));
+    tile.setAttribute("aria-label", `Select image ${index + 1}`);
+
+    const thumb = document.createElement("img");
+    thumb.src = img.url;
+    thumb.alt = `Option ${index + 1}`;
+    thumb.loading = "lazy";
+    thumb.decoding = "async";
+
+    const badge = document.createElement("span");
+    badge.className = "mediabatch-badge";
+    badge.textContent = index === selectedIndex ? `✓ ${index + 1}` : String(index + 1);
+
+    tile.appendChild(thumb);
+    tile.appendChild(badge);
+
+    tile.onclick = () => mediaSelectBatchItem(index);
+
+    grid.appendChild(tile);
+  });
+
+  holder.appendChild(grid);
+}
+
+function mediaSelectBatchItem(index) {
+  const images = mediaState.batch || [];
+  const img = images[index];
+
+  if (!img) return;
+
+  mediaState.selectedIndex = index;
+  mediaState.file = img.file;
+  mediaState.url = img.url;
+  mediaState.downloadUrl = img.downloadUrl;
+  mediaState.sourceImageFile = img.file;
+
+  mediaRenderPreview({ kind: "image", url: img.url, file: img.file });
+
+  const download = $("mediaDownloadBtn");
+  if (download) {
+    download.href = img.downloadUrl;
+    download.textContent = "⬇ Download Image";
+  }
+
+  const animate = $("mediaAnimateBtn");
+  if (animate) animate.disabled = false;
+
+  mediaRenderBatch(images, index);
+}
+
+function mediaShowResult({ kind, file, url, downloadUrl, batch = null }) {
   mediaStopProgress();
 
   mediaState.kind = kind;
   mediaState.file = file;
   mediaState.url = url;
   mediaState.downloadUrl = downloadUrl;
+  mediaState.batch = kind === "image" && batch ? batch : null;
+  mediaState.selectedIndex = 0;
+
+  // Image batch: show the picker and keep the chosen tile in the preview.
+  mediaRenderBatch(mediaState.batch, 0);
 
   if (kind === "image") {
     mediaState.sourceImageFile = file;
   }
 
-  mediaRenderPreview({ kind, url });
+  const meta = $("mediaResultMeta");
+  if (meta) {
+    const m = mediaState.lastVideoMeta;
+    meta.textContent = kind === "video" && m
+      ? `Model: ${m.model || "unknown"} · ${m.generatedDurationSeconds ?? m.durationSeconds ?? "—"}s · ${m.generatedFps ?? m.fps ?? "—"} fps · ${m.aspectRatio || "—"}`
+      : kind === "image" ? "Saved automatically to My Library" : "";
+  }
+
+  mediaRenderPreview({ kind, url, file });
 
   const download = $("mediaDownloadBtn");
 
@@ -3209,16 +3319,38 @@ function mediaFail(message) {
   let friendly = raw;
 
   if (raw.includes("Hugging Face free video credits are exhausted")) {
-    friendly = "⚠️ Hugging Face free video credits are exhausted. Configure Local ComfyUI for free video generation.";
+    friendly = "⚠️ Hugging Face free video credits are exhausted. No free remote video credits are currently available.";
   } else if (raw.includes("Pollinations balance is 0")) {
-    friendly = "⚠️ Pollinations has 0 balance. Configure Local ComfyUI or a funded video provider.";
-  } else if (raw.includes("Local ComfyUI is configured but not reachable")) {
-    friendly = "⚠️ ComfyUI is configured but not running. Start ComfyUI and try again.";
+    friendly = "⚠️ Pollinations has 0 balance. Configure a funded video provider.";
   } else if (raw.includes("No video provider is currently available")) {
-    friendly = "⚠️ No video provider is currently available. Start Local ComfyUI for ₹0-cost generation.";
+    friendly = "⚠️ No video provider is currently available. Configure a supported video provider.";
   }
 
   toast(friendly);
+
+  const oldRetry = document.getElementById("v76RetryBtn");
+  if (oldRetry) oldRetry.remove();
+  if (mediaState.jobId) {
+    const retry = document.createElement("button");
+    retry.id = "v76RetryBtn";
+    retry.className = "btn ghost small";
+    retry.type = "button";
+    retry.textContent = "↻ Retry Video";
+    retry.onclick = async () => {
+      retry.disabled = true;
+      try {
+        const data = await apiRequest(`/api/media/video/${mediaState.jobId}/retry`, { method: "POST" });
+        mediaState.jobId = data.jobId;
+        mediaState.cancelled = false;
+        mediaState.polling = false;
+        mediaShowStep("loading");
+        mediaStartProgress(110, "Retrying video…");
+        await mediaPollVideo(data.jobId);
+      } catch (e) { retry.disabled = false; toast(e.message || "Retry failed"); }
+    };
+    const target = $("mediaStepType");
+    if (target) target.appendChild(retry);
+  }
 
   const animate = $("mediaAnimateBtn");
   if (animate) animate.disabled = false;
@@ -3228,6 +3360,8 @@ function mediaFail(message) {
 
 /* ---------- IMAGE ---------- */
 
+const MEDIA_IMAGE_BATCH_SIZE = 4;
+
 async function mediaGenerateImage() {
   const prompt = mediaCurrentPrompt();
 
@@ -3235,7 +3369,7 @@ async function mediaGenerateImage() {
 
   mediaShowStep("loading");
 
-  mediaStartProgress(35, "Generating image…");
+  mediaStartProgress(45, `Generating ${MEDIA_IMAGE_BATCH_SIZE} images…`);
 
   try {
     const data = await apiRequest("/api/media/image", {
@@ -3247,6 +3381,8 @@ async function mediaGenerateImage() {
         prompt,
 
         ratio: $("ratio")?.value || "",
+
+        count: MEDIA_IMAGE_BATCH_SIZE,
       }),
     });
 
@@ -3254,14 +3390,19 @@ async function mediaGenerateImage() {
 
     mediaSetProgress(100, "Done");
 
+    const images = Array.isArray(data.images) && data.images.length
+      ? data.images
+      : [{ file: data.file, url: data.url, downloadUrl: data.downloadUrl }];
+
     mediaShowResult({
       kind: "image",
-      file: data.file,
-      url: data.url,
-      downloadUrl: data.downloadUrl,
+      file: images[0].file,
+      url: images[0].url,
+      downloadUrl: images[0].downloadUrl,
+      batch: images,
     });
 
-    toast("Image generated ✨");
+    toast("Pick the image you like and download it ✨");
   } catch (error) {
     console.error("Image generation error:", error);
 
@@ -3286,6 +3427,7 @@ async function mediaPollVideo(jobId) {
 
       if (data.status === "done") {
         mediaState.polling = false;
+        mediaState.lastVideoMeta = data;
 
         mediaSetProgress(100, "Done");
 
@@ -3296,7 +3438,13 @@ async function mediaPollVideo(jobId) {
           downloadUrl: data.downloadUrl,
         });
 
-        toast("Video generated 🎬");
+        const requested = Number(data.requestedDurationSeconds || 0);
+        const generated = Number(data.generatedDurationSeconds || 0);
+        if (data.provider === "local" && requested > generated + 0.01) {
+          toast(`Local preview generated ${generated.toFixed(2)}s of ${requested}s 🎬`);
+        } else {
+          toast("Video generated 🎬");
+        }
 
         return;
       }
@@ -3339,7 +3487,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
         ratio: $("ratio")?.value || "",
 
-        duration: $("duration")?.value || "",
+        duration: $("videoDuration")?.value || $("duration")?.value || "5 seconds",
 
         fps: $("videoFps")?.value || "24",
 
@@ -3347,7 +3495,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
         motionStrength: $("videoMotionStrength")?.value || "Medium",
 
-        imageFile: fromImage ? mediaState.sourceImageFile : null,
+        imageFile: fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null,
       }),
     });
 
@@ -3355,7 +3503,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
     mediaState.jobId = data.jobId;
 
-    mediaSetProgress(6, "Rendering video… this usually takes 1–3 minutes");
+    mediaSetProgress(6, "Rendering video… this may take a few minutes");
 
     await mediaPollVideo(data.jobId);
   } catch (error) {
@@ -3364,6 +3512,56 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
     if (!mediaState.cancelled) mediaFail(error.message);
   }
 }
+
+/* ---------- VIDEO IMAGE UPLOAD ---------- */
+
+async function uploadVideoSourceImage(file) {
+  if (!file) return;
+  if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) throw new Error("Please select a PNG, JPG, JPEG or WebP image.");
+  if (file.size > 8 * 1024 * 1024) throw new Error("Image is too large. Maximum size is 8 MB.");
+  const status = $("videoImageUploadStatus");
+  const clear = $("videoImageClearBtn");
+  if (status) status.textContent = "Uploading image…";
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
+  const data = await apiRequest("/api/media/upload-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: dataUrl }),
+  });
+  mediaState.uploadedImageFile = data.file;
+  mediaState.uploadedImageUrl = data.url;
+  mediaState.sourceImageFile = data.file;
+  if (status) status.textContent = `Starting image: ${file.name}`;
+  if (clear) clear.classList.remove("hide");
+}
+
+const videoImageUpload = $("videoImageUpload");
+if (videoImageUpload) {
+  videoImageUpload.addEventListener("change", async () => {
+    try {
+      await uploadVideoSourceImage(videoImageUpload.files?.[0]);
+      toast("Starting image ready");
+    } catch (error) {
+      videoImageUpload.value = "";
+      toast(error.message || "Could not upload image");
+    }
+  });
+}
+
+$("videoImageClearBtn")?.addEventListener("click", () => {
+  mediaState.uploadedImageFile = null;
+  mediaState.uploadedImageUrl = null;
+  mediaState.sourceImageFile = null;
+  if (videoImageUpload) videoImageUpload.value = "";
+  const status = $("videoImageUploadStatus");
+  if (status) status.textContent = "Optional: upload a starting image, then generate the video.";
+  $("videoImageClearBtn")?.classList.add("hide");
+});
 
 /* ---------- AUTO PROMPT ----------
    If nobody has written a prompt yet, one is created automatically so that
@@ -3425,7 +3623,10 @@ function syncSettingsFromPrompt(text) {
   };
 
   if (ratioMatch) pick($("ratio"), ratioMatch[1]);
-  if (durationMatch) pick($("duration"), durationMatch[1] + " seconds");
+  if (durationMatch) {
+    pick($("duration"), durationMatch[1] + " seconds");
+    pick($("videoDuration"), durationMatch[1] + " seconds");
+  }
 }
 
 function useFullPromptAsIs(text) {
@@ -3489,9 +3690,7 @@ async function loadMediaProviderStatus() {
   try {
     const data = await apiRequest("/api/media/providers/health");
     const parts = [];
-    if (data.local?.reachable) parts.push("🟢 Local / ComfyUI ready");
-    else if (data.local?.configured) parts.push("🔴 ComfyUI offline");
-    if (data.huggingface?.configured) parts.push("🟡 Hugging Face credits");
+    if (data.huggingface?.configured) parts.push("🟢 Hugging Face ZeroGPU (free)");
     if (data.pollinations?.configured) parts.push("🟠 Pollinations balance");
     if (data.gemini?.enabled) parts.push("🔵 Gemini/Veo paid");
     else if (data.gemini?.configured) parts.push("⚪ Gemini configured / paid mode off");
@@ -3504,7 +3703,6 @@ async function loadMediaProviderStatus() {
     const recommended = data.recommended ? ` · Recommended: ${data.recommended}` : "";
     el.textContent = `${parts.join(" · ")}${recommended}`;
     el.title = [
-      `Local: ${data.local?.note || "—"}`,
       `Hugging Face: ${data.huggingface?.note || "—"}`,
       `Pollinations: ${data.pollinations?.note || "—"}`,
       `Gemini: ${data.gemini?.note || "—"}`,
@@ -3574,6 +3772,10 @@ function syncVideoControlsToPrompt() {
     cameraSelect.selectValues([motionValue]);
   }
 
+  const mainDuration = $("duration")?.value || "";
+  const videoDuration = $("videoDuration");
+  if (videoDuration && /^(5|6|8|10) seconds$/.test(mainDuration)) videoDuration.value = mainDuration;
+
   const fpsValue = $("videoFps")?.value || "24";
   const promptFps = $("fps");
   if (promptFps) {
@@ -3597,6 +3799,11 @@ function updateVideoControls() {
 }
 
 $("videoCameraMotion")?.addEventListener("change", syncVideoControlsToPrompt);
+$("videoDuration")?.addEventListener("change", () => {
+  const value = $("videoDuration")?.value || "5 seconds";
+  const main = $("duration");
+  if (main && [...main.options].some((option) => option.value === value)) main.value = value;
+});
 $("videoFps")?.addEventListener("change", syncVideoControlsToPrompt);
 $("videoMotionStrength")?.addEventListener("change", () => {
   // Motion strength is sent directly to the video provider.
@@ -3649,8 +3856,8 @@ if ($("mediaGenerateBtn")) {
 
 if ($("mediaAnimateBtn")) {
   $("mediaAnimateBtn").onclick = () => {
-    if (!mediaState.sourceImageFile) {
-      return toast("Generate an image first");
+    if (!mediaState.sourceImageFile && !mediaState.uploadedImageFile) {
+      return toast("Generate or upload an image first");
     }
 
     $("mediaAnimateBtn").disabled = true;
@@ -3663,13 +3870,63 @@ if ($("mediaRegenerateBtn")) {
   $("mediaRegenerateBtn").onclick = () => {
     if (mediaState.kind === "video") {
       mediaGenerateVideo({
-        fromImage: Boolean(mediaState.sourceImageFile),
+        fromImage: Boolean(mediaState.uploadedImageFile || mediaState.sourceImageFile),
       });
     } else {
       mediaGenerateImage();
     }
   };
 }
+
+$("mediaCopyPromptBtn")?.addEventListener("click", async () => {
+  const prompt = mediaCurrentPrompt();
+  if (!prompt || isPlaceholderPrompt(prompt)) return toast("No prompt to copy");
+  try { await navigator.clipboard.writeText(prompt); toast("Prompt copied"); }
+  catch { toast("Could not copy prompt"); }
+});
+
+$("mediaShareBtn")?.addEventListener("click", async () => {
+  // Always create a real public share token first. A raw localhost media URL
+  // only works on the creator's machine and is not a share link.
+  let file = String(mediaState.file || "").trim();
+  if (!file && mediaState.url) {
+    try {
+      const pathname = new URL(mediaState.url, location.origin).pathname;
+      const match = pathname.match(/\/api\/media\/file\/([^/]+)$/);
+      if (match) file = decodeURIComponent(match[1]);
+    } catch {}
+  }
+
+  if (!file) return toast("Media file required. Generate the media again first.");
+
+  const button = $("mediaShareBtn");
+  if (button) button.disabled = true;
+
+  try {
+    const data = await apiRequest("/api/media/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        file,
+        kind: mediaState.kind || "image",
+      }),
+    });
+
+    const absolute = new URL(data.url, location.origin).href;
+
+    if (navigator.share) {
+      await navigator.share({ title: "EditPrompt generated media", url: absolute });
+      toast("Share link ready");
+    } else {
+      await navigator.clipboard.writeText(absolute);
+      toast("Public share link copied");
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") toast(error.message || "Could not create share link");
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
 
 if ($("mediaBackBtn")) {
   $("mediaBackBtn").onclick = () => {
@@ -3680,14 +3937,15 @@ if ($("mediaBackBtn")) {
 }
 
 if ($("mediaCancelBtn")) {
-  $("mediaCancelBtn").onclick = () => {
+  $("mediaCancelBtn").onclick = async () => {
     mediaState.cancelled = true;
     mediaState.polling = false;
-
+    const jobId = mediaState.jobId;
     mediaStopProgress();
-
     mediaShowStep("type");
-
+    if (jobId) {
+      try { await apiRequest(`/api/media/video/${jobId}/cancel`, { method: "POST" }); } catch {}
+    }
     toast("Cancelled");
   };
 }

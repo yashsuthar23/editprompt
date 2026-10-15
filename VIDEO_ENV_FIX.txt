@@ -1,0 +1,12 @@
+# EditPrompt V7 video configuration
+# IMPORTANT: keep API keys/private credentials out of chat and source archives.
+
+FREE_ONLY_MEDIA=true
+GEMINI_VIDEO_ENABLED=false
+PAID_VIDEO_ENABLED=false
+
+# Keep your existing Gemini text/image settings.
+# Keep HF_TOKEN only if you want the free Hugging Face ZeroGPU route.
+
+# If you later intentionally enable Gemini Veo:
+VIDEO_MODEL=veo-3.1-fast-generate-preview

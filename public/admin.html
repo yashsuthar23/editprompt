@@ -255,6 +255,8 @@
           <button class="adm-tab-btn" data-tab="blocked" role="tab" aria-selected="false" type="button">Blocked <span class="tab-badge" id="blockedBadge"></span></button>
           <button class="adm-tab-btn" data-tab="deleted" role="tab" aria-selected="false" type="button">Deleted <span class="tab-badge" id="deletedBadge"></span></button>
           <button class="adm-tab-btn" data-tab="system" role="tab" aria-selected="false" type="button">System &amp; Log</button>
+          <button class="adm-tab-btn" data-tab="media" role="tab" aria-selected="false" type="button">AI &amp; Media</button>
+          <button class="adm-tab-btn" data-tab="security" role="tab" aria-selected="false" type="button">Security</button>
         </div>
 
         <!-- ===== OVERVIEW ===== -->
@@ -443,6 +445,31 @@
             <div id="adminLog"><div class="admin-loading">Loading…</div></div>
           </div>
         </div>
+
+        <!-- ===== AI & MEDIA ===== -->
+        <div id="tab-media" role="tabpanel" class="adm-hide">
+          <div class="adm-grid2">
+            <div class="panel">
+              <h3>AI &amp; Media Health</h3>
+              <p class="muted">Provider and generation-job overview.</p>
+              <div id="mediaHealth" class="adm-list">Loading…</div>
+            </div>
+            <div class="panel">
+              <h3>Recent Video Jobs</h3>
+              <p class="muted">Admin can cancel stuck jobs.</p>
+              <div id="adminVideoJobs" class="adm-list">Loading…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SECURITY ===== -->
+        <div id="tab-security" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <h3>Security Events</h3>
+            <p class="muted">Recent authentication and media-control events.</p>
+            <div id="securityEvents" class="adm-list">Loading…</div>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -485,7 +512,7 @@
       let openUserId = null;
       let lastFocus = null;
 
-      const TABS = ["overview", "users", "orders", "activity", "blocked", "deleted", "system"];
+      const TABS = ["overview", "users", "orders", "activity", "blocked", "deleted", "system", "media", "security"];
       let currentTab = "overview";
 
       let productNames = {
@@ -685,6 +712,8 @@
 
         if (name === "activity") loadActivity();
         if (name === "system") loadSystem();
+        if (name === "media") loadMediaHealth();
+        if (name === "security") loadSecurityEvents();
       }
 
       /* ---------- overview ---------- */
@@ -1440,6 +1469,33 @@
         }
       }
 
+
+      async function loadMediaHealth() {
+        try {
+          const [h, jobs, providers] = await Promise.all([
+            api("/api/admin/media-health"),
+            api("/api/admin/video-jobs?limit=40"),
+            api("/api/media/providers/health").catch(() => ({available:[],recommended:null})),
+          ]);
+          const jobRows = (h.jobs || []).map(x => `<div class="adm-row"><b>${escapeHtml(x.status)}</b><span>${formatMoney(x.n)} jobs</span></div>`).join("") || '<div class="muted">No jobs yet.</div>';
+          const mediaRows = (h.media || []).map(x => `<div class="adm-row"><b>${escapeHtml(x.kind)}</b><span>${formatMoney(x.n)}</span></div>`).join("");
+          const providerText = (providers.available || []).join(", ") || "None configured";
+          $("mediaHealth").innerHTML = `<div class="adm-stack"><h4>Providers</h4><div class="adm-row"><b>${escapeHtml(providerText)}</b><span>Recommended: ${escapeHtml(providers.recommended || "—")}</span></div><h4>Job status</h4>${jobRows}<h4>Media</h4>${mediaRows || '<div class="muted">No media yet.</div>'}</div>`;
+          $("adminVideoJobs").innerHTML = (jobs.jobs || []).map(j => `<div class="adm-row" style="gap:10px;align-items:flex-start"><div><b>${escapeHtml(j.status)}</b> · ${escapeHtml(j.provider || "auto")}<div class="muted">${escapeHtml(j.email || "")}</div><div class="mini">${escapeHtml(j.error || j.model || j.prompt || "")}</div></div><button class="btn ghost small" data-admin-cancel-job="${escapeHtml(j.id)}" ${["done","failed","cancelled"].includes(j.status)?"disabled":""}>Cancel</button></div>`).join("") || '<div class="muted">No video jobs.</div>';
+        } catch (e) {
+          $("mediaHealth").innerHTML = `<div class="adm-err">${escapeHtml(e.message)}</div>`;
+        }
+      }
+
+      async function loadSecurityEvents() {
+        try {
+          const data = await api("/api/admin/security-events?limit=100");
+          $("securityEvents").innerHTML = (data.events || []).map(e => `<div class="adm-row" style="align-items:flex-start"><div><b>${escapeHtml(e.event)}</b><div class="mini">${escapeHtml(e.detail || "")}</div></div><div class="muted">${escapeHtml(e.ip || "")}<br>${escapeHtml(e.created_at || "")}</div></div>`).join("") || '<div class="muted">No security events.</div>';
+        } catch (e) {
+          $("securityEvents").innerHTML = `<div class="adm-err">${escapeHtml(e.message)}</div>`;
+        }
+      }
+
       async function afterChange() {
         await refreshAll();
         if (activityData) await loadActivity();
@@ -1540,6 +1596,7 @@
         const bk = t.closest("[data-bulk]");
         const dp = t.closest("[data-del-prompt]");
         const dm = t.closest("[data-del-media]");
+        const acj = t.closest("[data-admin-cancel-job]");
 
         try {
           if (close) {
@@ -1586,6 +1643,10 @@
             if (!confirm("Delete this prompt permanently?")) return;
             await post("/api/admin/delete-prompt", { id: Number(dp.getAttribute("data-del-prompt")) });
             await afterChange();
+          } else if (acj) {
+            if (!confirm("Cancel this video job?")) return;
+            await post("/api/admin/video-jobs/" + encodeURIComponent(acj.getAttribute("data-admin-cancel-job")) + "/cancel", {});
+            await loadMediaHealth();
           } else if (dm) {
             if (!confirm("Delete this image/video permanently?")) return;
             await post("/api/admin/delete-media", { id: Number(dm.getAttribute("data-del-media")) });
@@ -1622,5 +1683,6 @@
       })();
     </script>
     <script src="/admin-pro-ui.js" defer></script>
-  </body>
+    <script src="/theme.js"></script>
+</body>
 </html>

@@ -40,6 +40,19 @@
         <div class="hub-search">
             <input id="q" type="search" placeholder="Search apps… (e.g. reels, wedding, photo, poster)" aria-label="Search software">
         </div>
+        <div class="hub-filters" aria-label="Software filters">
+            <button type="button" class="hub-filter on" data-filter="all">All</button>
+            <button type="button" class="hub-filter" data-filter="free">Free / Open Source</button>
+            <button type="button" class="hub-filter" data-filter="windows">Windows</button>
+            <button type="button" class="hub-filter" data-filter="web">Web</button>
+            <button type="button" class="hub-filter" data-filter="favorites">★ Favorites</button>
+            <button type="button" class="hub-filter" data-filter="compare">Compare</button>
+        </div>
+        <div class="compare-bar" id="compareBar" hidden>
+            <span><b id="compareCount">0</b> selected for comparison</span>
+            <button type="button" class="btn ghost small" id="clearCompare">Clear</button>
+            <button type="button" class="btn primary small" id="compareBtn">Compare</button>
+        </div>
     </section>
 
     <nav class="hub-tabs" id="tabs" aria-label="Software categories"></nav>
@@ -75,6 +88,15 @@
         Some apps may be unavailable in certain countries (for example, CapCut is blocked in India, so it is not listed). EditPrompt does not host third-party installers. Names and logos belong to their owners.
     </p>
 
+    <div class="compare-modal" id="compareModal" hidden>
+        <div class="compare-dialog" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+            <div class="compare-head">
+                <div><div class="eyebrow">SOFTWARE COMPARISON</div><h2 id="compareTitle">Compare creator apps</h2></div>
+                <button class="btn ghost small" id="closeCompare" type="button">Close</button>
+            </div>
+            <div class="compare-table-wrap"><table class="compare-table"><thead id="compareHead"></thead><tbody id="compareBody"></tbody></table></div>
+        </div>
+    </div>
 </main>
 
 <script src="/software-data.js"></script>
@@ -82,5 +104,6 @@
 <script src="/software.js"></script>
 <script src="/nav.js" defer></script>
 <script src="/site-status.js" defer></script>
+  <script src="/theme.js"></script>
 </body>
 </html>

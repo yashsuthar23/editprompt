@@ -1,0 +1,11 @@
+EditPrompt V7 - Hugging Face ZeroGPU integration patch
+
+1. Back up your existing E:\Flutter\Projects\v6\server.js.
+2. Replace server.js with the patched server.js.
+3. Create/replace local-workflows\image.json.
+4. Create/replace local-workflows\video.json.
+5. In .env set/add:
+                     FREE_ONLY_MEDIA=true
+6. Start Hugging Face ZeroGPU first, then start EditPrompt with npm start.
+
+Important: Do not copy secrets from the uploaded .env into any new file. If those secrets are real/current, rotate them because the uploaded archive contained credentials.

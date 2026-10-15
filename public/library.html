@@ -43,7 +43,28 @@
 </header>
 
 
+
 <main>
+
+<section id="creatorLibrary" class="section" style="border-top:0">
+    <div class="head">
+        <div class="section-intro">
+            <div class="eyebrow">CREATOR LIBRARY</div>
+            <h2>Your work</h2>
+            <p>Generated prompts, images and videos in one place.</p>
+        </div>
+    </div>
+
+    <div class="store-tabs" role="tablist" aria-label="Creator library filters">
+        <button type="button" class="on" data-lib-filter="media">Media</button>
+        <button type="button" data-lib-filter="prompts">Prompts</button>
+        <button type="button" data-lib-filter="shares">Share Links</button>
+    </div>
+
+    <div id="creatorLibraryContent" class="three">
+        <div class="card"><p class="muted">Loading your creator library…</p></div>
+    </div>
+</section>
 
 <section
     class="section"
@@ -125,6 +146,84 @@
 </footer>
 
 
+
+<style>
+#creatorLibrary .lib-media-card img,#creatorLibrary .lib-media-card video{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:12px;background:#090909}
+#creatorLibrary .lib-media-card .lib-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+#creatorLibrary .lib-meta{font-size:11px;color:#999;margin-top:7px}
+#creatorLibrary .lib-prompt{white-space:pre-wrap;max-height:180px;overflow:auto;background:#0c0c0c;border:1px solid #2b2b2b;border-radius:10px;padding:12px;font-size:12px;line-height:1.5}
+</style>
+<script>
+/* Creator Library V7.5 */
+(() => {
+  const box = document.getElementById("creatorLibraryContent");
+  let filter = "media";
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  async function api(url, opts) {
+    const r = await fetch(url, {credentials:"same-origin", headers:{"Content-Type":"application/json"}, ...opts});
+    const d = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(d.error || "Request failed");
+    return d;
+  }
+  function empty(text) { box.innerHTML = '<div class="card"><p class="muted">'+esc(text)+'</p></div>'; }
+  async function share(file) {
+    const d = await api("/api/media/share",{method:"POST",body:JSON.stringify({file,expiresHours:168})});
+    try { await navigator.clipboard.writeText(d.url); } catch {}
+    alert(d.note ? d.url + "\\n\\nLocal URL: use a tunnel for another device." : "Share link copied:\\n"+d.url);
+  }
+  async function render() {
+    box.innerHTML = '<div class="card"><p class="muted">Loading…</p></div>';
+    try {
+      if (filter === "media") {
+        const d = await api("/api/media/history");
+        if (!d.items?.length) return empty("No generated media yet.");
+        box.innerHTML = "";
+        d.items.forEach(item => {
+          const card=document.createElement("article"); card.className="card lib-media-card";
+          const ext=(item.file.split(".").pop()||"").toLowerCase();
+          const visual = ["mp4","webm","mov"].includes(ext)
+            ? '<video controls preload="metadata" src="'+esc(item.url)+'"></video>'
+            : '<img loading="lazy" src="'+esc(item.url)+'" alt="Generated media">';
+          card.innerHTML = visual +
+            '<h3>'+esc(item.kind || "Media")+'</h3>' +
+            '<div class="lib-meta">'+esc(item.model || "EditPrompt")+" · "+esc(new Date(item.created_at).toLocaleString())+'</div>' +
+            '<p class="muted">'+esc((item.prompt||"").slice(0,180))+'</p>' +
+            '<div class="lib-actions"><a class="btn ghost small" href="'+esc(item.downloadUrl)+'">Download</a><button class="btn primary small share-media">Share</button></div>';
+          card.querySelector(".share-media").onclick=()=>share(item.file).catch(e=>alert(e.message));
+          box.appendChild(card);
+        });
+      } else if (filter === "prompts") {
+        const d = await api("/api/prompts");
+        if (!d.items?.length) return empty("No saved prompts yet.");
+        box.innerHTML="";
+        d.items.forEach(p=>{
+          const card=document.createElement("article"); card.className="card";
+          card.innerHTML='<h3>'+esc(p.subject||"Untitled prompt")+'</h3><div class="lib-meta">'+esc(new Date(p.created_at).toLocaleString())+'</div><div class="lib-prompt">'+esc(p.prompt)+'</div><div class="lib-actions"><button class="btn ghost small copy-prompt">Copy</button></div>';
+          card.querySelector(".copy-prompt").onclick=async()=>{try{await navigator.clipboard.writeText(p.prompt);alert("Prompt copied");}catch{}};
+          box.appendChild(card);
+        });
+      } else {
+        const d=await api("/api/media/shares");
+        const items=(d.items||[]).filter(x=>x.active);
+        if(!items.length) return empty("No active share links.");
+        box.innerHTML="";
+        items.forEach(x=>{
+          const card=document.createElement("article"); card.className="card";
+          card.innerHTML='<h3>'+esc(x.file)+'</h3><div class="lib-meta">'+(x.expires_at ? "Expires "+esc(new Date(Number(x.expires_at)).toLocaleString()) : "No expiry")+'</div><div class="lib-prompt">'+esc(x.url)+'</div><div class="lib-actions"><button class="btn ghost small copy-link">Copy</button><button class="btn ghost small revoke-link">Revoke</button></div>';
+          card.querySelector(".copy-link").onclick=async()=>{try{await navigator.clipboard.writeText(x.url);alert("Link copied");}catch{}};
+          card.querySelector(".revoke-link").onclick=async()=>{await api("/api/media/share/revoke",{method:"POST",body:JSON.stringify({token:x.token})});render();};
+          box.appendChild(card);
+        });
+      }
+    } catch(e) { empty(e.message || "Could not load library."); }
+  }
+  document.querySelectorAll("[data-lib-filter]").forEach(btn=>btn.onclick=()=>{
+    document.querySelectorAll("[data-lib-filter]").forEach(x=>x.classList.remove("on"));
+    btn.classList.add("on"); filter=btn.dataset.libFilter; render();
+  });
+  render();
+})();
+</script>
 <script>
 (() => {
 
@@ -414,5 +513,7 @@
 </script>
 
 <script src="/site-status.js" defer></script>
+  <script src="/theme.js"></script>
 </body>
 </html>
+

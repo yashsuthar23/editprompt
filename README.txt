@@ -18,7 +18,7 @@ Important:
 This patch:
 - Connects Gemini Veo video generation to the Media Studio router.
 - Supports Text-to-Video and Image-to-Video through Veo.
-- Uses Gemini first when configured, then falls back to Local ComfyUI, Hugging Face, and Pollinations.
+- Uses Gemini first when configured, then falls back to Hugging Face ZeroGPU, Hugging Face, and Pollinations.
 - Keeps async Veo polling and generated MP4 saving.
 - Adds the missing Gemini video configuration to .env.example.
 - Improves provider diagnostics.

@@ -84,6 +84,10 @@
                 My Library
             </a>
 
+            <a href="/studio-tools.html">
+                Creator Studio
+            </a>
+
 
         </nav>
 
@@ -3230,6 +3234,20 @@
                                 ☆ Favorite
                             </button>
 
+                            <button
+                                class="btn ghost small"
+                                id="savePromptVersionBtn"
+                                type="button">
+                                💾 Save Version
+                            </button>
+
+                            <button
+                                class="btn ghost small"
+                                id="promptVersionsBtn"
+                                type="button">
+                                🕘 Versions
+                            </button>
+
                         </div>
 
                     </div>
@@ -3331,6 +3349,14 @@
                                             <option>High</option>
                                         </select>
                                     </label>
+                                    <label>Duration
+                                        <select id="videoDuration">
+                                            <option value="5 seconds" selected>5 seconds</option>
+                                            <option value="6 seconds">6 seconds</option>
+                                            <option value="8 seconds">8 seconds</option>
+                                            <option value="10 seconds">10 seconds</option>
+                                        </select>
+                                    </label>
                                     <label>FPS
                                         <select id="videoFps">
                                             <option value="24" selected>24 fps</option>
@@ -3338,6 +3364,14 @@
                                             <option value="60">60 fps</option>
                                         </select>
                                     </label>
+                                </div>
+                                <div class="media-image-source">
+                                    <div class="media-source-title">Image → Video</div>
+                                    <div class="media-source-row">
+                                        <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
+                                        <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
+                                    </div>
+                                    <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
                                 </div>
                                 <div class="media-provider-row">
                                     <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
@@ -3402,9 +3436,16 @@
                             </div>
 
                             <div
+                                class="mediabatch hide"
+                                id="mediaBatch">
+                            </div>
+
+                            <div
                                 class="mediapreview"
                                 id="mediaPreview">
                             </div>
+
+                            <div id="mediaResultMeta" class="media-result-meta"></div>
 
                             <div class="mediaactions">
 
@@ -3433,6 +3474,24 @@
                                     type="button">
 
                                     ↻ Regenerate
+
+                                </button>
+
+                                <button
+                                    id="mediaCopyPromptBtn"
+                                    class="btn ghost small"
+                                    type="button">
+
+                                    📋 Copy Prompt
+
+                                </button>
+
+                                <button
+                                    id="mediaShareBtn"
+                                    class="btn ghost small"
+                                    type="button">
+
+                                    ↗ Share
 
                                 </button>
 
@@ -3529,6 +3588,7 @@
         <!-- =================================================
              CATEGORIES
         ================================================== -->
+
 
         <section
             id="categories"
@@ -4373,6 +4433,41 @@
     </script>
 
     <script>
+    /* store: packs added from Admin > Pro Tools > Add new Prompt Pack */
+    (function(){
+        var grid=document.querySelector('#store .store-grid'),tabs=document.querySelector('#store .store-tabs');
+        if(!grid) return;
+        function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+        fetch('/api/packs').then(function(r){return r.json();}).then(function(d){
+            var packs=d.packs||[]; if(!packs.length) return;
+            packs.forEach(function(p){
+                var card=document.createElement('div');
+                card.className='product'; card.dataset.catFilter='New'; card.dataset.custom='1';
+                card.innerHTML=
+                    '<a class="thumb" href="/pack.html?id='+encodeURIComponent(p.id)+'" aria-label="'+esc(p.name)+'" style="background-image:url(\''+esc(p.cover)+'\');background-size:cover;background-position:center;display:block"></a>'+
+                    '<div class="tag">'+esc(p.tag)+'</div>'+
+                    '<h3>'+esc(p.name)+'</h3>'+
+                    '<p>'+esc(p.tagline||p.description)+'</p>'+
+                    '<div class="pack-specs">'+(p.promptCount?'<span>'+esc(p.promptCount).toUpperCase()+'</span>':'')+'<span>PDF + ZIP</span><span>Instant access</span></div>'+
+                    '<div class="price">₹'+esc(p.price)+'</div>'+
+                    '<a class="btn primary full" href="/pack.html?id='+encodeURIComponent(p.id)+'">Buy Now</a>';
+                grid.appendChild(card);
+            });
+            if(tabs){
+                var b=document.createElement('button'); b.type='button'; b.dataset.filter='New'; b.textContent='✨ New Packs';
+                tabs.appendChild(b);
+                tabs.addEventListener('click',function(e){
+                    var t=e.target.closest('button'); if(!t) return;
+                    var f=t.dataset.filter;
+                    tabs.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===t);});
+                    grid.querySelectorAll('.product[data-custom]').forEach(function(c){c.classList.toggle('is-hidden',!(f==='all'||f==='New'));});
+                });
+            }
+        }).catch(function(){});
+    })();
+    </script>
+
+    <script>
     /* store: visual image + video previews */
     (function(){
         var tabs=document.querySelectorAll('.store-tabs button'),
@@ -4428,8 +4523,17 @@
             modal.setAttribute('aria-hidden','true');
             document.body.classList.remove('preview-open');
         }
-        modal.querySelectorAll('[data-close-preview]').forEach(function(el){el.addEventListener('click',close);});
-        document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal.classList.contains('show'))close();});
+        if (modal) {
+    modal.querySelectorAll('[data-close-preview]').forEach(function(el) {
+        el.addEventListener('click', close);
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            close();
+        }
+    });
+}
     })();
     </script>
 
@@ -4454,6 +4558,7 @@
     </div>
 
 <script src="/site-status.js" defer></script>
+  <script src="/theme.js"></script>
 </body>
 
 </html>

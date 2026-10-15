@@ -35,6 +35,14 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-DNS-Prefetch-Control", "off");
+  res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+  res.setHeader("X-Download-Options", "noopen");
+  if (String(process.env.NODE_ENV || "").toLowerCase() === "production")
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
 
   res.setHeader(
     "Permissions-Policy",
@@ -50,7 +58,7 @@ app.use((req, res, next) => {
 
 app.use(
   express.json({
-    limit: "1mb",
+    limit: "12mb",
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
@@ -58,7 +66,10 @@ app.use(
 );
 
 const isProduction = process.env.NODE_ENV === "production";
-const cookieSecure = String(process.env.COOKIE_SECURE || (isProduction ? "true" : "false")).toLowerCase() === "true";
+const cookieSecure =
+  String(
+    process.env.COOKIE_SECURE || (isProduction ? "true" : "false"),
+  ).toLowerCase() === "true";
 
 if (
   isProduction &&
@@ -111,6 +122,11 @@ app.use(
     maxAge: isProduction ? "1h" : 0,
   }),
 );
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/")) res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 // ============================================================
 // RATE LIMIT
@@ -171,6 +187,42 @@ db.exec("PRAGMA journal_mode = WAL");
 db.exec("PRAGMA foreign_keys = ON");
 
 db.exec(`
+CREATE TABLE IF NOT EXISTS prompt_versions(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  prompt_id INTEGER,
+  prompt TEXT NOT NULL,
+  label TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  FOREIGN KEY(prompt_id) REFERENCES prompt_history(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_prompt_versions_user ON prompt_versions(user_id, id DESC);
+CREATE TABLE IF NOT EXISTS security_events(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event TEXT NOT NULL,
+  ip TEXT NOT NULL DEFAULT '',
+  user_id INTEGER,
+  detail TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_security_events_created ON security_events(id DESC);
+`);
+
+function securityEvent(event, req, detail = "", userId = null) {
+  try {
+    db.prepare(
+      "INSERT INTO security_events(event,ip,user_id,detail) VALUES(?,?,?,?)",
+    ).run(
+      String(event).slice(0, 80),
+      String(req?.ip || "").slice(0, 120),
+      userId,
+      String(detail).slice(0, 500),
+    );
+  } catch {}
+}
+
+db.exec(`
 CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -221,6 +273,50 @@ CREATE TABLE IF NOT EXISTS media_history(
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS creator_projects(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  brand_color TEXT NOT NULL DEFAULT '#7c5cff',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS creator_project_media(
+  project_id INTEGER NOT NULL,
+  media_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(project_id, media_id),
+  FOREIGN KEY(project_id) REFERENCES creator_projects(id) ON DELETE CASCADE,
+  FOREIGN KEY(media_id) REFERENCES media_history(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS creator_project_versions(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  snapshot_json TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT 'Autosaved version',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(project_id) REFERENCES creator_projects(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_creator_project_versions ON creator_project_versions(project_id, user_id, id DESC);
+CREATE INDEX IF NOT EXISTS idx_creator_projects_user ON creator_projects(user_id, updated_at DESC);
+CREATE TABLE IF NOT EXISTS media_shares(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  file TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'image',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at INTEGER NOT NULL,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_media_shares_token ON media_shares(token);
+CREATE INDEX IF NOT EXISTS idx_media_shares_user ON media_shares(user_id);
 
 CREATE TABLE IF NOT EXISTS video_jobs(
   id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
@@ -291,7 +387,9 @@ function logAdmin(action, target = "", detail = "") {
 // One key per real mailbox: gmail ignores dots and +tags, so a+1@gmail.com
 // and a.@gmail.com cannot be used to get around a block.
 function canonicalEmail(email) {
-  const e = String(email || "").trim().toLowerCase();
+  const e = String(email || "")
+    .trim()
+    .toLowerCase();
   const at = e.lastIndexOf("@");
 
   if (at < 1) return e;
@@ -357,10 +455,12 @@ function razorpayKeys() {
 function razorpayProblem() {
   const { keyId, keySecret } = razorpayKeys();
 
-  if (!keyId && !keySecret) return "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are both empty";
+  if (!keyId && !keySecret)
+    return "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are both empty";
   if (!keyId) return "RAZORPAY_KEY_ID is empty";
   if (!keySecret) return "RAZORPAY_KEY_SECRET is empty";
-  if (!/^rzp_(test|live)_/.test(keyId)) return "RAZORPAY_KEY_ID should start with rzp_test_ or rzp_live_";
+  if (!/^rzp_(test|live)_/.test(keyId))
+    return "RAZORPAY_KEY_ID should start with rzp_test_ or rzp_live_";
 
   return "";
 }
@@ -446,7 +546,7 @@ const mailer = smtpConfigured
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: Number(process.env.SMTP_PORT) === 465,
-
+      family: 4,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -1042,8 +1142,8 @@ const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
 function adminConfigured() {
   return Boolean(
     (process.env.ADMIN_EMAIL || "").trim() &&
-      ((process.env.ADMIN_PASSWORD_HASH || "").trim() ||
-        process.env.ADMIN_PASSWORD),
+    ((process.env.ADMIN_PASSWORD_HASH || "").trim() ||
+      process.env.ADMIN_PASSWORD),
   );
 }
 
@@ -1083,8 +1183,8 @@ function verifyAdminPassword(password) {
 function isAdminSession(req) {
   return Boolean(
     req.session &&
-      req.session.isAdmin &&
-      Date.now() - Number(req.session.adminAt || 0) < ADMIN_SESSION_MS,
+    req.session.isAdmin &&
+    Date.now() - Number(req.session.adminAt || 0) < ADMIN_SESSION_MS,
   );
 }
 
@@ -1294,14 +1394,20 @@ function optionalList(value, max = 6) {
   return [
     ...new Set(
       raw
-        .map((item) => String(item || "").trim().slice(0, 80))
+        .map((item) =>
+          String(item || "")
+            .trim()
+            .slice(0, 80),
+        )
         .filter(Boolean),
     ),
   ].slice(0, max);
 }
 
 function optionalText(value, max = 300) {
-  return String(value || "").trim().slice(0, max);
+  return String(value || "")
+    .trim()
+    .slice(0, max);
 }
 
 function joinNatural(list) {
@@ -1437,7 +1543,6 @@ app.get("/api/config", (req, res) => {
     // Only sent when BOTH keys are present, so the site never opens a checkout that cannot work.
     razorpayKeyId: razorpayReady() ? razorpayKeys().keyId : "",
 
-
     aiEnabled: hasUsableGeminiKey(),
 
     aiProvider: "gemini",
@@ -1448,10 +1553,22 @@ app.get("/api/config", (req, res) => {
 
     mediaProvider: mediaProviderLabel(),
     mediaProviders: mediaProviderSummary(),
+    freeOnlyMedia: freeOnlyMediaMode(),
+    paidVideoEnabled: paidVideoEnabled(),
+    huggingFaceMiniMaxEnabled:
+      String(process.env.HF_MINIMAX_ENABLED || "true").toLowerCase() === "true",
 
-    imageModel: hasUsableHFToken() ? (process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell") : (hasUsablePollinationsKey() ? (process.env.POLLINATIONS_IMAGE_MODEL || "flux") : getImageModel()),
+    imageModel: hasUsableHFToken()
+      ? process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell"
+      : hasUsablePollinationsKey()
+        ? process.env.POLLINATIONS_IMAGE_MODEL || "flux"
+        : getImageModel(),
 
-    videoModel: hasUsableHFToken() ? (process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B") : (hasUsablePollinationsKey() ? (process.env.POLLINATIONS_VIDEO_MODEL || "veo") : getVideoModel()),
+    videoModel: hasUsableHFToken()
+      ? process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B"
+      : hasUsablePollinationsKey()
+        ? process.env.POLLINATIONS_VIDEO_MODEL || "veo"
+        : getVideoModel(),
 
     loggedIn: Boolean(req.session.userId),
   });
@@ -1504,6 +1621,7 @@ app.post(
       const cleanEmail = email.trim().toLowerCase();
 
       if (isEmailBlocked(cleanEmail)) {
+        securityEvent("blocked_login_attempt", req, `email=${cleanEmail}`);
         return res.status(403).json({
           error: BLOCKED_MESSAGE,
         });
@@ -1638,6 +1756,7 @@ app.post(
       const b = Buffer.from(row.otp_hash);
 
       if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        securityEvent("otp_failed", req, `email=${cleanEmail}`);
         db.prepare(
           `
           UPDATE otps
@@ -1709,7 +1828,11 @@ app.post(
       req.session.save((saveError) => {
         if (saveError) {
           console.error("Session save error:", saveError);
-          return res.status(500).json({ error: "Login session could not be saved. Please try again." });
+          return res
+            .status(500)
+            .json({
+              error: "Login session could not be saved. Please try again.",
+            });
         }
 
         res.json({
@@ -1821,16 +1944,19 @@ app.get("/api/library", requireLogin, (req, res) => {
 // INVOICE
 // ============================================================
 
-app.get("/api/invoice/:purchaseId", (req, res, next) => {
-  if (req.session.userId || isAdminSession(req)) return next();
+app.get(
+  "/api/invoice/:purchaseId",
+  (req, res, next) => {
+    if (req.session.userId || isAdminSession(req)) return next();
 
-  return res.status(401).json({
-    error: "Please log in first.",
-  });
-}, (req, res) => {
-  const purchase = db
-    .prepare(
-      `
+    return res.status(401).json({
+      error: "Please log in first.",
+    });
+  },
+  (req, res) => {
+    const purchase = db
+      .prepare(
+        `
         SELECT
           purchases.*,
           users.name,
@@ -1840,33 +1966,32 @@ app.get("/api/invoice/:purchaseId", (req, res, next) => {
           ON users.id=purchases.user_id
         WHERE purchases.id=?
         `,
-    )
-    .get(req.params.purchaseId);
+      )
+      .get(req.params.purchaseId);
 
-  if (!purchase) {
-    return res.status(404).send("Invoice not found.");
-  }
+    if (!purchase) {
+      return res.status(404).send("Invoice not found.");
+    }
 
-  const isOwner =
-    Boolean(req.session.userId) &&
-    purchase.user_id === req.session.userId;
+    const isOwner =
+      Boolean(req.session.userId) && purchase.user_id === req.session.userId;
 
-  const isAdmin = isAdminSession(req);
+    const isAdmin = isAdminSession(req);
 
-  if (!isOwner && !isAdmin) {
-    return res.status(403).send("You do not have access to this invoice.");
-  }
+    if (!isOwner && !isAdmin) {
+      return res.status(403).send("You do not have access to this invoice.");
+    }
 
-  const product = products[purchase.product_id];
+    const product = products[purchase.product_id];
 
-  const rupees = (purchase.amount / 100).toFixed(2);
+    const rupees = (purchase.amount / 100).toFixed(2);
 
-  const date = new Date(purchase.created_at).toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+    const date = new Date(purchase.created_at).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
 
-  res.send(`
+    res.send(`
 <!doctype html>
 
 <html>
@@ -2225,7 +2350,8 @@ This is a computer-generated receipt for a digital product and does not require 
 
 </html>
 `);
-});
+  },
+);
 
 // ============================================================
 // DOWNLOAD
@@ -2264,7 +2390,10 @@ app.get("/api/download/:productId", requireLogin, (req, res) => {
     return res.status(404).send("Download file missing.");
   }
 
-  res.download(filePath, product.file);
+  res.download(
+    filePath,
+    product.custom ? product.file.replace(/^.*?__[0-9a-f]{6}__/, "") : product.file,
+  );
 });
 
 // ============================================================
@@ -2611,6 +2740,9 @@ Negative Prompt:
         .run(req.session.userId, inputData.subject, prompt, mode);
 
       historyId = Number(info.lastInsertRowid);
+      db.prepare(
+        "INSERT INTO prompt_versions(user_id,prompt_id,prompt,label) VALUES(?,?,?,?)",
+      ).run(req.session.userId, historyId, prompt, "Generated");
     }
 
     // Local fallback is plain template text and cannot translate —
@@ -2789,6 +2921,9 @@ Maintain stable subject identity, realistic anatomy, coherent object geometry, c
         .run(req.session.userId, subject, improved, mode);
 
       historyId = Number(info.lastInsertRowid);
+      db.prepare(
+        "INSERT INTO prompt_versions(user_id,prompt_id,prompt,label) VALUES(?,?,?,?)",
+      ).run(req.session.userId, historyId, improved, "Improved");
     }
 
     res.json({
@@ -2900,6 +3035,107 @@ app.get("/api/dashboard", requireLogin, (req, res) => {
 
     recent,
   });
+});
+
+// ============================================================
+// PROMPT VERSIONS / SEARCH
+// ============================================================
+app.post(
+  "/api/prompts/:id/versions",
+  requireLogin,
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  (req, res) => {
+    const id = Number(req.params.id);
+    const owned = db
+      .prepare("SELECT id,prompt FROM prompt_history WHERE id=? AND user_id=?")
+      .get(id, req.session.userId);
+    if (!owned) return res.status(404).json({ error: "Prompt not found." });
+    const prompt = String(req.body?.prompt || owned.prompt)
+      .trim()
+      .slice(0, 12000);
+    if (!prompt)
+      return res.status(400).json({ error: "Prompt cannot be empty." });
+    const label = String(req.body?.label || "Manual version")
+      .trim()
+      .slice(0, 80);
+    const info = db
+      .prepare(
+        "INSERT INTO prompt_versions(user_id,prompt_id,prompt,label) VALUES(?,?,?,?)",
+      )
+      .run(req.session.userId, id, prompt, label);
+    res.json({ ok: true, id: Number(info.lastInsertRowid) });
+  },
+);
+app.get("/api/prompts/:id/versions", requireLogin, (req, res) => {
+  const id = Number(req.params.id);
+  const owned = db
+    .prepare("SELECT id FROM prompt_history WHERE id=? AND user_id=?")
+    .get(id, req.session.userId);
+  if (!owned) return res.status(404).json({ error: "Prompt not found." });
+  res.json({
+    items: db
+      .prepare(
+        "SELECT id,prompt_id,prompt,label,created_at FROM prompt_versions WHERE user_id=? AND prompt_id=? ORDER BY id DESC LIMIT 50",
+      )
+      .all(req.session.userId, id),
+  });
+});
+app.post(
+  "/api/prompts/:id/versions/:versionId/restore",
+  requireLogin,
+  (req, res) => {
+    const id = Number(req.params.id),
+      versionId = Number(req.params.versionId);
+    const v = db
+      .prepare(
+        "SELECT * FROM prompt_versions WHERE id=? AND prompt_id=? AND user_id=?",
+      )
+      .get(versionId, id, req.session.userId);
+    if (!v) return res.status(404).json({ error: "Version not found." });
+    db.prepare(
+      "UPDATE prompt_history SET prompt=? WHERE id=? AND user_id=?",
+    ).run(v.prompt, id, req.session.userId);
+    db.prepare(
+      "INSERT INTO prompt_versions(user_id,prompt_id,prompt,label) VALUES(?,?,?,?)",
+    ).run(req.session.userId, id, v.prompt, "Restored version");
+    res.json({ ok: true, prompt: v.prompt });
+  },
+);
+app.post("/api/prompts/:id/duplicate", requireLogin, (req, res) => {
+  const id = Number(req.params.id);
+  const p = db
+    .prepare("SELECT * FROM prompt_history WHERE id=? AND user_id=?")
+    .get(id, req.session.userId);
+  if (!p) return res.status(404).json({ error: "Prompt not found." });
+  const info = db
+    .prepare(
+      "INSERT INTO prompt_history(user_id,subject,prompt,mode) VALUES(?,?,?,?)",
+    )
+    .run(
+      req.session.userId,
+      `${p.subject} (Copy)`,
+      p.prompt,
+      p.mode || "local-fallback",
+    );
+  res.json({ ok: true, id: Number(info.lastInsertRowid) });
+});
+app.get("/api/prompts/search", requireLogin, (req, res) => {
+  const q = String(req.query.q || "")
+    .trim()
+    .slice(0, 100);
+  const like = `%${q}%`;
+  const rows = q
+    ? db
+        .prepare(
+          "SELECT id,subject,prompt,mode,created_at FROM prompt_history WHERE user_id=? AND (subject LIKE ? OR prompt LIKE ?) ORDER BY id DESC LIMIT 100",
+        )
+        .all(req.session.userId, like, like)
+    : db
+        .prepare(
+          "SELECT id,subject,prompt,mode,created_at FROM prompt_history WHERE user_id=? ORDER BY id DESC LIMIT 100",
+        )
+        .all(req.session.userId);
+  res.json({ items: rows });
 });
 
 // ============================================================
@@ -3158,7 +3394,13 @@ app.post("/api/create-order", requireLogin, async (req, res) => {
       });
     }
 
-    pro.logCheckout(order.id, req.session.userId, productId, order.amount, quote.coupon);
+    pro.logCheckout(
+      order.id,
+      req.session.userId,
+      productId,
+      order.amount,
+      quote.coupon,
+    );
 
     res.json({
       orderId: order.id,
@@ -3221,7 +3463,9 @@ app.post("/api/verify-payment", requireLogin, (req, res) => {
     const secret = razorpayKeys().keySecret;
 
     if (!secret) {
-      console.error("Payment verification blocked: RAZORPAY_KEY_SECRET is empty.");
+      console.error(
+        "Payment verification blocked: RAZORPAY_KEY_SECRET is empty.",
+      );
 
       return res.status(503).json({
         verified: false,
@@ -3515,7 +3759,9 @@ app.get("/api/admin/stats", requireAdmin, (req, res) => {
 
   const users = one("SELECT COUNT(*) AS n FROM users").n;
 
-  const orders = one(`SELECT COUNT(*) AS n FROM purchases WHERE ${REAL_PAID}`).n;
+  const orders = one(
+    `SELECT COUNT(*) AS n FROM purchases WHERE ${REAL_PAID}`,
+  ).n;
 
   const revenueSince = (from) =>
     one(
@@ -3533,7 +3779,10 @@ app.get("/api/admin/stats", requireAdmin, (req, res) => {
   ).n;
 
   const signupsSince = (from) =>
-    one(`SELECT COUNT(*) AS n FROM users WHERE ${dayOf("created_at")} >= ?`, from).n;
+    one(
+      `SELECT COUNT(*) AS n FROM users WHERE ${dayOf("created_at")} >= ?`,
+      from,
+    ).n;
 
   const activeSince = (from) =>
     one(
@@ -3603,7 +3852,9 @@ app.get("/api/admin/stats", requireAdmin, (req, res) => {
     .all();
 
   const promptModes = db
-    .prepare("SELECT mode, COUNT(*) AS n FROM prompt_history GROUP BY mode ORDER BY n DESC")
+    .prepare(
+      "SELECT mode, COUNT(*) AS n FROM prompt_history GROUP BY mode ORDER BY n DESC",
+    )
     .all();
 
   const recentUsers = db
@@ -3716,7 +3967,9 @@ app.post(
     const { email, password } = req.body || {};
 
     const emailOk = safeEqual(
-      String(email || "").trim().toLowerCase(),
+      String(email || "")
+        .trim()
+        .toLowerCase(),
       process.env.ADMIN_EMAIL.trim().toLowerCase(),
     );
 
@@ -3724,8 +3977,16 @@ app.post(
 
     if (!emailOk || !passwordOk) {
       console.warn(`Admin login failed from ${req.ip}`);
-
-      logAdmin("login_failed", req.ip, `email tried: ${String(email || "").slice(0, 80)}`);
+      securityEvent(
+        "admin_login_failed",
+        req,
+        `email tried: ${String(email || "").slice(0, 80)}`,
+      );
+      logAdmin(
+        "login_failed",
+        req.ip,
+        `email tried: ${String(email || "").slice(0, 80)}`,
+      );
 
       return res.status(401).json({
         error: "Incorrect email or password.",
@@ -4009,9 +4270,7 @@ app.post("/api/admin/grant", requireAdmin, (req, res) => {
   const userId = Number(req.body?.userId);
   const productId = String(req.body?.productId || "");
 
-  const user = db
-    .prepare("SELECT id, email FROM users WHERE id=?")
-    .get(userId);
+  const user = db.prepare("SELECT id, email FROM users WHERE id=?").get(userId);
 
   if (!user) {
     return res.status(404).json({ error: "User not found." });
@@ -4030,7 +4289,9 @@ app.post("/api/admin/grant", requireAdmin, (req, res) => {
     .get(userId, productId);
 
   if (owned) {
-    return res.status(400).json({ error: "This user already owns that product." });
+    return res
+      .status(400)
+      .json({ error: "This user already owns that product." });
   }
 
   db.prepare(
@@ -4111,12 +4372,14 @@ CREATE TABLE IF NOT EXISTS deleted_users(
 function isAdminEmail(email) {
   return Boolean(
     (process.env.ADMIN_EMAIL || "").trim() &&
-      canonicalEmail(email) === canonicalEmail(process.env.ADMIN_EMAIL),
+    canonicalEmail(email) === canonicalEmail(process.env.ADMIN_EMAIL),
   );
 }
 
 function blockEmailNow(typedEmail, reason = "") {
-  const typed = String(typedEmail || "").trim().toLowerCase();
+  const typed = String(typedEmail || "")
+    .trim()
+    .toLowerCase();
 
   db.prepare(
     `
@@ -4211,7 +4474,8 @@ function deleteUserAccount(userId, { alsoBlock = false, reason = "" } = {}) {
     );
     db.prepare("DELETE FROM users WHERE id=?").run(userId);
 
-    if (alsoBlock) blockEmailNow(user.email, reason || "Account deleted by admin");
+    if (alsoBlock)
+      blockEmailNow(user.email, reason || "Account deleted by admin");
 
     db.exec("COMMIT");
   } catch (err) {
@@ -4237,15 +4501,15 @@ function deleteUserAccount(userId, { alsoBlock = false, reason = "" } = {}) {
 app.post("/api/admin/delete-user", requireAdmin, (req, res) => {
   const userId = Number(req.body?.userId);
 
-  const user = db
-    .prepare("SELECT id, email FROM users WHERE id=?")
-    .get(userId);
+  const user = db.prepare("SELECT id, email FROM users WHERE id=?").get(userId);
 
   if (!user) {
     return res.status(404).json({ error: "User not found." });
   }
 
-  const typed = String(req.body?.confirmEmail || "").trim().toLowerCase();
+  const typed = String(req.body?.confirmEmail || "")
+    .trim()
+    .toLowerCase();
 
   if (typed !== String(user.email).trim().toLowerCase()) {
     return res.status(400).json({
@@ -4268,14 +4532,16 @@ app.post("/api/admin/delete-user", requireAdmin, (req, res) => {
   } catch (err) {
     console.error("Delete user failed:", err);
 
-    res.status(500).json({ error: "Could not delete this user. Nothing was changed." });
+    res
+      .status(500)
+      .json({ error: "Could not delete this user. Nothing was changed." });
   }
 });
 
 // ---- delete many users ----
 app.post("/api/admin/delete-users", requireAdmin, (req, res) => {
   if (String(req.body?.confirm || "") !== "DELETE") {
-    return res.status(400).json({ error: 'Type DELETE to confirm.' });
+    return res.status(400).json({ error: "Type DELETE to confirm." });
   }
 
   const ids = [
@@ -4291,7 +4557,9 @@ app.post("/api/admin/delete-users", requireAdmin, (req, res) => {
   }
 
   if (ids.length > 100) {
-    return res.status(400).json({ error: "Delete at most 100 users at a time." });
+    return res
+      .status(400)
+      .json({ error: "Delete at most 100 users at a time." });
   }
 
   const alsoBlock = Boolean(req.body?.alsoBlock);
@@ -4339,7 +4607,9 @@ app.post("/api/admin/block-users", requireAdmin, (req, res) => {
     ),
   ].slice(0, 200);
 
-  const reason = String(req.body?.reason || "").trim().slice(0, 200);
+  const reason = String(req.body?.reason || "")
+    .trim()
+    .slice(0, 200);
   const unblock = Boolean(req.body?.unblock);
 
   if (!ids.length) {
@@ -4385,8 +4655,12 @@ app.post("/api/admin/update-user", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "User not found." });
   }
 
-  const name = String(req.body?.name ?? user.name).trim().slice(0, 80);
-  const email = String(req.body?.email ?? user.email).trim().toLowerCase();
+  const name = String(req.body?.name ?? user.name)
+    .trim()
+    .slice(0, 80);
+  const email = String(req.body?.email ?? user.email)
+    .trim()
+    .toLowerCase();
 
   if (!name) {
     return res.status(400).json({ error: "Name cannot be empty." });
@@ -4418,7 +4692,11 @@ app.post("/api/admin/update-user", requireAdmin, (req, res) => {
     return res.json({ ok: true, unchanged: true });
   }
 
-  db.prepare("UPDATE users SET name=?, email=? WHERE id=?").run(name, email, userId);
+  db.prepare("UPDATE users SET name=?, email=? WHERE id=?").run(
+    name,
+    email,
+    userId,
+  );
 
   const changes = [];
   if (name !== user.name) changes.push(`name: ${user.name} → ${name}`);
@@ -4469,7 +4747,11 @@ app.post("/api/admin/delete-media", requireAdmin, (req, res) => {
   db.prepare("DELETE FROM media_history WHERE id=?").run(id);
   removeMediaFileIfUnused(row.file);
 
-  logAdmin("delete_media", row.email, `${row.kind}: ${path.basename(row.file)}`);
+  logAdmin(
+    "delete_media",
+    row.email,
+    `${row.kind}: ${path.basename(row.file)}`,
+  );
 
   res.json({ ok: true });
 });
@@ -4515,7 +4797,9 @@ app.post("/api/admin/erase-deleted", requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Record not found." });
   }
 
-  const typed = String(req.body?.confirmEmail || "").trim().toLowerCase();
+  const typed = String(req.body?.confirmEmail || "")
+    .trim()
+    .toLowerCase();
 
   if (typed !== String(row.email).trim().toLowerCase()) {
     return res.status(400).json({
@@ -4585,12 +4869,16 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
     {
       label: "Admin login",
       ok: adminConfigured(),
-      note: adminConfigured() ? "Configured" : "Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH",
+      note: adminConfigured()
+        ? "Configured"
+        : "Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH",
     },
     {
       label: "Email sending (SMTP)",
       ok: smtpConfigured,
-      note: smtpConfigured ? "OTP + purchase emails work" : "OTP login and receipts will not be sent",
+      note: smtpConfigured
+        ? "OTP + purchase emails work"
+        : "OTP login and receipts will not be sent",
     },
     {
       label: "Razorpay payments",
@@ -4611,7 +4899,9 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
     {
       label: "Gemini AI",
       ok: hasUsableGeminiKey(),
-      note: hasUsableGeminiKey() ? "Key present" : "No key: prompts use the local fallback",
+      note: hasUsableGeminiKey()
+        ? "Key present"
+        : "No key: prompts use the local fallback",
     },
     {
       label: "Hugging Face (free media)",
@@ -4634,7 +4924,9 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
     {
       label: "Secure cookies",
       ok: cookieSecure,
-      note: cookieSecure ? "Enabled" : "Off (fine on localhost, required on HTTPS)",
+      note: cookieSecure
+        ? "Enabled"
+        : "Off (fine on localhost, required on HTTPS)",
     },
     {
       label: "Site URL",
@@ -4712,7 +5004,10 @@ function getVideoModel() {
 }
 
 function hasUsableGeminiVideoKey() {
-  return hasUsableGeminiKey() && String(process.env.GEMINI_VIDEO_ENABLED || "true").toLowerCase() !== "false";
+  return (
+    hasUsableGeminiKey() &&
+    String(process.env.GEMINI_VIDEO_ENABLED || "true").toLowerCase() !== "false"
+  );
 }
 
 function hasUsablePollinationsKey() {
@@ -4720,27 +5015,43 @@ function hasUsablePollinationsKey() {
   return key.length > 5;
 }
 
-function hasLocalMediaConfig() {
-  return Boolean(process.env.COMFYUI_URL);
+function hasUsableFalKey() {
+  return String(process.env.FAL_KEY || "").trim().length > 12;
+}
+
+function hasUsableReplicateKey() {
+  return String(process.env.REPLICATE_API_TOKEN || "").trim().length > 12;
 }
 
 function hasUsableHFToken() {
-  return String(process.env.HF_TOKEN || "").trim().startsWith("hf_");
+  return String(process.env.HF_TOKEN || "")
+    .trim()
+    .startsWith("hf_");
 }
 
 function freeOnlyMediaMode() {
-  return String(process.env.FREE_ONLY_MEDIA || "true").toLowerCase() !== "false";
+  return String(process.env.FREE_ONLY_MEDIA || "true").toLowerCase() === "true";
+}
+
+function paidVideoEnabled() {
+  return String(process.env.PAID_VIDEO_ENABLED || "false").toLowerCase() === "true" && !freeOnlyMediaMode();
 }
 
 function mediaEnabled() {
-  return hasUsableHFToken() || hasUsablePollinationsKey() || hasLocalMediaConfig() || (!freeOnlyMediaMode() && (hasUsableGeminiKey() || hasUsableGeminiVideoKey()));
+  return (
+    (paidVideoEnabled() && (hasUsableFalKey() || hasUsableReplicateKey())) ||
+    hasUsableHFToken() ||
+    (paidVideoEnabled() && hasUsablePollinationsKey()) ||
+    (!freeOnlyMediaMode() && hasUsableGeminiVideoKey())
+  );
 }
 
 function mediaProviderLabel() {
   const providers = [];
-  if (hasLocalMediaConfig()) providers.push("local-free");
-  if (hasUsableHFToken()) providers.push("huggingface-provider");
-  if (hasUsablePollinationsKey()) providers.push("pollinations");
+  if (paidVideoEnabled() && hasUsableFalKey()) providers.push("fal-wan2.2");
+  if (paidVideoEnabled() && hasUsableReplicateKey()) providers.push("replicate-wan2.2");
+  if (hasUsableHFToken()) providers.push("huggingface-wan2.2-zerogpu");
+  if (paidVideoEnabled() && hasUsablePollinationsKey()) providers.push("pollinations");
   if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey()) providers.push("gemini-veo");
   return providers.join(" → ") || "none";
 }
@@ -4748,7 +5059,9 @@ function mediaProviderLabel() {
 function mediaProviderSummary() {
   return {
     freeMode: freeOnlyMediaMode(),
-    local: hasLocalMediaConfig(),
+    paidVideoEnabled: paidVideoEnabled(),
+    fal: hasUsableFalKey(),
+    replicate: hasUsableReplicateKey(),
     huggingface: hasUsableHFToken(),
     pollinations: hasUsablePollinationsKey(),
     geminiConfigured: hasUsableGeminiKey(),
@@ -4758,34 +5071,37 @@ function mediaProviderSummary() {
   };
 }
 
-
-// Provider diagnostics: never spends remote credits. Only checks local ComfyUI reachability.
+// Provider diagnostics: checks configured remote media providers without spending credits.
 app.get("/api/media/providers/health", async (req, res) => {
   const result = {
     freeMode: freeOnlyMediaMode(),
-    local: { configured: hasLocalMediaConfig(), reachable: false, note: "Not configured" },
-    huggingface: { configured: hasUsableHFToken(), reachable: null, note: hasUsableHFToken() ? "Token configured; credit balance is not queried" : "Token not configured" },
-    pollinations: { configured: hasUsablePollinationsKey(), reachable: null, note: hasUsablePollinationsKey() ? "Key configured; balance is not queried" : "Key not configured" },
-    gemini: { configured: hasUsableGeminiKey(), enabled: !freeOnlyMediaMode() && hasUsableGeminiVideoKey(), reachable: null, note: hasUsableGeminiKey() ? (!freeOnlyMediaMode() ? "API key configured for Veo video" : "Configured but paid media mode is disabled (set FREE_ONLY_MEDIA=false)") : "API key not configured" },
+    huggingface: {
+      configured: hasUsableHFToken(),
+      reachable: null,
+      note: hasUsableHFToken()
+        ? "ZeroGPU Space configured; uses Space quota, not Inference Provider credits"
+        : "Token not configured",
+    },
+    pollinations: {
+      configured: hasUsablePollinationsKey(),
+      reachable: null,
+      note: hasUsablePollinationsKey()
+        ? "Key configured; balance is not queried"
+        : "Key not configured",
+    },
+    gemini: {
+      configured: hasUsableGeminiKey(),
+      enabled: !freeOnlyMediaMode() && hasUsableGeminiVideoKey(),
+      reachable: null,
+      note: hasUsableGeminiKey()
+        ? !freeOnlyMediaMode()
+          ? "API key configured for Veo video"
+          : "Configured but paid media mode is disabled (set FREE_ONLY_MEDIA=false)"
+        : "API key not configured",
+    },
   };
 
-  if (result.local.configured) {
-    try {
-      const base = String(process.env.COMFYUI_URL).replace(/\/$/, "");
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
-      const response = await fetch(`${base}/system_stats`, { signal: controller.signal });
-      clearTimeout(timer);
-      result.local.reachable = response.ok;
-      result.local.note = response.ok ? "ComfyUI is running" : `ComfyUI returned HTTP ${response.status}`;
-    } catch (error) {
-      result.local.reachable = false;
-      result.local.note = "ComfyUI is configured but not reachable. Start ComfyUI.";
-    }
-  }
-
   const available = [];
-  if (result.local.reachable) available.push("local");
   if (result.huggingface.configured) available.push("huggingface");
   if (result.pollinations.configured) available.push("pollinations");
   if (result.gemini.enabled) available.push("gemini");
@@ -4810,7 +5126,9 @@ const IMAGE_RATIOS = [
 
 function normalizeRatio(value) {
   // "9:16 Vertical" -> "9:16"
-  const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
+  const match = String(value || "").match(
+    /(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/,
+  );
 
   if (!match) return "";
 
@@ -4831,7 +5149,9 @@ function imageAspectRatio(value) {
 function videoAspectRatio(value) {
   const ratio = normalizeRatio(value);
 
-  if (ratio === "9:16" || ratio === "4:5" || ratio === "2:3") return "9:16";
+  if (IMAGE_RATIOS.includes(ratio)) return ratio;
+
+  if (ratio === "2.39:1") return "21:9";
 
   return "16:9";
 }
@@ -4841,11 +5161,12 @@ function videoDuration(value) {
 
   if (!Number.isFinite(seconds)) return 8;
 
-  // Veo currently supports 4, 6 or 8 second clips
+  // Remote providers may clamp/reject unsupported durations on their side.
   if (seconds <= 4) return 4;
   if (seconds <= 6) return 6;
+  if (seconds <= 8) return 8;
 
-  return 8;
+  return 10;
 }
 
 // Media file helpers -------------------------------------------
@@ -4856,6 +5177,7 @@ function extensionForMime(mimeType) {
   if (type.includes("jpeg") || type.includes("jpg")) return "jpg";
   if (type.includes("webp")) return "webp";
   if (type.includes("mp4")) return "mp4";
+  if (type.includes("gif")) return "gif";
 
   return "png";
 }
@@ -4922,9 +5244,10 @@ function cleanupMedia() {
 cleanupMedia();
 setInterval(cleanupMedia, 3600_000).unref?.();
 
-// Pollinations + local ComfyUI fallback ------------------------
+// Pollinations media provider ------------------------
 
-const POLLINATIONS_BASE = process.env.POLLINATIONS_BASE_URL || "https://gen.pollinations.ai";
+const POLLINATIONS_BASE =
+  process.env.POLLINATIONS_BASE_URL || "https://gen.pollinations.ai";
 
 function pollinationsHeaders() {
   const key = process.env.POLLINATIONS_API_KEY;
@@ -4932,40 +5255,49 @@ function pollinationsHeaders() {
 }
 
 function imageDimensions(ratio) {
+  // Use dimensions divisible by 64 for image generation.
   const map = {
-    "1:1": [1024, 1024],
-    "2:3": [832, 1248],
-    "3:2": [1248, 832],
-    "3:4": [896, 1152],
-    "4:3": [1152, 896],
-    "4:5": [896, 1120],
-    "5:4": [1120, 896],
-    "9:16": [768, 1365],
-    "16:9": [1365, 768],
-    "21:9": [1536, 659],
+    "1:1": [512, 512],
+    "2:3": [384, 576],
+    "3:2": [576, 384],
+    "3:4": [384, 512],
+    "4:3": [512, 384],
+    "4:5": [448, 560],
+    "5:4": [576, 448],
+    "9:16": [384, 640],
+    "16:9": [640, 384],
+    "21:9": [640, 320],
   };
-  return map[ratio] || map["9:16"];
+  return map[ratio] || map["1:1"];
 }
 
-async function generateImageWithPollinations({ prompt, aspectRatio }) {
-  if (!hasUsablePollinationsKey()) throw new Error("Pollinations API key is not configured.");
+async function generateImageWithPollinations({ prompt, aspectRatio, seed }) {
+  if (!hasUsablePollinationsKey())
+    throw new Error("Pollinations API key is not configured.");
 
   const model = process.env.POLLINATIONS_IMAGE_MODEL || "flux";
   const [width, height] = imageDimensions(aspectRatio);
-  const url = new URL(`${POLLINATIONS_BASE}/image/${encodeURIComponent(prompt)}`);
+  const url = new URL(
+    `${POLLINATIONS_BASE}/image/${encodeURIComponent(prompt)}`,
+  );
   url.searchParams.set("model", model);
   url.searchParams.set("width", String(width));
   url.searchParams.set("height", String(height));
   url.searchParams.set("nologo", "true");
+  if (Number.isInteger(seed)) url.searchParams.set("seed", String(seed));
 
   const response = await fetch(url, {
     headers: pollinationsHeaders(),
-    signal: AbortSignal.timeout(Number(process.env.POLLINATIONS_TIMEOUT_MS || 120000)),
+    signal: AbortSignal.timeout(
+      Number(process.env.POLLINATIONS_TIMEOUT_MS || 120000),
+    ),
   });
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Pollinations image failed (${response.status}): ${text.slice(0, 300)}`);
+    throw new Error(
+      `Pollinations image failed (${response.status}): ${text.slice(0, 300)}`,
+    );
   }
 
   return {
@@ -4975,136 +5307,24 @@ async function generateImageWithPollinations({ prompt, aspectRatio }) {
   };
 }
 
-function localWorkflowPath(kind) {
-  return path.resolve(
-    __dirname,
-    process.env[kind === "image" ? "COMFYUI_IMAGE_WORKFLOW" : "COMFYUI_VIDEO_WORKFLOW"] ||
-      `local-workflows/${kind}.json`,
-  );
-}
-
-function replaceWorkflowPlaceholders(value, replacements) {
-  if (typeof value === "string") {
-    let out = value;
-    for (const [key, replacement] of Object.entries(replacements)) {
-      out = out.split(`{{${key}}}`).join(String(replacement ?? ""));
-    }
-    return out;
-  }
-  if (Array.isArray(value)) return value.map((item) => replaceWorkflowPlaceholders(item, replacements));
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, replaceWorkflowPlaceholders(item, replacements)]),
-    );
-  }
-  return value;
-}
-
-async function comfyRequest(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    signal: AbortSignal.timeout(Number(process.env.COMFYUI_REQUEST_TIMEOUT_MS || 30000)),
-  });
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`ComfyUI request failed (${response.status}): ${text.slice(0, 500)}`);
-  }
-  return response;
-}
-
-async function generateWithComfyUI({ kind, prompt, aspectRatio, durationSeconds, image }) {
-  if (!hasLocalMediaConfig()) throw new Error("Local ComfyUI is not configured.");
-
-  const workflowFile = localWorkflowPath(kind);
-  if (!fs.existsSync(workflowFile)) {
-    throw new Error(`Local ${kind} workflow not found: ${path.relative(__dirname, workflowFile)}`);
-  }
-
-  const workflow = JSON.parse(fs.readFileSync(workflowFile, "utf8"));
-  const [width, height] = imageDimensions(aspectRatio);
-  const replacements = {
-    PROMPT: prompt,
-    WIDTH: width,
-    HEIGHT: height,
-    DURATION: durationSeconds,
-    FPS: Number(process.env.LOCAL_VIDEO_FPS || 24),
-  };
-
-  if (image?.buffer) {
-    const inputDir = process.env.COMFYUI_INPUT_DIR;
-    if (!inputDir) throw new Error("COMFYUI_INPUT_DIR is required for local image-to-video fallback.");
-    fs.mkdirSync(inputDir, { recursive: true });
-    const imageName = `editprompt-${crypto.randomUUID()}.png`;
-    fs.writeFileSync(path.join(inputDir, imageName), image.buffer);
-    replacements.IMAGE_FILE = imageName;
-  }
-
-  const payload = replaceWorkflowPlaceholders(workflow, replacements);
-  const base = process.env.COMFYUI_URL.replace(/\/$/, "");
-  const clientId = crypto.randomUUID();
-
-  const start = await comfyRequest(`${base}/prompt`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: payload, client_id: clientId }),
-  });
-  const started = await start.json();
-  const promptId = started?.prompt_id;
-  if (!promptId) throw new Error(started?.error?.message || "ComfyUI did not return a prompt id.");
-
-  const timeoutMs = Number(process.env.LOCAL_MEDIA_TIMEOUT_MS || 20 * 60_000);
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const historyResponse = await comfyRequest(`${base}/history/${encodeURIComponent(promptId)}`);
-    const history = await historyResponse.json();
-    const record = history?.[promptId];
-    if (!record) continue;
-
-    if (record.status?.status_str === "error" || record.status?.completed === false && record.status?.messages?.some?.((m) => String(m).includes("error"))) {
-      throw new Error("ComfyUI workflow failed. Check the ComfyUI console for the node error.");
-    }
-
-    const outputs = Object.values(record.outputs || {});
-    for (const output of outputs) {
-      const candidates = [
-        ...(output.images || []),
-        ...(output.gifs || []),
-        ...(output.videos || []),
-      ];
-      if (!candidates.length) continue;
-      const item = candidates[0];
-      const view = new URL(`${base}/view`);
-      view.searchParams.set("filename", item.filename);
-      if (item.subfolder) view.searchParams.set("subfolder", item.subfolder);
-      if (item.type) view.searchParams.set("type", item.type);
-
-      const fileResponse = await comfyRequest(view.toString());
-      const mime = fileResponse.headers.get("content-type") || (kind === "video" ? "video/mp4" : "image/png");
-      return {
-        buffer: Buffer.from(await fileResponse.arrayBuffer()),
-        mimeType: mime,
-        model: `local:comfyui:${kind}`,
-      };
-    }
-  }
-
-  throw new Error(`Local ${kind} generation timed out after ${Math.round(timeoutMs / 60000)} minutes.`);
-}
-
 async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
-  if (!hasUsableHFToken()) throw new Error("Hugging Face token is not configured.");
-  const model = process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
+  if (!hasUsableHFToken())
+    throw new Error("Hugging Face token is not configured.");
+  const model =
+    process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
   // The old hf-inference endpoint no longer serves FLUX (HTTP 410). Route through the
   // Inference Providers client instead: "auto" picks a partner provider that hosts the model.
-  const provider = String(process.env.HF_IMAGE_PROVIDER || "auto").trim().toLowerCase();
+  const provider = String(process.env.HF_IMAGE_PROVIDER || "auto")
+    .trim()
+    .toLowerCase();
 
   let InferenceClient;
   try {
     ({ InferenceClient } = await import("@huggingface/inference"));
   } catch {
-    throw new Error("Hugging Face image needs the client package. Run: npm install");
+    throw new Error(
+      "Hugging Face image needs the client package. Run: npm install",
+    );
   }
 
   const client = new InferenceClient(process.env.HF_TOKEN);
@@ -5112,10 +5332,17 @@ async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
   try {
     blob = await client.textToImage(
       { provider, model, inputs: prompt },
-      { outputType: "blob", signal: AbortSignal.timeout(Number(process.env.HF_TIMEOUT_MS || 180000)) },
+      {
+        outputType: "blob",
+        signal: AbortSignal.timeout(
+          Number(process.env.HF_TIMEOUT_MS || 180000),
+        ),
+      },
     );
   } catch (error) {
-    throw new Error(`Hugging Face image failed (provider ${provider}, model ${model}): ${String(error.message || error).slice(0, 500)}`);
+    throw new Error(
+      `Hugging Face image failed (provider ${provider}, model ${model}): ${String(error.message || error).slice(0, 500)}`,
+    );
   }
   return {
     buffer: Buffer.from(await blob.arrayBuffer()),
@@ -5124,107 +5351,1014 @@ async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
   };
 }
 
-async function generateImageWithProviders({ prompt, aspectRatio }) {
+async function generateImageWithProviders({ prompt, aspectRatio, seed }) {
   const errors = [];
-  // Local ComfyUI is genuinely free when it runs on the user's own machine.
-  if (hasLocalMediaConfig()) {
-    try { return await generateWithComfyUI({ kind: "image", prompt, aspectRatio }); }
-    catch (error) { errors.push(`Local: ${error.message}`); console.error(errors.at(-1)); }
-  }
   if (hasUsableHFToken()) {
-    try { return await generateImageWithHuggingFace({ prompt, aspectRatio }); }
-    catch (error) { errors.push(`Hugging Face: ${error.message}`); console.error(errors.at(-1)); }
+    try {
+      return await generateImageWithHuggingFace({ prompt, aspectRatio });
+    } catch (error) {
+      errors.push(`Hugging Face: ${error.message}`);
+      console.error(errors.at(-1));
+    }
   }
   if (!freeOnlyMediaMode() && hasUsablePollinationsKey()) {
-    try { return await generateImageWithPollinations({ prompt, aspectRatio }); }
-    catch (error) { errors.push(`Pollinations: ${error.message}`); console.error(errors.at(-1)); }
+    try {
+      return await generateImageWithPollinations({ prompt, aspectRatio, seed });
+    } catch (error) {
+      errors.push(`Pollinations: ${error.message}`);
+      console.error(errors.at(-1));
+    }
   }
   if (!freeOnlyMediaMode() && hasUsableGeminiKey()) {
-    try { return await generateImageWithGemini({ prompt, aspectRatio }); }
-    catch (error) { errors.push(`Gemini: ${error.message}`); console.error(errors.at(-1)); }
+    try {
+      return await generateImageWithGemini({ prompt, aspectRatio });
+    } catch (error) {
+      errors.push(`Gemini: ${error.message}`);
+      console.error(errors.at(-1));
+    }
   }
-  throw new Error(errors.join(" | ") || "No image generation provider is configured. Add local ComfyUI or a provider token.");
+  throw new Error(
+    errors.join(" | ") ||
+      "No image generation provider is configured. Add a supported provider token.",
+  );
 }
 
 function friendlyVideoProviderError(provider, error) {
   const message = String(error?.message || error || "Unknown error");
   const lower = message.toLowerCase();
 
-  if (provider === "huggingface" && (lower.includes("depleted your monthly included credits") || lower.includes("purchase pre-paid credits") || lower.includes("402"))) {
-    return "Hugging Face free video credits are exhausted. No charge was made by EditPrompt. Configure Local ComfyUI for free generation or use a paid video provider.";
+  if (
+    provider === "huggingface" &&
+    (lower.includes("queue is full") ||
+      lower.includes("max size") ||
+      lower.includes("currently busy"))
+  ) {
+    return "Hugging Face ZeroGPU is currently busy. EditPrompt automatically retried the queue, but it remained full. Please try again shortly.";
   }
 
-  if (provider === "pollinations" && (lower.includes("insufficient balance") || lower.includes("payment_required") || lower.includes("402"))) {
-    return "Pollinations balance is 0, so this video request cannot run. Configure Local ComfyUI for free generation or add a funded Pollinations account.";
+  if (
+    provider === "huggingface" &&
+    (lower.includes("zeroGPU quota exceeded") ||
+      lower.includes("exceeded your free zerogpu quota") ||
+      lower.includes("free zerogpu quota"))
+  ) {
+    const retryMatch = message.match(/try again in\s+([^.!]+)/i);
+    const retryText = retryMatch
+      ? ` Try again in ${retryMatch[1].trim()}.`
+      : " Try again after the Hugging Face free quota resets.";
+    return `Hugging Face free ZeroGPU quota is currently insufficient for this video.${retryText} No paid provider was used.`;
   }
 
-  if (provider === "gemini" && (lower.includes("quota") || lower.includes("billing") || lower.includes("payment"))) {
-    return "Gemini video generation requires an available API quota/billing setup for the selected Veo model.";
+  if (
+    provider === "huggingface" &&
+    (lower.includes("depleted your monthly included credits") ||
+      lower.includes("purchase pre-paid credits") ||
+      lower.includes("402"))
+  ) {
+    return "Hugging Face free video credits are exhausted. No paid provider was used.";
   }
 
-  if (provider === "local" && (lower.includes("econnrefused") || lower.includes("fetch failed") || lower.includes("comfyui"))) {
-    return "Local ComfyUI is configured but not reachable. Start ComfyUI and verify COMFYUI_URL (default: http://127.0.0.1:8188).";
+  if (
+    provider === "huggingface" &&
+    (lower === "null" ||
+      lower.includes("empty error event") ||
+      lower.includes("unknown error"))
+  ) {
+    return "Hugging Face video Space returned an empty error. The app will try the free MiniMax fallback next.";
+  }
+
+  if (
+    provider === "pollinations" &&
+    (lower.includes("insufficient balance") ||
+      lower.includes("payment_required") ||
+      lower.includes("402"))
+  ) {
+    return "Pollinations balance is 0, so this video request cannot run. Add a funded Pollinations account.";
+  }
+
+  if (
+    provider === "gemini" &&
+    (lower.includes("quota") ||
+      lower.includes("billing") ||
+      lower.includes("payment") ||
+      lower.includes("resource_exhausted"))
+  ) {
+    return "Gemini Veo quota/billing is unavailable for this API key. Free-only mode will skip Gemini.";
+  }
+
+  if (
+    provider === "gemini" &&
+    (lower.includes("inlinedata") ||
+      lower.includes("not supported by this model"))
+  ) {
+    return "Gemini Veo rejected the video input format. The Veo I2V payload has been updated to bytesBase64Encoded.";
+  }
+
+  if (
+    provider === "gemini" &&
+    (lower.includes("high demand") ||
+      lower.includes("unavailable") ||
+      lower.includes("503"))
+  ) {
+    return "Gemini Veo is temporarily unavailable/high demand. The job will continue to the next configured provider.";
   }
 
   return message;
 }
 
-async function generateVideoWithHuggingFace({ prompt, durationSeconds, image }) {
-  if (!hasUsableHFToken()) throw new Error("Hugging Face token is not configured.");
-  const provider = String(process.env.HF_VIDEO_PROVIDER || "").trim().toLowerCase();
+function parseGradioStreamError(dataLine, provider = "Hugging Face") {
+  const raw = String(dataLine ?? "").trim();
+  if (!raw) return `${provider} returned an empty error event.`;
 
-  // Hugging Face's own hf-inference has no video. Video runs through partner
-  // providers (fal-ai, replicate, novita...) billed to HF credits; "auto" lets HF pick one.
-  if (provider === "hf-inference") {
-    throw new Error(
-      "hf-inference does not offer video generation. Set HF_VIDEO_PROVIDER=auto or fal-ai in .env (uses your Hugging Face credits).",
-    );
-  }
-  const useProvider = provider || "auto";
-
-  let InferenceClient;
   try {
-    ({ InferenceClient } = await import("@huggingface/inference"));
+    const parsed = JSON.parse(raw);
+    if (parsed == null) return `${provider} returned an empty error event.`;
+
+    if (typeof parsed === "string") {
+      return parsed.trim() || `${provider} returned an empty error event.`;
+    }
+
+    const message =
+      parsed.error?.message ||
+      parsed.error ||
+      parsed.message ||
+      parsed.detail ||
+      parsed.msg ||
+      parsed.reason ||
+      "";
+
+    if (message) return String(message).slice(0, 1000);
+
+    return JSON.stringify(parsed).slice(0, 1000);
   } catch {
-    throw new Error("Hugging Face video needs the client package. Run: npm install");
+    return raw.slice(0, 1000);
+  }
+}
+
+async function generateVideoWithHuggingFace({
+  prompt,
+  durationSeconds,
+  image,
+  aspectRatio,
+  fps,
+}) {
+  if (!hasUsableHFToken())
+    throw new Error("Hugging Face token is not configured.");
+
+  // Free Hugging Face ZeroGPU Wan2.2 routes.
+  // Text-to-video: zerogpu-aoti/wan2-2-fp8da-aoti
+  // Image-to-video: zerogpu-aoti/wan2-2-fp8da-aoti-faster
+  // These are Gradio Spaces, so they use the Space's ZeroGPU queue rather
+  // than Hugging Face Inference Providers such as fal.ai/Replicate.
+  const hasImage = Boolean(image?.data);
+  const defaultSpace = hasImage
+    ? "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space"
+    : "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
+  const configuredSpace = String(process.env.HF_ZEROGPU_SPACE_URL || "").trim();
+  // Ignore the old OpenKing Space setting so this replacement really switches
+  // away from the queue that was previously filling up. A custom Space can
+  // still be supplied with HF_ZEROGPU_SPACE_URL.
+  const legacyOpenKing = configuredSpace
+    .toLowerCase()
+    .includes("openking-wan2-video-generation");
+  const spaceBase = (
+    legacyOpenKing || !configuredSpace ? defaultSpace : configuredSpace
+  ).replace(/\/$/, "");
+  const token = String(process.env.HF_TOKEN || "").trim();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const timeoutMs = Number(process.env.HF_ZEROGPU_TIMEOUT_MS || 300000);
+
+  const ratio = String(aspectRatio || "16:9");
+  let width = 832;
+  let height = 480;
+  if (ratio === "9:16") {
+    width = 480;
+    height = 832;
+  } else if (ratio === "1:1") {
+    width = 576;
+    height = 576;
+  } else if (ratio === "4:3") {
+    width = 640;
+    height = 480;
+  } else if (ratio === "3:4") {
+    width = 480;
+    height = 640;
+  } else if (ratio === "21:9") {
+    width = 832;
+    height = 352;
   }
 
-  const client = new InferenceClient(process.env.HF_TOKEN);
-  const signal = AbortSignal.timeout(Number(process.env.HF_VIDEO_TIMEOUT_MS || 900000));
-  let blob, model;
+  // These public Wan2.2 ZeroGPU Spaces currently cap generation at 145 frames
+  // and render at 24 fps. That is about 6 seconds. Do not pretend that a
+  // 10-second/30-fps request was natively generated when the Space cannot do it.
+  const requestedFrames = Math.max(
+    25,
+    Math.round(Number(durationSeconds || 3) * 24),
+  );
+  const numFrames = Math.min(145, requestedFrames);
+  const actualDuration = numFrames / 24;
+  const steps = Math.max(
+    1,
+    Math.min(30, Number(process.env.HF_ZEROGPU_STEPS || 4)),
+  );
+  const guidance1 = Number(process.env.HF_ZEROGPU_GUIDANCE || 1);
+  const guidance2 = Number(
+    process.env.HF_ZEROGPU_GUIDANCE_2 || (hasImage ? 1 : 3),
+  );
+  const seed = Number.isFinite(Number(process.env.HF_ZEROGPU_SEED))
+    ? Number(process.env.HF_ZEROGPU_SEED)
+    : 42;
+  const randomizeSeed =
+    String(process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true").toLowerCase() ===
+    "true";
+  const negativePrompt = String(
+    process.env.HF_ZEROGPU_NEGATIVE_PROMPT ||
+      "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, frame interpolation artifacts",
+  );
 
-  if (image && image.data) {
-    // Animate Image: start from the picture the user already generated.
-    model = process.env.HF_I2V_MODEL || "Wan-AI/Wan2.1-I2V-14B-720P";
-    const imageBlob = new Blob([Buffer.from(image.data, "base64")], { type: image.mimeType || "image/png" });
-    blob = await client.imageToVideo(
-      { provider: useProvider, model, inputs: imageBlob, parameters: { prompt } },
-      { signal },
+  let imageData = null;
+  if (hasImage) {
+    const imageBytes = Buffer.from(image.data, "base64");
+    const mime = image.mimeType || "image/png";
+    const ext =
+      mime.includes("jpeg") || mime.includes("jpg")
+        ? "jpg"
+        : mime.includes("webp")
+          ? "webp"
+          : "png";
+    const form = new FormData();
+    form.append(
+      "files",
+      new Blob([imageBytes], { type: mime }),
+      `input.${ext}`,
     );
-  } else {
-    model = process.env.HF_VIDEO_MODEL || "Wan-AI/Wan2.2-TI2V-5B";
-    blob = await client.textToVideo({ provider: useProvider, model, inputs: prompt }, { signal });
+
+    const uploadResponse = await fetch(`${spaceBase}/gradio_api/upload`, {
+      method: "POST",
+      headers,
+      body: form,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const uploadText = await uploadResponse.text();
+    if (!uploadResponse.ok) {
+      throw new Error(
+        `Hugging Face Wan2.2 image upload failed (${uploadResponse.status}): ${uploadText.slice(0, 500)}`,
+      );
+    }
+
+    let uploaded;
+    try {
+      uploaded = JSON.parse(uploadText);
+    } catch {
+      throw new Error(
+        `Hugging Face Wan2.2 returned invalid upload data: ${uploadText.slice(0, 500)}`,
+      );
+    }
+
+    const uploadedPath = Array.isArray(uploaded) ? uploaded[0] : uploaded?.path;
+    if (!uploadedPath)
+      throw new Error(
+        "Hugging Face Wan2.2 image upload returned no file path.",
+      );
+
+    imageData = {
+      path: uploadedPath,
+      meta: { _type: "gradio.FileData" },
+    };
+  }
+
+  // Gradio API argument order is taken from the currently published Wan2.2
+  // Spaces. T2V and I2V have different function signatures.
+  const payload = hasImage
+    ? {
+        data: [
+          imageData,
+          prompt,
+          steps,
+          negativePrompt,
+          actualDuration,
+          guidance1,
+          guidance2,
+          randomizeSeed ? -1 : seed,
+          randomizeSeed,
+        ],
+      }
+    : {
+        data: [
+          prompt,
+          negativePrompt,
+          actualDuration,
+          guidance1,
+          guidance2,
+          steps,
+          randomizeSeed ? -1 : seed,
+          randomizeSeed,
+        ],
+      };
+
+  const apiName = "/generate_video";
+  const maxQueueRetries = Math.max(
+    0,
+    Math.min(6, Number(process.env.HF_ZEROGPU_QUEUE_RETRIES || 4)),
+  );
+  const retryDelaysSeconds = [12, 20, 35, 50, 60, 60];
+  let started = null;
+  let lastQueueMessage = "";
+
+  for (let attempt = 0; attempt <= maxQueueRetries; attempt += 1) {
+    const startResponse = await fetch(
+      `${spaceBase}/gradio_api/call/generate_video`,
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+    const startText = await startResponse.text();
+
+    if (startResponse.ok) {
+      try {
+        started = JSON.parse(startText);
+      } catch {
+        throw new Error(
+          `Hugging Face Wan2.2 returned invalid queue data: ${startText.slice(0, 500)}`,
+        );
+      }
+      break;
+    }
+
+    const lower = startText.toLowerCase();
+    const queueFull =
+      startResponse.status === 503 &&
+      (lower.includes("queue is full") ||
+        lower.includes("max size") ||
+        lower.includes("queue full"));
+
+    if (!queueFull) {
+      throw new Error(
+        `Hugging Face Wan2.2 request failed (${startResponse.status}): ${startText.slice(0, 500)}`,
+      );
+    }
+
+    lastQueueMessage = startText.slice(0, 500);
+    if (attempt >= maxQueueRetries) break;
+
+    const delaySeconds =
+      retryDelaysSeconds[Math.min(attempt, retryDelaysSeconds.length - 1)];
+    console.warn(
+      `Wan2.2 ZeroGPU queue is full. Retry ${attempt + 1}/${maxQueueRetries} in ${delaySeconds}s. ${lastQueueMessage}`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+  }
+
+  if (!started?.event_id) {
+    throw new Error(
+      `Wan2.2 ZeroGPU is currently busy. The selected free Space queue remained full after automatic retries. ${lastQueueMessage}`,
+    );
+  }
+
+  const eventId = started.event_id;
+  const pollResponse = await fetch(
+    `${spaceBase}/gradio_api/call/generate_video/${encodeURIComponent(eventId)}`,
+    {
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  );
+
+  if (!pollResponse.ok || !pollResponse.body) {
+    const text = await pollResponse.text().catch(() => "");
+    throw new Error(
+      `Hugging Face Wan2.2 polling failed (${pollResponse.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  const reader = pollResponse.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let resultData = null;
+  let streamError = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split(/\n\n/);
+    buffer = events.pop() || "";
+
+    for (const event of events) {
+      const eventType = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
+      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
+      if (!dataLine) continue;
+
+      if (eventType === "error") {
+        streamError = parseGradioStreamError(dataLine, "Hugging Face Wan2.2");
+      }
+
+      if (eventType === "complete") {
+        try {
+          resultData = JSON.parse(dataLine);
+        } catch {
+          throw new Error(
+            `Hugging Face Wan2.2 returned invalid result data: ${dataLine.slice(0, 500)}`,
+          );
+        }
+      }
+    }
+
+    if (resultData !== null || streamError || done) break;
+  }
+
+  if (streamError)
+    throw new Error(`Hugging Face Wan2.2 generation failed: ${streamError}`);
+  if (!Array.isArray(resultData) || !resultData[0]) {
+    throw new Error("Hugging Face Wan2.2 finished without a video file.");
+  }
+
+  // Wan2.2 T2V returns [video_path, seed]. I2V returns the video path as the
+  // first tuple element as well. Gradio serializes the path as FileData.
+  const output = resultData[0];
+  const outputPath = typeof output === "string" ? output : output?.path;
+  const outputUrl =
+    output?.url ||
+    (outputPath
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
+      : null);
+
+  if (!outputUrl)
+    throw new Error(
+      "Hugging Face Wan2.2 returned an unusable video file reference.",
+    );
+
+  const fileResponse = await fetch(outputUrl, {
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!fileResponse.ok) {
+    const text = await fileResponse.text().catch(() => "");
+    throw new Error(
+      `Hugging Face Wan2.2 video download failed (${fileResponse.status}): ${text.slice(0, 500)}`,
+    );
   }
 
   return {
-    buffer: Buffer.from(await blob.arrayBuffer()),
-    mimeType: blob.type || "video/mp4",
-    model: `huggingface:${useProvider}:${model}`,
+    buffer: Buffer.from(await fileResponse.arrayBuffer()),
+    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
+    model: `huggingface-zerogpu:${hasImage ? "Wan2.2-14B-I2V-Fast" : "Wan2.2-14B-T2V-Fast"}`,
+    generatedFps: 24,
+    generatedDurationSeconds: actualDuration,
+    generatedFrameCount: numFrames,
+    requestedFps: Number(fps || 24),
+  };
+}
+
+// Free Hugging Face fallback: Wan2.2 Remix SFW Text-to-Video.
+// This fallback is T2V-only. The Space documents /generate_video with
+// [prompt, negative_prompt, seconds, steps, guidance_scale, seed, randomize_seed]
+// and renders at 832x480, 16 fps, 1-5 seconds.
+async function generateVideoWithWanRemixT2V({ prompt, durationSeconds }) {
+  if (!hasUsableHFToken())
+    throw new Error("Hugging Face token is not configured.");
+
+  const spaceBase = String(
+    process.env.HF_WAN_REMIX_T2V_SPACE_URL ||
+      "https://mastaP-wan22-remix-sfw-t2v.hf.space",
+  ).replace(/\/$/, "");
+  const token = String(process.env.HF_TOKEN || "").trim();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const timeoutMs = Number(process.env.HF_WAN_REMIX_TIMEOUT_MS || 300000);
+  const seconds = Math.max(1, Math.min(5, Number(durationSeconds || 3)));
+  const steps = Math.max(
+    4,
+    Math.min(16, Number(process.env.HF_WAN_REMIX_STEPS || 8)),
+  );
+  const guidance = Number(process.env.HF_WAN_REMIX_GUIDANCE || 1);
+  const seed = Number.isFinite(Number(process.env.HF_WAN_REMIX_SEED))
+    ? Number(process.env.HF_WAN_REMIX_SEED)
+    : 42;
+  const randomizeSeed =
+    String(process.env.HF_WAN_REMIX_RANDOMIZE_SEED || "true").toLowerCase() ===
+    "true";
+  const negativePrompt = String(
+    process.env.HF_WAN_REMIX_NEGATIVE_PROMPT ||
+      "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, jitter, inconsistent clothing, distorted facial features, jerky motion, abrupt cuts",
+  );
+
+  const payload = {
+    data: [
+      String(prompt || "").trim(),
+      negativePrompt,
+      seconds,
+      steps,
+      guidance,
+      randomizeSeed ? 0 : seed,
+      randomizeSeed,
+    ],
+  };
+
+  const maxRetries = Math.max(
+    0,
+    Math.min(3, Number(process.env.HF_WAN_REMIX_QUEUE_RETRIES || 2)),
+  );
+  const delays = [15, 30, 45];
+  let started = null;
+  let lastMessage = "";
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const response = await fetch(
+      `${spaceBase}/gradio_api/call/generate_video`,
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+    const text = await response.text();
+
+    if (response.ok) {
+      try {
+        started = JSON.parse(text);
+      } catch {
+        throw new Error(
+          `Wan2.2 Remix returned invalid queue data: ${text.slice(0, 500)}`,
+        );
+      }
+      break;
+    }
+
+    lastMessage = text.slice(0, 500);
+    const lower = text.toLowerCase();
+    const retryable =
+      response.status === 503 &&
+      (lower.includes("queue") ||
+        lower.includes("busy") ||
+        lower.includes("loading") ||
+        lower.includes("starting"));
+
+    if (!retryable || attempt >= maxRetries) {
+      throw new Error(
+        `Wan2.2 Remix request failed (${response.status}): ${lastMessage}`,
+      );
+    }
+
+    const delay = delays[Math.min(attempt, delays.length - 1)];
+    console.warn(
+      `Wan2.2 Remix T2V busy. Retry ${attempt + 1}/${maxRetries} in ${delay}s.`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, delay * 1000));
+  }
+
+  if (!started?.event_id) {
+    throw new Error(`Wan2.2 Remix did not return an event id. ${lastMessage}`);
+  }
+
+  const pollResponse = await fetch(
+    `${spaceBase}/gradio_api/call/generate_video/${encodeURIComponent(started.event_id)}`,
+    { headers, signal: AbortSignal.timeout(timeoutMs) },
+  );
+
+  if (!pollResponse.ok || !pollResponse.body) {
+    const text = await pollResponse.text().catch(() => "");
+    throw new Error(
+      `Wan2.2 Remix polling failed (${pollResponse.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  const reader = pollResponse.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let resultData = null;
+  let streamError = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split(/\n\n/);
+    buffer = events.pop() || "";
+
+    for (const event of events) {
+      const eventType = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
+      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
+      if (!dataLine) continue;
+      if (eventType === "error") streamError = dataLine.slice(0, 500);
+      if (eventType === "complete") {
+        try {
+          resultData = JSON.parse(dataLine);
+        } catch {
+          throw new Error(
+            `Wan2.2 Remix returned invalid result data: ${dataLine.slice(0, 500)}`,
+          );
+        }
+      }
+    }
+    if (resultData !== null || streamError || done) break;
+  }
+
+  if (streamError)
+    throw new Error(`Wan2.2 Remix generation failed: ${streamError}`);
+  if (!Array.isArray(resultData) || !resultData[0]) {
+    throw new Error("Wan2.2 Remix finished without a video file.");
+  }
+
+  const output = resultData[0];
+  const outputPath = typeof output === "string" ? output : output?.path;
+  const outputUrl =
+    output?.url ||
+    (outputPath
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
+      : null);
+  if (!outputUrl)
+    throw new Error("Wan2.2 Remix returned an unusable video file reference.");
+
+  const fileResponse = await fetch(outputUrl, {
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!fileResponse.ok) {
+    const text = await fileResponse.text().catch(() => "");
+    throw new Error(
+      `Wan2.2 Remix video download failed (${fileResponse.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  return {
+    buffer: Buffer.from(await fileResponse.arrayBuffer()),
+    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
+    model: "huggingface-zerogpu:Wan2.2-Remix-SFW-T2V",
+    generatedFps: 16,
+    generatedDurationSeconds: seconds,
+    generatedFrameCount: Math.round(seconds * 16),
+    requestedFps: 24,
+  };
+}
+
+// Free Hugging Face fallback: MiniMax-H3 Turbo LoRA.
+// This Space supports text-to-video and image-to-video through Gradio's
+// public /generate API and renders at 24 fps. It is used only after the
+// primary Wan2.2 ZeroGPU Space fails.
+async function generateVideoWithMiniMax({
+  prompt,
+  durationSeconds,
+  image,
+  aspectRatio,
+}) {
+  if (!hasUsableHFToken())
+    throw new Error("Hugging Face token is not configured.");
+
+  const spaceBase = String(
+    process.env.HF_MINIMAX_SPACE_URL ||
+      "https://minimaxai-minimax-h3-turbo-lora.hf.space",
+  ).replace(/\/$/, "");
+  const token = String(process.env.HF_TOKEN || "").trim();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const timeoutMs = Number(process.env.HF_MINIMAX_TIMEOUT_MS || 900000);
+
+  const canvasByRatio = {
+    "16:9": "960x544 · 16:9 fast",
+    "9:16": "544x960 · 9:16 fast",
+    "1:1": "544x544 · 1:1 fast",
+    "4:3": "768x576 · 4:3 fast",
+    "3:4": "576x768 · 3:4 fast",
+    "21:9": "1152x512 · 21:9 fast",
+  };
+  const canvas =
+    canvasByRatio[String(aspectRatio || "16:9")] || canvasByRatio["16:9"];
+  const duration = Math.max(
+    5,
+    Math.min(14, Math.round(Number(durationSeconds || 5))),
+  );
+  const steps = Math.max(
+    4,
+    Math.min(40, Number(process.env.HF_MINIMAX_STEPS || 6)),
+  );
+  const seed = Number.isFinite(Number(process.env.HF_MINIMAX_SEED))
+    ? Number(process.env.HF_MINIMAX_SEED)
+    : 42;
+
+  let firstImage = null;
+  if (image?.data) {
+    const imageBytes = Buffer.from(image.data, "base64");
+    const mime = image.mimeType || "image/png";
+    const ext =
+      mime.includes("jpeg") || mime.includes("jpg")
+        ? "jpg"
+        : mime.includes("webp")
+          ? "webp"
+          : "png";
+    const form = new FormData();
+    form.append(
+      "files",
+      new Blob([imageBytes], { type: mime }),
+      `input.${ext}`,
+    );
+    const upload = await fetch(`${spaceBase}/gradio_api/upload`, {
+      method: "POST",
+      headers,
+      body: form,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const uploadText = await upload.text();
+    if (!upload.ok)
+      throw new Error(
+        `MiniMax image upload failed (${upload.status}): ${uploadText.slice(0, 500)}`,
+      );
+    let uploaded;
+    try {
+      uploaded = JSON.parse(uploadText);
+    } catch {
+      throw new Error(
+        `MiniMax returned invalid upload data: ${uploadText.slice(0, 500)}`,
+      );
+    }
+    const uploadedPath = Array.isArray(uploaded) ? uploaded[0] : uploaded?.path;
+    if (!uploadedPath)
+      throw new Error("MiniMax image upload returned no file path.");
+    firstImage = { path: uploadedPath, meta: { _type: "gradio.FileData" } };
+  }
+
+  const payload = {
+    data: [prompt, firstImage, null, canvas, duration, steps, seed, false],
+  };
+
+  const start = await fetch(`${spaceBase}/gradio_api/call/generate`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const startText = await start.text();
+  if (!start.ok)
+    throw new Error(
+      `MiniMax request failed (${start.status}): ${startText.slice(0, 500)}`,
+    );
+
+  let started;
+  try {
+    started = JSON.parse(startText);
+  } catch {
+    throw new Error(
+      `MiniMax returned invalid queue data: ${startText.slice(0, 500)}`,
+    );
+  }
+  if (!started?.event_id)
+    throw new Error("MiniMax did not return an event id.");
+
+  const stream = await fetch(
+    `${spaceBase}/gradio_api/call/generate/${encodeURIComponent(started.event_id)}`,
+    {
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  );
+  if (!stream.ok || !stream.body) {
+    const text = await stream.text().catch(() => "");
+    throw new Error(
+      `MiniMax polling failed (${stream.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  const reader = stream.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let resultData = null;
+  let streamError = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split(/\n\n/);
+    buffer = events.pop() || "";
+    for (const event of events) {
+      const type = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
+      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
+      if (!dataLine) continue;
+      if (type === "error") streamError = parseGradioStreamError(dataLine, "Hugging Face MiniMax");
+      if (type === "complete") {
+        try {
+          resultData = JSON.parse(dataLine);
+        } catch {
+          throw new Error(
+            `MiniMax returned invalid result data: ${dataLine.slice(0, 500)}`,
+          );
+        }
+      }
+    }
+    if (resultData !== null || streamError || done) break;
+  }
+
+  if (streamError) throw new Error(`MiniMax generation failed: ${streamError}`);
+  if (!Array.isArray(resultData) || !resultData[0])
+    throw new Error("MiniMax finished without a video file.");
+
+  const output = resultData[0];
+  const outputPath = typeof output === "string" ? output : output?.path;
+  const outputUrl =
+    output?.url ||
+    (outputPath
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
+      : null);
+  if (!outputUrl)
+    throw new Error("MiniMax returned an unusable video file reference.");
+
+  const fileResponse = await fetch(outputUrl, {
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!fileResponse.ok) {
+    const text = await fileResponse.text().catch(() => "");
+    throw new Error(
+      `MiniMax video download failed (${fileResponse.status}): ${text.slice(0, 500)}`,
+    );
+  }
+
+  return {
+    buffer: Buffer.from(await fileResponse.arrayBuffer()),
+    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
+    model: `huggingface-zerogpu:MiniMax-H3-Turbo-LoRA`,
+    generatedFps: 24,
+    generatedDurationSeconds: duration,
+    generatedFrameCount: Math.round(duration * 24),
+    requestedFps: 24,
+  };
+}
+
+async function downloadRemoteVideo(url, timeoutMs = 900000) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Remote video download failed (${response.status}): ${text.slice(0, 300)}`);
+  }
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    mimeType: response.headers.get("content-type") || "video/mp4",
+  };
+}
+
+function falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image }) {
+  const framesPerSecond = Math.max(4, Math.min(60, Number(fps || 24)));
+  const requestedFrames = Math.max(17, Math.min(161, Math.round(Number(durationSeconds || 5) * framesPerSecond)));
+  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio) ? aspectRatio : "16:9";
+  const negativePrompt = String(
+    process.env.VIDEO_NEGATIVE_PROMPT ||
+      "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, abrupt cuts",
+  );
+  const resolution = ["480p", "580p", "720p"].includes(String(process.env.FAL_VIDEO_RESOLUTION || "720p"))
+    ? String(process.env.FAL_VIDEO_RESOLUTION || "720p")
+    : "720p";
+
+  const input = {
+    prompt: String(prompt || "").slice(0, 8000),
+    negative_prompt: negativePrompt,
+    num_frames: requestedFrames,
+    frames_per_second: framesPerSecond,
+    resolution,
+    aspect_ratio: ratio,
+    num_inference_steps: Math.max(1, Math.min(40, Number(process.env.FAL_VIDEO_STEPS || 27))),
+    enable_safety_checker: true,
+    enable_output_safety_checker: true,
+    enable_prompt_expansion: String(process.env.FAL_PROMPT_EXPANSION || "false").toLowerCase() === "true",
+    acceleration: "regular",
+    video_quality: String(process.env.FAL_VIDEO_QUALITY || "high"),
+    video_write_mode: "balanced",
+  };
+
+  if (image?.data) {
+    input.image_url = `data:${image.mimeType || "image/png"};base64,${image.data}`;
+  }
+  return input;
+}
+
+async function generateVideoWithFal({ prompt, durationSeconds, image, aspectRatio, fps }) {
+  if (!hasUsableFalKey()) throw new Error("fal.ai FAL_KEY is not configured.");
+  if (!paidVideoEnabled()) throw new Error("Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable fal.ai.");
+
+  let falClient;
+  try {
+    ({ fal: falClient } = await import("@fal-ai/client"));
+  } catch {
+    throw new Error("fal.ai support needs @fal-ai/client. Run: npm install");
+  }
+
+  falClient.config({ credentials: process.env.FAL_KEY });
+  const imageMode = Boolean(image?.data);
+  const endpoint = imageMode
+    ? process.env.FAL_VIDEO_I2V_MODEL || "fal-ai/wan/v2.2-a14b/image-to-video"
+    : process.env.FAL_VIDEO_T2V_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
+  const input = falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image });
+
+  // fal's SDK keeps the API key server-side and supports queue-backed long-running jobs.
+  const result = await falClient.subscribe(endpoint, {
+    input,
+    logs: false,
+  });
+  const videoUrl = result?.data?.video?.url || result?.data?.output?.url;
+  if (!videoUrl) throw new Error("fal.ai returned no video URL.");
+
+  const downloaded = await downloadRemoteVideo(
+    videoUrl,
+    Number(process.env.FAL_VIDEO_TIMEOUT_MS || 900000),
+  );
+  return {
+    ...downloaded,
+    model: `fal:${endpoint}`,
+    generatedFps: Number(fps || 24),
+    generatedFrameCount: Math.max(17, Math.min(161, Math.round(Number(durationSeconds || 5) * Number(fps || 24)))),
+    generatedDurationSeconds: Number(durationSeconds || 5),
+  };
+}
+
+async function generateVideoWithReplicate({ prompt, durationSeconds, image, aspectRatio, fps }) {
+  if (!hasUsableReplicateKey()) throw new Error("Replicate API token is not configured.");
+  if (!paidVideoEnabled()) throw new Error("Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable Replicate.");
+
+  const endpoint = image
+    ? process.env.REPLICATE_VIDEO_I2V_MODEL || "wan-video/wan-2.2-i2v-fast"
+    : process.env.REPLICATE_VIDEO_T2V_MODEL || "wan-video/wan-2.2-t2v-fast";
+  const framesPerSecond = Math.max(5, Math.min(30, Number(fps || 24)));
+  const numFrames = Math.max(81, Math.min(121, Math.round(Number(durationSeconds || 5) * framesPerSecond)));
+  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio) ? aspectRatio : "16:9";
+  const input = {
+    prompt: String(prompt || "").slice(0, 8000),
+    num_frames: numFrames,
+    aspect_ratio: ratio,
+    frames_per_second: framesPerSecond,
+    resolution: String(process.env.REPLICATE_VIDEO_RESOLUTION || "480p"),
+    go_fast: true,
+    negative_prompt: String(process.env.VIDEO_NEGATIVE_PROMPT || "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, abrupt cuts"),
+  };
+  if (image?.data) input.image = `data:${image.mimeType || "image/png"};base64,${image.data}`;
+
+  const response = await fetch(`https://api.replicate.com/v1/models/${endpoint}/predictions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+      "Content-Type": "application/json",
+      Prefer: "wait=60",
+    },
+    body: JSON.stringify({ input }),
+    signal: AbortSignal.timeout(Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000)),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Replicate video failed (${response.status}): ${String(data?.detail || data?.error || "Unknown error").slice(0, 500)}`);
+  }
+
+  let output = data.output;
+  if (!output && data.status && data.id) {
+    const deadline = Date.now() + Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000);
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      const poll = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
+        headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}` },
+        signal: AbortSignal.timeout(30000),
+      });
+      const current = await poll.json().catch(() => ({}));
+      if (current.status === "succeeded") { output = current.output; break; }
+      if (["failed", "canceled", "cancelled"].includes(current.status)) {
+        throw new Error(`Replicate video ${current.status}: ${String(current.error || "Unknown error").slice(0, 500)}`);
+      }
+    }
+  }
+
+  const videoUrl = typeof output === "string" ? output : output?.url || output?.[0];
+  if (!videoUrl) throw new Error("Replicate returned no video URL.");
+  const downloaded = await downloadRemoteVideo(videoUrl, Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000));
+  return {
+    ...downloaded,
+    model: `replicate:${endpoint}`,
+    generatedFps: framesPerSecond,
+    generatedFrameCount: numFrames,
+    generatedDurationSeconds: numFrames / framesPerSecond,
   };
 }
 
 async function generateVideoWithPollinations({ prompt, durationSeconds }) {
-  if (!hasUsablePollinationsKey()) throw new Error("Pollinations API key is not configured.");
+  if (!hasUsablePollinationsKey())
+    throw new Error("Pollinations API key is not configured.");
   const model = process.env.POLLINATIONS_VIDEO_MODEL || "veo";
-  const url = new URL(`${POLLINATIONS_BASE}/video/${encodeURIComponent(prompt)}`);
+  const url = new URL(
+    `${POLLINATIONS_BASE}/video/${encodeURIComponent(prompt)}`,
+  );
   url.searchParams.set("model", model);
   url.searchParams.set("duration", String(durationSeconds));
-  const response = await fetch(url, { headers: pollinationsHeaders(), signal: AbortSignal.timeout(Number(process.env.POLLINATIONS_VIDEO_TIMEOUT_MS || 15 * 60_000)) });
+  const response = await fetch(url, {
+    headers: pollinationsHeaders(),
+    signal: AbortSignal.timeout(
+      Number(process.env.POLLINATIONS_VIDEO_TIMEOUT_MS || 15 * 60_000),
+    ),
+  });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Pollinations video failed (${response.status}): ${text.slice(0, 300)}`);
+    throw new Error(
+      `Pollinations video failed (${response.status}): ${text.slice(0, 300)}`,
+    );
   }
-  return { buffer: Buffer.from(await response.arrayBuffer()), mimeType: response.headers.get("content-type") || "video/mp4", model: `pollinations:${model}` };
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    mimeType: response.headers.get("content-type") || "video/mp4",
+    model: `pollinations:${model}`,
+  };
 }
 
 // Gemini image generation --------------------------------------
@@ -5287,10 +6421,9 @@ async function generateImageWithGemini({ prompt, aspectRatio }) {
     const imagePart = parts.find((part) => part.inlineData?.data);
 
     if (!imagePart) {
-      lastError =
-        data?.promptFeedback?.blockReason
-          ? "The prompt was blocked by safety filters. Try rewording it."
-          : "The model returned no image.";
+      lastError = data?.promptFeedback?.blockReason
+        ? "The prompt was blocked by safety filters. Try rewording it."
+        : "The model returned no image.";
 
       continue;
     }
@@ -5317,11 +6450,12 @@ async function startVideoJob({ prompt, aspectRatio, durationSeconds, image }) {
   const instance = { prompt };
 
   if (image?.data) {
+    // Veo predictLongRunning expects the primary input image as a Blob-like
+    // object with bytesBase64Encoded + mimeType. Do not use Gemini
+    // generateContent's inlineData shape here.
     instance.image = {
-      inlineData: {
-        mimeType: image.mimeType || "image/png",
-        data: image.data,
-      },
+      bytesBase64Encoded: image.data,
+      mimeType: image.mimeType || "image/png",
     };
   }
 
@@ -5342,7 +6476,7 @@ async function startVideoJob({ prompt, aspectRatio, durationSeconds, image }) {
           aspectRatio,
           durationSeconds,
           resolution: process.env.VEO_RESOLUTION || "720p",
-          numberOfVideos: 1,
+
 
           personGeneration:
             process.env.VEO_PERSON_GENERATION ||
@@ -5422,23 +6556,67 @@ const videoJobs = new Map();
 
 function persistVideoJob(job) {
   const now = Date.now();
-  db.prepare(`INSERT INTO video_jobs
-    (id,user_id,status,prompt,provider,model,aspect_ratio,duration_seconds,fps,camera_motion,motion_strength,from_image,image_json,file,error,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(id) DO UPDATE SET status=excluded.status,model=excluded.model,file=excluded.file,error=excluded.error,updated_at=excluded.updated_at`).run(
-      job.id,job.userId,job.status||'pending',job.prompt,job.provider||'auto',job.model||'',job.aspectRatio||'16:9',job.durationSeconds||8,job.fps||24,job.cameraMotion||'Natural',job.motionStrength||'Medium',job.fromImage?1:0,job.image?JSON.stringify(job.image):null,job.file||null,job.error||null,job.createdAt||now,now);
+  db.prepare(
+    `INSERT INTO video_jobs
+    (id,user_id,status,prompt,provider,model,aspect_ratio,duration_seconds,fps,camera_motion,motion_strength,from_image,image_json,file,error,created_at,updated_at,attempts,cancelled)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET status=excluded.status,provider=excluded.provider,model=excluded.model,file=excluded.file,error=excluded.error,updated_at=excluded.updated_at,attempts=excluded.attempts,cancelled=excluded.cancelled`,
+  ).run(
+    job.id,
+    job.userId,
+    job.status || "pending",
+    job.prompt,
+    job.provider || "auto",
+    job.model || "",
+    job.aspectRatio || "16:9",
+    job.durationSeconds || 8,
+    job.fps || 24,
+    job.cameraMotion || "Natural",
+    job.motionStrength || "Medium",
+    job.fromImage ? 1 : 0,
+    job.image ? JSON.stringify(job.image) : null,
+    job.file || null,
+    job.error || null,
+    job.createdAt || now,
+    now,
+    Number(job.attempts || 0),
+    job.cancelled ? 1 : 0,
+  );
 }
 
 function loadVideoJob(id) {
-  const r=db.prepare('SELECT * FROM video_jobs WHERE id=?').get(id); if(!r)return null;
-  const job={id:r.id,userId:r.user_id,status:r.status,prompt:r.prompt,provider:r.provider,model:r.model,aspectRatio:r.aspect_ratio,durationSeconds:r.duration_seconds,fps:r.fps,cameraMotion:r.camera_motion,motionStrength:r.motion_strength,fromImage:Boolean(r.from_image),image:r.image_json?JSON.parse(r.image_json):null,file:r.file,error:r.error,createdAt:r.created_at,updatedAt:r.updated_at};
-  videoJobs.set(id,job); return job;
+  const r = db.prepare("SELECT * FROM video_jobs WHERE id=?").get(id);
+  if (!r) return null;
+  const job = {
+    id: r.id,
+    userId: r.user_id,
+    status: r.status,
+    prompt: r.prompt,
+    provider: r.provider,
+    model: r.model,
+    aspectRatio: r.aspect_ratio,
+    durationSeconds: r.duration_seconds,
+    fps: r.fps,
+    cameraMotion: r.camera_motion,
+    motionStrength: r.motion_strength,
+    fromImage: Boolean(r.from_image),
+    image: r.image_json ? JSON.parse(r.image_json) : null,
+    file: r.file,
+    error: r.error,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    attempts: Number(r.attempts || 0),
+    cancelled: Boolean(r.cancelled),
+  };
+  videoJobs.set(id, job);
+  return job;
 }
 
 function pruneVideoJobs() {
-  const cutoff=Date.now()-48*3600_000;
-  db.prepare('DELETE FROM video_jobs WHERE updated_at < ?').run(cutoff);
-  for(const [id,job] of videoJobs) if(job.updatedAt<cutoff) videoJobs.delete(id);
+  const cutoff = Date.now() - 48 * 3600_000;
+  db.prepare("DELETE FROM video_jobs WHERE updated_at < ?").run(cutoff);
+  for (const [id, job] of videoJobs)
+    if (job.updatedAt < cutoff) videoJobs.delete(id);
 }
 
 // ============================================================
@@ -5455,14 +6633,21 @@ app.get("/api/media/file/:name", (req, res) => {
 
   const ext = path.extname(file.name).slice(1).toLowerCase();
 
-  const mime =
-    ext === "mp4"
-      ? "video/mp4"
-      : ext === "jpg"
-        ? "image/jpeg"
-        : ext === "webp"
-          ? "image/webp"
-          : "image/png";
+  // Keep the real media MIME type.
+  // GIF media output must be served as image/gif, and browsers must receive image/gif for it
+  // to animate correctly. Previously GIF fell through to image/png, which
+  // made the generated file appear broken in the Media Studio preview.
+  const mimeMap = {
+    gif: "image/gif",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    mov: "video/quicktime",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    png: "image/png",
+  };
+  const mime = mimeMap[ext] || "application/octet-stream";
 
   res.setHeader("Content-Type", mime);
   res.setHeader("Cache-Control", "private, max-age=86400");
@@ -5475,6 +6660,163 @@ app.get("/api/media/file/:name", (req, res) => {
   }
 
   res.send(file.buffer);
+});
+
+// ---------------- MEDIA SHARING ----------------
+
+function publicBaseUrl(req) {
+  const configured = String(process.env.PUBLIC_MEDIA_BASE_URL || "")
+    .trim()
+    .replace(/\/$/, "");
+  return configured || `${req.protocol}://${req.get("host")}`;
+}
+
+function mediaShareRow(token) {
+  return db
+    .prepare(
+      `
+    SELECT id, token, user_id, file, kind, created_at, expires_at, revoked
+    FROM media_shares
+    WHERE token = ?
+    LIMIT 1
+  `,
+    )
+    .get(token);
+}
+
+function mediaShareIsValid(row) {
+  return Boolean(
+    row &&
+    !row.revoked &&
+    Number(row.expires_at) > Date.now() &&
+    readMediaFile(row.file),
+  );
+}
+
+app.post(
+  "/api/media/share",
+  requireLogin,
+  rateLimit({
+    windowMs: 60_000,
+    max: 20,
+    message: "Share limit reached. Please wait a moment.",
+  }),
+  (req, res) => {
+    const file = path.basename(String(req.body?.file || ""));
+    const requestedKind = String(req.body?.kind || "image").toLowerCase();
+
+    if (!file) return res.status(400).json({ error: "Media file required." });
+
+    const owned = db
+      .prepare(
+        `
+    SELECT kind, prompt
+    FROM media_history
+    WHERE user_id = ? AND file = ?
+    ORDER BY id DESC
+    LIMIT 1
+  `,
+      )
+      .get(req.session.userId, file);
+
+    if (!owned)
+      return res
+        .status(404)
+        .json({ error: "Media file not found in your library." });
+    if (!readMediaFile(file))
+      return res
+        .status(404)
+        .json({ error: "Media file has expired or is unavailable." });
+
+    const kind = owned.kind || requestedKind || "image";
+    const token = crypto.randomBytes(18).toString("base64url");
+    const expiresAt =
+      Date.now() + Number(process.env.MEDIA_SHARE_TTL_HOURS || 168) * 3600_000;
+
+    db.prepare(
+      `
+    INSERT INTO media_shares(token, user_id, file, kind, expires_at)
+    VALUES(?,?,?,?,?)
+  `,
+    ).run(token, req.session.userId, file, kind, expiresAt);
+
+    const base = publicBaseUrl(req);
+    res.json({
+      token,
+      kind,
+      file,
+      expiresAt,
+      url: `${base}/share/media/${encodeURIComponent(token)}`,
+      mediaUrl: `${base}/api/media/share/file/${encodeURIComponent(token)}`,
+      downloadUrl: `${base}/api/media/share/file/${encodeURIComponent(token)}?download=1`,
+    });
+  },
+);
+
+app.delete("/api/media/share/:token", requireLogin, (req, res) => {
+  const row = mediaShareRow(req.params.token);
+  if (!row || row.user_id !== req.session.userId)
+    return res.status(404).json({ error: "Share link not found." });
+  db.prepare("UPDATE media_shares SET revoked = 1 WHERE id = ?").run(row.id);
+  res.json({ ok: true });
+});
+
+app.get("/api/media/share/file/:token", (req, res) => {
+  const row = mediaShareRow(req.params.token);
+  if (!mediaShareIsValid(row))
+    return res
+      .status(404)
+      .json({ error: "This share link is expired, revoked, or unavailable." });
+
+  const file = readMediaFile(row.file);
+  const ext = path.extname(file.name).slice(1).toLowerCase();
+  const mimeMap = {
+    gif: "image/gif",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    mov: "video/quicktime",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    png: "image/png",
+  };
+  res.setHeader("Content-Type", mimeMap[ext] || "application/octet-stream");
+  res.setHeader("Cache-Control", "public, max-age=300");
+  if (req.query.download)
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=\"editprompt-${file.name}\"`,
+    );
+  res.send(file.buffer);
+});
+
+app.get("/share/media/:token", (req, res) => {
+  const row = mediaShareRow(req.params.token);
+  if (!mediaShareIsValid(row)) {
+    return res
+      .status(404)
+      .send(
+        "<!doctype html><title>EditPrompt — Share unavailable</title><h1>Share unavailable</h1><p>This media link is expired, revoked, or unavailable.</p>",
+      );
+  }
+
+  const base = publicBaseUrl(req);
+  const mediaUrl = `${base}/api/media/share/file/${encodeURIComponent(row.token)}`;
+  const title = "EditPrompt generated media";
+  const isVideo = String(row.kind).includes("video");
+  const mediaHtml = isVideo
+    ? `<video controls playsinline preload=\"metadata\" style=\"max-width:100%;max-height:75vh;border-radius:16px;background:#000\"><source src=\"${mediaUrl}\"></video>`
+    : `<img src=\"${mediaUrl}\" alt=\"EditPrompt generated media\" style=\"max-width:100%;max-height:75vh;object-fit:contain;border-radius:16px\">`;
+
+  const escapedMediaUrl = mediaUrl
+    .replace(/&/g, "&amp;")
+    .replace(/\"/g, "&quot;");
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res
+    .type("html")
+    .send(
+      `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta property=\"og:title\" content=\"${title}\"><meta property=\"og:type\" content=\"${isVideo ? "video.other" : "website"}\"><meta property=\"og:image\" content=\"${escapedMediaUrl}\"><title>${title}</title><style>body{margin:0;background:#0d0d0d;color:#fff;font-family:Inter,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px;box-sizing:border-box}.wrap{width:min(1100px,100%);text-align:center}.brand{font-weight:800;font-size:22px;margin-bottom:18px}.card{background:#171717;border:1px solid #333;border-radius:20px;padding:20px}.actions{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.btn{display:inline-block;padding:11px 16px;border-radius:10px;background:#ef1b25;color:#fff;text-decoration:none;font-weight:700}.muted{color:#aaa;font-size:13px;margin-top:12px}</style></head><body><main class=\"wrap\"><div class=\"brand\">EditPrompt</div><section class=\"card\">${mediaHtml}<div class=\"actions\"><a class=\"btn\" href=\"${mediaUrl}?download=1\">Download</a></div><div class=\"muted\">Shared with EditPrompt · Link expires automatically</div></section></main></body></html>`,
+    );
 });
 
 // ---------------- AUTO PROMPT ----------------
@@ -5504,7 +6846,47 @@ function mediaPromptOrDefault(raw) {
   return `A cinematic, highly detailed shot of ${text}, dramatic lighting, shallow depth of field, professional colour grading`;
 }
 
+// ---------------- IMAGE UPLOAD FOR IMAGE-TO-VIDEO ----------------
+
+app.post(
+  "/api/media/upload-image",
+  requireLogin,
+  rateLimit({
+    windowMs: 300_000,
+    max: 10,
+    message: "Image upload limit reached. Please wait a few minutes.",
+  }),
+  async (req, res) => {
+    try {
+      const dataUrl = String(req.body?.data || "");
+      const match = dataUrl.match(
+        /^data:(image\/(?:png|jpe?g|webp));base64,([A-Za-z0-9+/=]+)$/i,
+      );
+      if (!match)
+        return res
+          .status(400)
+          .json({ error: "Please upload a PNG, JPG, JPEG or WebP image." });
+      const mimeType = match[1].toLowerCase();
+      const buffer = Buffer.from(match[2], "base64");
+      if (!buffer.length)
+        return res.status(400).json({ error: "The uploaded image is empty." });
+      if (buffer.length > 8 * 1024 * 1024)
+        return res
+          .status(413)
+          .json({ error: "Image is too large. Maximum size is 8 MB." });
+      const file = saveMediaBuffer(buffer, mimeType);
+      return res.json({ file, url: `/api/media/file/${file}`, mimeType });
+    } catch (error) {
+      console.error("Image upload error:", error.message);
+      return res.status(500).json({ error: "Could not upload the image." });
+    }
+  },
+);
+
 // ---------------- IMAGE ----------------
+
+// How many image candidates one "Generate Image" click produces.
+const MEDIA_IMAGE_MAX_CANDIDATES = 4;
 
 app.post(
   "/api/media/image",
@@ -5534,26 +6916,67 @@ app.post(
 
     const aspectRatio = imageAspectRatio(req.body?.ratio);
 
+    // Generate a set of candidates; the user picks one and downloads only that.
+    const count = Math.min(
+      MEDIA_IMAGE_MAX_CANDIDATES,
+      Math.max(1, Number.parseInt(req.body?.count, 10) || 1),
+    );
+    const baseSeed = Math.floor(Math.random() * 2_000_000_000);
+
     try {
-      const result = await generateImageWithProviders({ prompt, aspectRatio });
+      const settled = await Promise.allSettled(
+        Array.from({ length: count }, (_, i) =>
+          generateImageWithProviders({
+            prompt,
+            aspectRatio,
+            seed: (baseSeed + i) % 2_000_000_000,
+          }),
+        ),
+      );
 
-      const file = saveMediaBuffer(result.buffer, result.mimeType);
+      const images = [];
+      const errors = [];
 
-      recordMedia({
-        userId: req.session.userId,
-        kind: "image",
-        prompt,
-        file,
-        model: result.model,
-      });
+      for (const item of settled) {
+        if (item.status === "fulfilled") {
+          const result = item.value;
+          const file = saveMediaBuffer(result.buffer, result.mimeType);
+
+          recordMedia({
+            userId: req.session.userId,
+            kind: "image",
+            prompt,
+            file,
+            model: result.model,
+          });
+
+          images.push({
+            file,
+            url: `/api/media/file/${file}`,
+            downloadUrl: `/api/media/file/${file}?download=1`,
+            model: result.model,
+          });
+        } else {
+          errors.push(item.reason?.message || "Image generation failed.");
+        }
+      }
+
+      if (!images.length) {
+        throw new Error(errors[0] || "Image generation failed.");
+      }
+
+      const first = images[0];
 
       res.json({
         kind: "image",
-        file,
-        url: `/api/media/file/${file}`,
-        downloadUrl: `/api/media/file/${file}?download=1`,
+        // First candidate kept at the top level for backward compatibility.
+        file: first.file,
+        url: first.url,
+        downloadUrl: first.downloadUrl,
         aspectRatio,
-        model: result.model,
+        model: first.model,
+        // All candidates for the pick-one screen.
+        images,
       });
     } catch (error) {
       console.error("Image generation error:", error.message);
@@ -5595,9 +7018,17 @@ app.post(
 
     const aspectRatio = videoAspectRatio(req.body?.ratio);
     const durationSeconds = videoDuration(req.body?.duration);
-    const fps = [24,30,60].includes(Number(req.body?.fps)) ? Number(req.body.fps) : 24;
-    const cameraMotion = String(req.body?.cameraMotion || 'Natural').slice(0,40);
-    const motionStrength = String(req.body?.motionStrength || 'Medium').slice(0,20);
+    const fps = [24, 30, 60].includes(Number(req.body?.fps))
+      ? Number(req.body.fps)
+      : 24;
+    const cameraMotion = String(req.body?.cameraMotion || "Natural").slice(
+      0,
+      40,
+    );
+    const motionStrength = String(req.body?.motionStrength || "Medium").slice(
+      0,
+      20,
+    );
 
     // Optional starting frame: an image created earlier in this flow
     let image = null;
@@ -5629,11 +7060,30 @@ app.post(
       pruneVideoJobs();
       const jobId = crypto.randomUUID();
 
-      const job = { id: jobId, provider: "auto",
+      const job = {
+        id: jobId,
+        provider: "auto",
+        attempts: 0,
+        cancelled: false,
         prompt: `${prompt}\nCamera motion: ${cameraMotion}. Motion strength: ${motionStrength}. FPS: ${fps}.`,
-        userId: req.session.userId, createdAt: Date.now(), updatedAt: Date.now(), status: "pending",
-        file: null, model: "", error: null, fromImage: Boolean(image), aspectRatio, durationSeconds, fps,
-        cameraMotion, motionStrength, image };
+        userId: req.session.userId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        status: "pending",
+        file: null,
+        model: "",
+        error: null,
+        fromImage: Boolean(image),
+        aspectRatio,
+        durationSeconds,
+        fps,
+        cameraMotion,
+        motionStrength,
+        image,
+        generatedFrameCount: null,
+        generatedFps: null,
+        generatedDurationSeconds: null,
+      };
       videoJobs.set(jobId, job);
       persistVideoJob(job);
 
@@ -5658,67 +7108,11 @@ app.post(
   },
 );
 
-// ---------------- VIDEO (status) ----------------
-
-app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
-  const job = videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
-
-  if (!job || job.userId !== req.session.userId) {
-    return res.status(404).json({ error: "Job not found." });
-  }
-
-  if (job.file) {
-    return res.json({
-      status: "done",
-      kind: "video",
-      model: job.model || "unknown",
-      provider: job.provider || "auto",
-      file: job.file,
-      url: `/api/media/file/${job.file}`,
-      downloadUrl: `/api/media/file/${job.file}?download=1`,
-    });
-  }
-
-  if (job.error) {
-    return res.status(502).json({ status: "failed", error: job.error, model: job.model || "unknown" });
-  }
-
+// Run the provider router outside the HTTP request so remote video jobs can
+// wait on the provider queue while the frontend polls this lightweight status route.
+async function runVideoGenerationJob(job) {
   try {
-    // Gemini/Veo is an asynchronous provider. Once started, poll the same
-    // operation instead of submitting a new paid request on every frontend poll.
-    if (job.provider === "gemini" && job.operationName) {
-      const operation = await pollVideoJob(job.operationName);
-      if (!operation.done) {
-        job.status = "processing";
-        job.updatedAt = Date.now();
-        persistVideoJob(job);
-        return res.json({
-          status: "processing",
-          provider: "gemini",
-          model: job.model || getVideoModel(),
-        });
-      }
-
-      const file = saveMediaBuffer(operation.buffer, "video/mp4");
-      job.file = file;
-      job.status = "done";
-      job.updatedAt = Date.now();
-      persistVideoJob(job);
-      recordMedia({ userId: job.userId, kind: job.fromImage ? "image-to-video" : "video", prompt: job.prompt, file, model: job.model || getVideoModel() });
-      return res.json({
-        status: "done",
-        kind: "video",
-        model: job.model || getVideoModel(),
-        provider: "gemini",
-        file,
-        url: `/api/media/file/${file}`,
-        downloadUrl: `/api/media/file/${file}?download=1`,
-      });
-    }
-
-    // Provider router: Gemini Veo first when explicitly enabled, then local,
-    // Hugging Face, and Pollinations. Failed/empty-credit providers are caught
-    // so another configured provider can be tried automatically.
+    if (job.cancelled) return;
     let result;
     let model;
     const errors = [];
@@ -5737,49 +7131,119 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
         job.status = "processing";
         job.updatedAt = Date.now();
         persistVideoJob(job);
-        return res.json({ status: "processing", provider: "gemini", model: started.model });
+        return;
       } catch (error) {
         errors.push(`Gemini: ${friendlyVideoProviderError("gemini", error)}`);
       }
     }
 
-    if (hasLocalMediaConfig()) {
+    if (hasUsableHFToken()) {
       try {
-        result = await generateWithComfyUI({ kind: "video", prompt: job.prompt, aspectRatio: job.aspectRatio, durationSeconds: job.durationSeconds, image: job.image });
-        model = result.model;
-        job.provider = "local";
-      } catch (error) {
-        errors.push(`Local: ${friendlyVideoProviderError("local", error)}`);
-      }
-    }
-
-    if (!result && hasUsableHFToken()) {
-      try {
-        result = await generateVideoWithHuggingFace({ prompt: job.prompt, durationSeconds: job.durationSeconds, image: job.image });
-        model = result.model;
         job.provider = "huggingface";
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        result = await generateVideoWithHuggingFace({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+          image: job.image,
+          aspectRatio: job.aspectRatio,
+          fps: job.fps,
+        });
+        model = result.model;
+        job.generatedFps = result.generatedFps || job.fps;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || job.durationSeconds;
       } catch (error) {
-        errors.push(`Hugging Face: ${friendlyVideoProviderError("huggingface", error)}`);
+        errors.push(
+          `Hugging Face: ${friendlyVideoProviderError("huggingface", error)}`,
+        );
       }
     }
 
-    if (!result && !freeOnlyMediaMode() && hasUsablePollinationsKey()) {
+    // Free fallback: MiniMax-H3 Turbo LoRA supports image-to-video and
+    // text-to-video. Use it after the primary Wan2.2 Space fails.
+    if (
+      !result &&
+      hasUsableHFToken() &&
+      String(process.env.HF_MINIMAX_ENABLED || "true").toLowerCase() === "true"
+    ) {
       try {
-        result = await generateVideoWithPollinations({ prompt: job.prompt, durationSeconds: job.durationSeconds });
+        job.provider = "huggingface-minimax";
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        result = await generateVideoWithMiniMax({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+          image: job.image,
+          aspectRatio: job.aspectRatio,
+        });
         model = result.model;
-        job.provider = "pollinations";
+        job.generatedFps = result.generatedFps || 24;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || job.durationSeconds;
       } catch (error) {
-        errors.push(`Pollinations: ${friendlyVideoProviderError("pollinations", error)}`);
+        errors.push(
+          `Hugging Face MiniMax: ${friendlyVideoProviderError("huggingface", error)}`,
+        );
       }
     }
+
+    // Free fallback: for text-to-video only, try the verified Wan2.2 Remix
+    // ZeroGPU Space after MiniMax. It is not used for image-to-video because
+    // that Space exposes a text-to-video API only.
+    if (!result && !job.image && hasUsableHFToken()) {
+      try {
+        job.provider = "huggingface-wan-remix";
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        result = await generateVideoWithWanRemixT2V({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+        });
+        model = result.model;
+        job.generatedFps = result.generatedFps || 16;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || Math.min(5, job.durationSeconds);
+      } catch (error) {
+        errors.push(
+          `Hugging Face Wan2.2 Remix: ${friendlyVideoProviderError("huggingface", error)}`,
+        );
+      }
+    }
+
+    // If all configured providers fail, return every provider error to the
+    // queue UI. Paid providers are never used unless PAID_VIDEO_ENABLED=true.
 
     if (!result) {
+      const joined = errors.join(" | ");
+      const hasZeroGpuQuotaError = errors.some((item) => {
+        const text = String(item).toLowerCase();
+        return (
+          text.includes("zerogpu quota") || text.includes("free zerogpu quota")
+        );
+      });
+
+      if (hasZeroGpuQuotaError) {
+        throw new Error(
+          `${joined} | Free-only mode: no paid provider was attempted. Hugging Face ZeroGPU quota is currently exhausted; retry after its reset.`,
+        );
+      }
+
       throw new Error(
-        errors.join(" | ") ||
-        "No video provider is currently available. For ₹0-cost generation, start Local ComfyUI with a compatible video workflow. Remote providers may require credits or billing."
+        joined ||
+          "No free video provider is currently available. ComfyUI is not used for video in this configuration.",
       );
     }
 
+    if (job.cancelled) {
+      job.status = "cancelled";
+      job.updatedAt = Date.now();
+      persistVideoJob(job);
+      return;
+    }
     const file = saveMediaBuffer(result.buffer, result.mimeType || "video/mp4");
     job.file = file;
     job.model = model || result.model || "unknown";
@@ -5794,26 +7258,196 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
       file,
       model: job.model,
     });
-
-    res.json({
-      status: "done",
-      kind: "video",
-      file,
-      model: job.model,
-      provider: job.provider || "auto",
-      url: `/api/media/file/${file}`,
-      downloadUrl: `/api/media/file/${file}?download=1`,
-    });
   } catch (error) {
-    console.error("Video poll error:", error.message);
-
+    console.error("Video generation job error:", error.message);
     job.error = error.message || "Video generation failed.";
     job.status = "failed";
     job.updatedAt = Date.now();
     persistVideoJob(job);
-
-    res.status(502).json({ status: "failed", error: job.error });
+  } finally {
+    job.runnerStarted = false;
   }
+}
+
+// ---------------- VIDEO QUEUE / RETRY / CANCEL ----------------
+app.get("/api/media/video-jobs", requireLogin, (req, res) => {
+  pruneVideoJobs();
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit || 30)));
+  const rows = db
+    .prepare(
+      `SELECT id,status,provider,model,aspect_ratio,duration_seconds,fps,camera_motion,motion_strength,from_image,file,error,created_at,updated_at,attempts,cancelled FROM video_jobs WHERE user_id=? ORDER BY updated_at DESC LIMIT ?`,
+    )
+    .all(req.session.userId, limit);
+  res.json({
+    items: rows.map((r) => ({
+      ...r,
+      url: r.file ? `/api/media/file/${r.file}` : null,
+      downloadUrl: r.file ? `/api/media/file/${r.file}?download=1` : null,
+    })),
+  });
+});
+
+app.post("/api/media/video/:jobId/cancel", requireLogin, (req, res) => {
+  const job = videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
+  if (!job || job.userId !== req.session.userId)
+    return res.status(404).json({ error: "Job not found." });
+  if (["done", "failed", "cancelled"].includes(job.status))
+    return res.json({ ok: true, status: job.status });
+  job.cancelled = true;
+  job.status = "cancelled";
+  job.updatedAt = Date.now();
+  persistVideoJob(job);
+  securityEvent("video_cancel", req, `job=${job.id}`, req.session.userId);
+  res.json({ ok: true, status: "cancelled" });
+});
+
+app.post(
+  "/api/media/video/:jobId/retry",
+  requireLogin,
+  rateLimit({
+    windowMs: 600_000,
+    max: 6,
+    message: "Too many video retries. Please wait a few minutes.",
+  }),
+  (req, res) => {
+    const old =
+      videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
+    if (!old || old.userId !== req.session.userId)
+      return res.status(404).json({ error: "Job not found." });
+    if (!["failed", "cancelled"].includes(old.status))
+      return res
+        .status(400)
+        .json({ error: "Only failed or cancelled jobs can be retried." });
+    if (Number(old.attempts || 0) >= 3)
+      return res
+        .status(429)
+        .json({ error: "Retry limit reached for this job." });
+    const id = crypto.randomUUID();
+    const job = {
+      ...old,
+      id,
+      status: "pending",
+      provider: "auto",
+      model: "",
+      file: null,
+      error: null,
+      cancelled: false,
+      attempts: Number(old.attempts || 0) + 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      runnerStarted: false,
+      operationName: null,
+    };
+    videoJobs.set(id, job);
+    persistVideoJob(job);
+    securityEvent(
+      "video_retry",
+      req,
+      `from=${old.id} to=${id}`,
+      req.session.userId,
+    );
+    res.json({ jobId: id, status: "pending" });
+  },
+);
+
+// ---------------- VIDEO (status) ----------------
+
+app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
+  const job = videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
+
+  if (!job || job.userId !== req.session.userId) {
+    return res.status(404).json({ error: "Job not found." });
+  }
+
+  if (job.file) {
+    return res.json({
+      status: "done",
+      kind: "video",
+      model: job.model || "unknown",
+      provider: job.provider || "auto",
+      file: job.file,
+      url: `/api/media/file/${job.file}`,
+      downloadUrl: `/api/media/file/${job.file}?download=1`,
+      requestedDurationSeconds: job.durationSeconds,
+      generatedDurationSeconds:
+        job.generatedDurationSeconds ?? job.durationSeconds,
+      generatedFrameCount: job.generatedFrameCount ?? null,
+      generatedFps: job.generatedFps ?? job.fps ?? null,
+    });
+  }
+
+  if (job.error) {
+    return res
+      .status(502)
+      .json({
+        status: "failed",
+        error: job.error,
+        model: job.model || "unknown",
+      });
+  }
+
+  // Gemini/Veo is the only provider that needs status polling through its
+  // operation API. Local/HF/Pollinations are now background jobs.
+  if (job.provider === "gemini" && job.operationName) {
+    try {
+      const operation = await pollVideoJob(job.operationName);
+      if (!operation.done) {
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        return res.json({
+          status: "processing",
+          provider: "gemini",
+          model: job.model || getVideoModel(),
+        });
+      }
+
+      const file = saveMediaBuffer(operation.buffer, "video/mp4");
+      job.file = file;
+      job.status = "done";
+      job.updatedAt = Date.now();
+      persistVideoJob(job);
+      recordMedia({
+        userId: job.userId,
+        kind: job.fromImage ? "image-to-video" : "video",
+        prompt: job.prompt,
+        file,
+        model: job.model || getVideoModel(),
+      });
+      return res.json({
+        status: "done",
+        kind: "video",
+        model: job.model || getVideoModel(),
+        provider: "gemini",
+        file,
+        url: `/api/media/file/${file}`,
+        downloadUrl: `/api/media/file/${file}?download=1`,
+      });
+    } catch (error) {
+      console.error("Gemini video poll error:", error.message);
+      job.error = error.message || "Gemini video generation failed.";
+      job.status = "failed";
+      job.updatedAt = Date.now();
+      persistVideoJob(job);
+      return res.status(502).json({ status: "failed", error: job.error });
+    }
+  }
+
+  // Start the provider router exactly once. It runs independently of this
+  // request, so a slow provider render cannot make the browser request time out.
+  if (!job.runnerStarted) {
+    job.runnerStarted = true;
+    job.status = "processing";
+    job.updatedAt = Date.now();
+    persistVideoJob(job);
+    void runVideoGenerationJob(job);
+  }
+
+  return res.json({
+    status: "processing",
+    provider: job.provider || "auto",
+    model: job.model || "unknown",
+  });
 });
 
 // ---------------- MEDIA HISTORY ----------------
@@ -5843,10 +7477,144 @@ app.get("/api/media/history", requireLogin, (req, res) => {
 });
 
 // ============================================================
+// V8 CREATOR PROJECTS + SAFE PROVIDER STATUS
+// ============================================================
+app.get("/api/v8/status", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ version: "8.1.0", freeOnly: freeOnlyMediaMode(), paidVideoEnabled: paidVideoEnabled(), providers: mediaProviderSummary() });
+});
+
+function creatorProjectMedia(projectId, userId) {
+  return db.prepare(`SELECT m.id,m.kind,m.prompt,m.file,m.model,m.created_at,
+    '/api/media/file/' || m.file AS url, '/api/media/file/' || m.file || '?download=1' AS downloadUrl
+    FROM creator_project_media pm JOIN media_history m ON m.id=pm.media_id
+    JOIN creator_projects p ON p.id=pm.project_id
+    WHERE pm.project_id=? AND p.user_id=? AND m.user_id=? ORDER BY pm.created_at DESC`)
+    .all(projectId, userId, userId).filter(m => fs.existsSync(path.join(MEDIA_DIR, path.basename(m.file))));
+}
+function saveCreatorProjectVersion(projectId, userId, note = "Autosaved version") {
+  const project = db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(projectId,userId);
+  if (!project) return null;
+  const media = db.prepare("SELECT media_id FROM creator_project_media WHERE project_id=? ORDER BY media_id").all(projectId).map(x=>x.media_id);
+  const snapshot = JSON.stringify({ project, media });
+  const previous = db.prepare("SELECT snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 1").get(projectId,userId);
+  if (previous?.snapshot_json === snapshot) return null;
+  const result = db.prepare("INSERT INTO creator_project_versions(project_id,user_id,snapshot_json,note) VALUES(?,?,?,?)").run(projectId,userId,snapshot,String(note||"Autosaved version").slice(0,120));
+  // Keep the newest 50 snapshots per project to bound database growth.
+  db.prepare("DELETE FROM creator_project_versions WHERE project_id=? AND user_id=? AND id NOT IN (SELECT id FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50)").run(projectId,userId,projectId,userId);
+  return Number(result.lastInsertRowid);
+}
+app.get("/api/projects", requireLogin, (req, res) => {
+  const items = db.prepare(`SELECT p.id,p.name,p.description,p.brand_color,p.created_at,p.updated_at,
+    (SELECT COUNT(*) FROM creator_project_media pm JOIN media_history m ON m.id=pm.media_id WHERE pm.project_id=p.id AND m.user_id=p.user_id) AS media_count
+    FROM creator_projects p WHERE p.user_id=? ORDER BY p.updated_at DESC,p.id DESC`).all(req.session.userId);
+  res.json({ items });
+});
+app.post("/api/projects", requireLogin, rateLimit({ windowMs: 60000, max: 20 }), (req, res) => {
+  const name = String(req.body?.name || "").trim().slice(0,100);
+  const description = String(req.body?.description || "").trim().slice(0,1000);
+  const color = /^#[0-9a-f]{6}$/i.test(String(req.body?.brandColor || "")) ? req.body.brandColor : "#7c5cff";
+  if (name.length < 2) return res.status(400).json({ error: "Project name must be at least 2 characters." });
+  const result = db.prepare("INSERT INTO creator_projects(user_id,name,description,brand_color) VALUES(?,?,?,?)").run(req.session.userId,name,description,color);
+  const id=Number(result.lastInsertRowid); saveCreatorProjectVersion(id,req.session.userId,"Project created");
+  res.status(201).json({ item: { id, name, description, brand_color:color, media:[] } });
+});
+app.get("/api/projects/:id", requireLogin, (req, res) => {
+  const id = Number(req.params.id);
+  const p = db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(id,req.session.userId);
+  if (!p) return res.status(404).json({ error: "Project not found." });
+  res.json({ item: { ...p, media: creatorProjectMedia(id,req.session.userId) } });
+});
+app.patch("/api/projects/:id", requireLogin, (req, res) => {
+  const id=Number(req.params.id), uid=req.session.userId;
+  const p=db.prepare("SELECT * FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!p) return res.status(404).json({error:"Project not found."});
+  const name=String(req.body?.name ?? p.name).trim().slice(0,100), description=String(req.body?.description ?? p.description).trim().slice(0,1000);
+  const color=/^#[0-9a-f]{6}$/i.test(String(req.body?.brandColor ?? p.brand_color))?String(req.body?.brandColor ?? p.brand_color):p.brand_color;
+  if(name.length<2) return res.status(400).json({error:"Project name must be at least 2 characters."});
+  saveCreatorProjectVersion(id,uid,"Before project edit");
+  db.prepare("UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(name,description,color,id,uid);
+  saveCreatorProjectVersion(id,uid,"Project details updated");
+  res.json({ok:true});
+});
+app.delete("/api/projects/:id", requireLogin, (req,res)=>{
+  const r=db.prepare("DELETE FROM creator_projects WHERE id=? AND user_id=?").run(Number(req.params.id),req.session.userId);
+  if(!r.changes) return res.status(404).json({error:"Project not found."});
+  res.json({ok:true});
+});
+app.post("/api/projects/:id/media", requireLogin, (req,res)=>{
+  const id=Number(req.params.id), mediaId=Number(req.body?.mediaId), uid=req.session.userId;
+  const p=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!p) return res.status(404).json({error:"Project not found."});
+  const m=db.prepare("SELECT id FROM media_history WHERE id=? AND user_id=?").get(mediaId,uid);
+  if(!m) return res.status(404).json({error:"Media not found in your library."});
+  try { db.prepare("INSERT INTO creator_project_media(project_id,media_id) VALUES(?,?)").run(id,mediaId); }
+  catch(e) { if(!String(e.message).includes("UNIQUE")) throw e; }
+  db.prepare("UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(id,uid);
+  saveCreatorProjectVersion(id,uid,"Media added to project");
+  res.json({ok:true});
+});
+app.delete("/api/projects/:id/media/:mediaId", requireLogin, (req,res)=>{
+  const id=Number(req.params.id), mid=Number(req.params.mediaId), uid=req.session.userId;
+  const p=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!p) return res.status(404).json({error:"Project not found."});
+  db.prepare("DELETE FROM creator_project_media WHERE project_id=? AND media_id=?").run(id,mid);
+  db.prepare("UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(id,uid);
+  saveCreatorProjectVersion(id,uid,"Media removed from project");
+  res.json({ok:true});
+});
+app.get("/api/projects/:id/versions", requireLogin, (req,res)=>{
+  const id=Number(req.params.id), uid=req.session.userId;
+  const project=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!project) return res.status(404).json({error:"Project not found."});
+  const items=db.prepare("SELECT id,note,created_at,snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50").all(id,uid).map(v=>{let snapshot={};try{snapshot=JSON.parse(v.snapshot_json)}catch{};return {id:v.id,note:v.note,created_at:v.created_at,project:snapshot.project||{},mediaCount:Array.isArray(snapshot.media)?snapshot.media.length:0};});
+  res.json({items});
+});
+app.post("/api/projects/:id/versions/:versionId/restore", requireLogin, (req,res)=>{
+  const id=Number(req.params.id), versionId=Number(req.params.versionId), uid=req.session.userId;
+  const project=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!project) return res.status(404).json({error:"Project not found."});
+  const version=db.prepare("SELECT snapshot_json FROM creator_project_versions WHERE id=? AND project_id=? AND user_id=?").get(versionId,id,uid);
+  if(!version) return res.status(404).json({error:"Version not found."});
+  let snapshot;try{snapshot=JSON.parse(version.snapshot_json)}catch{return res.status(400).json({error:"This version snapshot is invalid."});}
+  if(!snapshot.project || !Array.isArray(snapshot.media)) return res.status(400).json({error:"This version snapshot is incomplete."});
+  saveCreatorProjectVersion(id,uid,"Before restoring version "+versionId);
+  const p=snapshot.project;
+  db.prepare("UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(String(p.name||"Restored project").slice(0,100),String(p.description||"").slice(0,1000),/^#[0-9a-f]{6}$/i.test(p.brand_color||"")?p.brand_color:"#7c5cff",id,uid);
+  db.prepare("DELETE FROM creator_project_media WHERE project_id=?").run(id);
+  const add=db.prepare("INSERT OR IGNORE INTO creator_project_media(project_id,media_id) SELECT ?,id FROM media_history WHERE id=? AND user_id=?");
+  for(const mediaId of snapshot.media) add.run(id,Number(mediaId),uid);
+  saveCreatorProjectVersion(id,uid,"Restored version "+versionId);
+  res.json({ok:true});
+});
+app.get("/api/projects/:id/export-manifest", requireLogin, (req,res)=>{
+  const id=Number(req.params.id), uid=req.session.userId;
+  const p=db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
+  if(!p) return res.status(404).json({error:"Project not found."});
+  const manifest={format:"editprompt-project-manifest-v1",project:p,media:creatorProjectMedia(id,uid).map(m=>({id:m.id,kind:m.kind,prompt:m.prompt,file:m.file,model:m.model,created_at:m.created_at,url:m.url}))};
+  res.setHeader("Content-Type","application/json; charset=utf-8");
+  res.setHeader("Content-Disposition",`attachment; filename="editprompt-project-${id}.json"`);
+  res.send(JSON.stringify(manifest,null,2));
+});
+
+// ============================================================
 // FRONTEND FALLBACK
 // ============================================================
 
-pro.mount({ app, requireAdmin, logAdmin, products, razorpayKeys, razorpayReady, mailer });
+pro.mount({
+  app,
+  requireAdmin,
+  logAdmin,
+  products,
+  razorpayKeys,
+  razorpayReady,
+  mailer,
+  ai: {
+    callGemini,
+    geminiReady: hasUsableGeminiKey,
+    generateImage: generateImageWithProviders,
+  },
+});
 
 mountSoftwareDownloads(app);
 
@@ -5865,12 +7633,18 @@ app.get("*", (req, res) =>
 
 const port = Number(process.env.PORT || 3000);
 
-if (mailer && String(process.env.SMTP_VERIFY_ON_START || "true").toLowerCase() !== "false") {
-  mailer.verify().then(() => {
-    console.log("SMTP connection: OK");
-  }).catch((error) => {
-    console.error("SMTP connection: FAILED:", error.message);
-  });
+if (
+  mailer &&
+  String(process.env.SMTP_VERIFY_ON_START || "true").toLowerCase() !== "false"
+) {
+  mailer
+    .verify()
+    .then(() => {
+      console.log("SMTP connection: OK");
+    })
+    .catch((error) => {
+      console.error("SMTP connection: FAILED:", error.message);
+    });
 }
 
 app.listen(port, () => {

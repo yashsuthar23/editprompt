@@ -1,24 +1,31 @@
-# Free-only AI Media Mode
+# EditPrompt V7.7 video providers
 
-This build is configured for **free-only media generation**.
+EditPrompt now supports remote Wan 2.2 video providers instead of depending on one Hugging Face ZeroGPU queue.
 
-- Media generation uses Pollinations only when `POLLINATIONS_API_KEY` is configured.
-- Gemini/Veo are disabled for media in `FREE_ONLY_MEDIA=true` mode.
-- ComfyUI/local media is disabled in free-only mode.
-- If Pollinations returns an insufficient-balance/402 error, the app does **not** switch to Gemini, Veo, or ComfyUI. It reports the provider error instead.
+## Recommended remote setup
 
-## Environment
+Set these server-side environment variables:
 
-```env
-FREE_ONLY_MEDIA=true
-POLLINATIONS_API_KEY=
-POLLINATIONS_BASE_URL=https://gen.pollinations.ai
-POLLINATIONS_IMAGE_MODEL=flux
-POLLINATIONS_VIDEO_MODEL=veo
-COMFYUI_URL=
+```
+FREE_ONLY_MEDIA=false
+PAID_VIDEO_ENABLED=true
+FAL_KEY=your_fal_key
+FAL_VIDEO_T2V_MODEL=fal-ai/wan/v2.2-a14b/text-to-video
+FAL_VIDEO_I2V_MODEL=fal-ai/wan/v2.2-a14b/image-to-video
 ```
 
-### Important
-Pollinations image/video generation is not an unlimited free API. Video may require available Pollen/credits. The application deliberately does not add a paid fallback.
+Optional Replicate fallback:
 
-For a Windows `.exe`, the app can be packaged with the existing `npm run build:exe` workflow. Never ship a personal server-side API key inside a public `.exe`; use a backend or have each user configure their own key.
+```
+REPLICATE_API_TOKEN=your_replicate_token
+REPLICATE_VIDEO_T2V_MODEL=wan-video/wan-2.2-t2v-fast
+REPLICATE_VIDEO_I2V_MODEL=wan-video/wan-2.2-i2v-fast
+```
+
+Provider order is:
+
+`fal.ai → Replicate → Hugging Face ZeroGPU → other configured providers`
+
+Paid providers are never used unless `PAID_VIDEO_ENABLED=true`. API keys stay on the server and are not sent to the browser.
+
+Hugging Face remains an optional free fallback, but its ZeroGPU quota can still be exhausted.

@@ -121,3 +121,31 @@
 .vid-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; margin: 6px 0 18px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: #000; }
 .vid-wrap video, .vid-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .vid-link { display: inline-block; margin: 2px 0 18px; padding: 10px 16px; font-size: 14px; }
+
+.hub-filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.hub-filter{border:1px solid var(--border,#333);background:#111;color:var(--muted,#aaa);border-radius:999px;padding:8px 12px;cursor:pointer}
+.hub-filter.on{background:#ef2029;color:#fff;border-color:#ef2029}
+.compare-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border:1px solid var(--border,#333);border-radius:12px;background:#121212}
+.app-fav{margin-left:auto;border:0;background:transparent;color:#aaa;font-size:18px;cursor:pointer}
+.app-fav.on{color:#facc15}
+.app-compare{display:inline-flex;align-items:center;gap:5px;color:#aaa;font-size:11px}
+
+.compare-modal{position:fixed;inset:0;background:rgba(0,0,0,.76);display:grid;place-items:center;padding:18px;z-index:1000}
+.compare-modal[hidden]{display:none}
+.compare-dialog{width:min(1000px,96vw);max-height:88vh;overflow:auto;background:#111;border:1px solid #333;border-radius:18px;padding:20px;box-shadow:0 20px 80px #000}
+.compare-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+.compare-table-wrap{overflow:auto}.compare-table{width:100%;border-collapse:collapse;min-width:620px}
+.compare-table th,.compare-table td{padding:11px;border-top:1px solid #2b2b2b;text-align:left;vertical-align:top;font-size:12px}
+.compare-table th{color:#fff;background:#171717}.compare-table td:first-child{color:#aaa;font-weight:700}
+
+
+/* Theme-aware Software Hub: remove hard-coded black surfaces in light mode. */
+body[data-ep-theme="light"] .app,
+body[data-ep-theme="light"] .side-card { background: linear-gradient(145deg,#fff,#f8faff); color: var(--text); }
+body[data-ep-theme="light"] .kit-cmd { background: #f4f6fb; color: #283248; }
+body[data-ep-theme="light"] .hub-tabs { background: #edf1f8; }
+body[data-ep-theme="light"] .hub-filter { background: #fff; color: var(--text); }
+body[data-ep-theme="light"] .hub-filter.on { background: var(--accent); color: #fff; }
+body[data-ep-theme="light"] .app-ic { border-color: var(--border); }
+body[data-ep-theme="light"] .sw-modal { background: #fff; color: var(--text); border-color: var(--border); box-shadow: 0 20px 60px rgba(20,30,50,.18); }
+body[data-ep-theme="light"] .sw-x { background: #f4f6fb; color: var(--text); }

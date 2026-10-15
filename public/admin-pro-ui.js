@@ -22,6 +22,9 @@
   panel.id = "tab-pro"; panel.setAttribute("role", "tabpanel"); panel.className = "adm-hide";
   panel.innerHTML =
     '<div class="panel"><h3>Conversion funnel</h3><p class="muted">Where visitors drop off, from signup to payment.</p><div id="proFunnel"></div></div>' +
+    '<div class="panel"><h3>Add new Prompt Pack</h3><p class="muted">Just enter the name and price. AI writes the tag, description, categories, the full prompt file and the cover images, then publishes the pack on the store and gives it its own product page. Takes about 1-3 minutes.</p>' +
+    '<div class="adm-tools"><input id="npName" class="adm-input grow" maxlength="80" placeholder="Pack name, e.g. Gaming Montage Prompt Pack" /><input id="npPrice" class="adm-input" type="number" min="1" placeholder="Price (₹)" style="width:130px" /><button id="npAdd" class="btn small" type="button">Generate &amp; Add Pack</button></div>' +
+    '<div class="adm-tools"><span id="npMsg" class="muted" style="margin:0"></span></div></div>' +
     '<div class="panel"><h3>Products &amp; pricing</h3><p class="muted">Price changes apply to checkout immediately and update the price text on the product page.</p><div id="proProducts"></div></div>' +
     '<div class="panel"><h3>Email broadcast</h3><p class="muted">Every email includes an unsubscribe link. Blocked and unsubscribed users are skipped automatically.</p>' +
     '<div class="adm-tools"><select id="bcSeg" class="adm-input"></select><input id="bcSubject" class="adm-input grow" maxlength="150" placeholder="Subject" /></div>' +
@@ -141,17 +144,37 @@
   }
   function loadProducts() {
     api("/api/admin/products").then(function (d) {
+      clearTimeout(window.__packPoll);
+      if (d.products.some(function (p) { return p.status === "generating"; })) window.__packPoll = setTimeout(loadProducts, 4000);
+      if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#proProducts")) return;
       $("proProducts").innerHTML = table(["Product", "Price (₹)", "Sales", ""], d.products.map(function (p) {
-        return '<tr><td><input class="adm-input" data-pn="' + p.id + '" value="' + esc(p.name) + '" style="min-width:240px"></td><td><input class="adm-input" type="number" min="1" data-pp="' + p.id + '" value="' + p.price + '" style="width:110px"></td><td>' + p.sales + '</td><td><button class="btn small" data-psave="' + p.id + '">Save</button></td></tr>';
+        return '<tr><td><input class="adm-input" data-pn="' + p.id + '" value="' + esc(p.name) + '" style="min-width:240px">' + (p.custom ? '<br><span class="muted">' + (p.status === "generating" ? "⏳ AI is generating… " + esc(p.progress || "") : p.status === "failed" ? "⚠️ Failed: " + esc(p.error || "") : "NEW PACK" + (p.hidden ? " • hidden from store" : "") + ' • <a href="/pack.html?id=' + esc(p.id) + '" target="_blank">open page</a>') + "</span>" : "") + '</td><td><input class="adm-input" type="number" min="1" data-pp="' + p.id + '" value="' + p.price + '" style="width:110px"></td><td>' + p.sales + '</td><td><button class="btn small" data-psave="' + p.id + '">Save</button>' + (p.custom ? (p.status === "ready" ? ' <button class="btn ghost small" data-pvis="' + p.id + '" data-show="' + (p.hidden ? "1" : "0") + '">' + (p.hidden ? "Show" : "Hide") + "</button>" : p.status === "failed" ? ' <button class="btn ghost small" data-pretry="' + p.id + '">Retry</button>' : "") + (p.status === "generating" ? "" : ' <button class="btn ghost small" data-pdel="' + p.id + '">Delete</button>') : "") + '</td></tr>';
       }));
     }).catch(function (e) { $("proProducts").textContent = e.message; });
   }
   $("proProducts").addEventListener("click", function (e) {
-    var id = e.target.dataset && e.target.dataset.psave;
+    var d = e.target.dataset || {};
+    if (d.pvis) { api("/api/admin/packs/" + d.pvis + "/visibility", { show: d.show === "1" }).then(loadProducts).catch(function (er) { alert(er.message); }); return; }
+    if (d.pretry) { api("/api/admin/packs/" + d.pretry + "/regenerate", {}).then(loadProducts).catch(function (er) { alert(er.message); }); return; }
+    if (d.pdel) { if (confirm("Delete this pack permanently?")) api("/api/admin/packs/" + d.pdel + "/delete", {}).then(loadProducts).catch(function (er) { alert(er.message); }); return; }
+    var id = d.psave;
     if (!id) return;
     var name = $("proProducts").querySelector('[data-pn="' + id + '"]').value, price = $("proProducts").querySelector('[data-pp="' + id + '"]').value;
     if (!confirm("Change " + id + " to ₹" + price + "?")) return;
     api("/api/admin/products", { id: id, name: name, price: price }).then(function () { alert("Saved."); loadProducts(); }).catch(function (er) { alert(er.message); });
+  });
+  $("npAdd").addEventListener("click", function () {
+    var msg = $("npMsg"), btn = $("npAdd");
+    if (!$("npName").value.trim() || !$("npPrice").value) { msg.textContent = "Enter a name and price."; return; }
+    btn.disabled = true; msg.textContent = "Starting AI…";
+    api("/api/admin/packs", { name: $("npName").value, price: $("npPrice").value })
+      .then(function () {
+        msg.textContent = "Started. Watch the progress in the table below — it goes live on the store automatically.";
+        $("npName").value = ""; $("npPrice").value = "";
+        loadProducts();
+      })
+      .catch(function (er) { msg.textContent = "Error: " + er.message; })
+      .then(function () { btn.disabled = false; });
   });
   var segNames = { all: "All users", buyers: "Buyers", nonbuyers: "Non-buyers", inactive: "Inactive 30 days" };
   function loadBroadcast() {
