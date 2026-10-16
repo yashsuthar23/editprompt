@@ -29,6 +29,7 @@
     });
   }
   function applyTheme(theme) {
+    if (body.classList.contains("ep-dark-only")) theme = "dark"; /* dark-designed pages (product packs) */
     body.setAttribute("data-ep-theme", theme);
     document.querySelectorAll("[data-ep-theme-toggle], #themeToggle").forEach(function (button) {
       button.innerHTML = theme === "light" ? moon : sun;

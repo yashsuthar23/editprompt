@@ -1,0 +1,239 @@
+/* Light-mode corrections for legacy components that use hard-coded dark colors.
+   Every rule is scoped to body[data-ep-theme="light"] with a high-specificity prefix,
+   so dark mode is untouched and inline <style> blocks cannot override these. */
+
+/* Surfaces: dark hard-coded cards, panels, inputs and boxes become white/soft */
+html body[data-ep-theme="light"] #store .product,
+html body[data-ep-theme="light"] .advfields,
+html body[data-ep-theme="light"] .advfields .ms-control,
+html body[data-ep-theme="light"] .advfields .ms-dropdown,
+html body[data-ep-theme="light"] .adv-text-field textarea,
+html body[data-ep-theme="light"] .adv-suggestion,
+html body[data-ep-theme="light"] .scene-chip,
+html body[data-ep-theme="light"] .adv-icon,
+html body[data-ep-theme="light"] .advfields[open] .adv-icon,
+html body[data-ep-theme="light"] .lib-prompt,
+html body[data-ep-theme="light"] #creatorLibrary .lib-prompt,
+html body[data-ep-theme="light"] .pack-image-card,
+html body[data-ep-theme="light"] .v8-panel,
+html body[data-ep-theme="light"] .v8-card,
+html body[data-ep-theme="light"] .v8-project,
+html body[data-ep-theme="light"] .v8-version,
+html body[data-ep-theme="light"] .v8-form input,
+html body[data-ep-theme="light"] .v8-form textarea,
+html body[data-ep-theme="light"] .v8-form select,
+html body[data-ep-theme="light"] .v8-edit-form input,
+html body[data-ep-theme="light"] .v8-edit-form textarea,
+html body[data-ep-theme="light"] .v8-card img,
+html body[data-ep-theme="light"] .v8-card video,
+html body[data-ep-theme="light"] .compare-bar,
+html body[data-ep-theme="light"] .compare-dialog,
+html body[data-ep-theme="light"] .compare-table th,
+html body[data-ep-theme="light"] .compare-table td,
+html body[data-ep-theme="light"] .hub-filter,
+html body[data-ep-theme="light"] .hub-search input,
+html body[data-ep-theme="light"] .dl-panel,
+html body[data-ep-theme="light"] .sw-x,
+html body[data-ep-theme="light"] .vid-wrap,
+html body[data-ep-theme="light"] .seg,
+html body[data-ep-theme="light"] .adm-tab-btn,
+html body[data-ep-theme="light"] .meter,
+html body[data-ep-theme="light"] .adm-input {
+  background-color: #ffffff !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html body[data-ep-theme="light"] #store .product {
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(26,34,51,.06) !important;
+}
+html body[data-ep-theme="light"] .advfields {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(26,34,51,.05) !important;
+}
+html body[data-ep-theme="light"] .advfields .ms-dropdown label:hover,
+html body[data-ep-theme="light"] .adv-suggestion:hover,
+html body[data-ep-theme="light"] .scene-chip:hover,
+html body[data-ep-theme="light"] #store .tag,
+html body[data-ep-theme="light"] #store .pack-specs span,
+html body[data-ep-theme="light"] .advfields .chip,
+html body[data-ep-theme="light"] .v8-project.active {
+  background-color: #f3f6fb !important;
+  color: var(--text) !important;
+}
+html body[data-ep-theme="light"] .v8-project.active {
+  background-color: color-mix(in srgb, var(--accent) 8%, white) !important;
+  border-color: var(--accent) !important;
+}
+html body[data-ep-theme="light"] .v8-hero {
+  background: linear-gradient(135deg, #eeebff, #ffffff 70%) !important;
+  color: var(--text) !important;
+}
+html body[data-ep-theme="light"] .v8-message {
+  background: #eeebff !important;
+  color: var(--text) !important;
+}
+
+/* Text: light/white text that sits on those surfaces becomes readable dark text */
+html body[data-ep-theme="light"] #store .product h3,
+html body[data-ep-theme="light"] #store .product .price,
+html body[data-ep-theme="light"] #store .pack-specs span:first-child,
+html body[data-ep-theme="light"] .generator-section-head label,
+html body[data-ep-theme="light"] .adv-title b,
+html body[data-ep-theme="light"] .advfields .chip,
+html body[data-ep-theme="light"] .adv-suggestion,
+html body[data-ep-theme="light"] .scene-chip,
+html body[data-ep-theme="light"] .pack-image-card .image-label,
+html body[data-ep-theme="light"] .list-row .right,
+html body[data-ep-theme="light"] .big-num,
+html body[data-ep-theme="light"] .linkish b,
+html body[data-ep-theme="light"] .v8-hero h1,
+html body[data-ep-theme="light"] .v8-panel h2,
+html body[data-ep-theme="light"] .v8-project .name,
+html body[data-ep-theme="light"] .v8-card p,
+html body[data-ep-theme="light"] .v8-edit-form label {
+  color: var(--text) !important;
+}
+html body[data-ep-theme="light"] .big-num { color: #73572f !important; }
+html body[data-ep-theme="light"] .adm-field label,
+html body[data-ep-theme="light"] .admin-meta,
+html body[data-ep-theme="light"] .admin-loading,
+html body[data-ep-theme="light"] .empty-state,
+html body[data-ep-theme="light"] .chart-axis,
+html body[data-ep-theme="light"] .lib-meta,
+html body[data-ep-theme="light"] .advfields label,
+html body[data-ep-theme="light"] .adv-text-field label,
+html body[data-ep-theme="light"] .v8-card .body small,
+html body[data-ep-theme="light"] .v8-project small,
+html body[data-ep-theme="light"] .v8-version small,
+html body[data-ep-theme="light"] .v8-status,
+html body[data-ep-theme="light"] .v8-empty,
+html body[data-ep-theme="light"] .v8-note,
+html body[data-ep-theme="light"] .v8-wrap .muted,
+html body[data-ep-theme="light"] #store .product .muted,
+html body[data-ep-theme="light"] #store .tag,
+html body[data-ep-theme="light"] #store .product p {
+  color: var(--muted) !important;
+}
+html body[data-ep-theme="light"] .compare-table td:first-child { color: var(--muted) !important; }
+html body[data-ep-theme="light"] .compare-table th { background: #f3f6fb !important; }
+html body[data-ep-theme="light"] .app-fav.on { color: #d99a00 !important; }
+
+/* Table and list rows in the admin panel */
+html body[data-ep-theme="light"] .adm-table th,
+html body[data-ep-theme="light"] .admin-table th { color: var(--muted) !important; border-color: var(--border) !important; }
+html body[data-ep-theme="light"] .adm-table td,
+html body[data-ep-theme="light"] .admin-table td,
+html body[data-ep-theme="light"] .list-row { color: var(--text) !important; border-color: var(--border) !important; }
+html body[data-ep-theme="light"] .seg button { color: var(--muted) !important; }
+html body[data-ep-theme="light"] .seg button.active,
+html body[data-ep-theme="light"] .adm-tab-btn.active { color: #fff !important; }
+
+/* Status badges: keep their meaning, improve contrast on white */
+html body[data-ep-theme="light"] .status-pending { color: #92400e !important; }
+html body[data-ep-theme="light"] .status-paid,
+html body[data-ep-theme="light"] .status-active { color: #166534 !important; }
+html body[data-ep-theme="light"] .status-failed,
+html body[data-ep-theme="light"] .status-cancelled,
+html body[data-ep-theme="light"] .status-blocked { color: #b91c1c !important; }
+html body[data-ep-theme="light"] .status-other { color: #334155 !important; }
+html body[data-ep-theme="light"] #creatorLibrary .lib-media-card img,
+html body[data-ep-theme="light"] #creatorLibrary .lib-media-card video,
+html body[data-ep-theme="light"] .v8-card img,
+html body[data-ep-theme="light"] .v8-card video { background-color: #f1f4f9 !important; }
+
+/* Video/prompt boxes and image frames: a soft light frame, not black */
+html body[data-ep-theme="light"] .pack-image-card { box-shadow: 0 16px 40px rgba(26,34,51,.08) !important; background: #f1f4f9 !important; }
+
+/* Keep the one thing that should stay strong: primary buttons and the active filter */
+html body[data-ep-theme="light"] .btn.primary,
+html body[data-ep-theme="light"] button.primary,
+html body[data-ep-theme="light"] .hub-filter.on,
+html body[data-ep-theme="light"] .hub-tabs button.on,
+html body[data-ep-theme="light"] .adm-tab-btn.active,
+html body[data-ep-theme="light"] .seg button.active {
+  color: #fff !important;
+}
+html body[data-ep-theme="light"] .hub-filter.on,
+html body[data-ep-theme="light"] .hub-tabs button.on,
+html body[data-ep-theme="light"] .adm-tab-btn.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ---- Round 2: remaining black output boxes, testimonials and faint labels ---- */
+
+/* Generated prompt box and small result/hint boxes (were #101010 with light text) */
+html body[data-ep-theme="light"] .output,
+html body[data-ep-theme="light"] .mini,
+html body[data-ep-theme="light"] #historyHint,
+html body[data-ep-theme="light"] .historyitem,
+html body[data-ep-theme="light"] .mediapreview,
+html body[data-ep-theme="light"] .mediastudio,
+html body[data-ep-theme="light"] .mediabatch-tile,
+html body[data-ep-theme="light"] .pack-preview-media,
+html body[data-ep-theme="light"] .sw-shot,
+html body[data-ep-theme="light"] .ms-control,
+html body[data-ep-theme="light"] .ms-control.open,
+html body[data-ep-theme="light"] .ms-search-input,
+html body[data-ep-theme="light"] .tool-mini input,
+html body[data-ep-theme="light"] .tool-mini select,
+html body[data-ep-theme="light"] .tool-mini textarea {
+  background-color: #f6f8fc !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+html body[data-ep-theme="light"] .output { box-shadow: inset 0 1px 2px rgba(26,34,51,.03); }
+html body[data-ep-theme="light"] .output:focus { border-color: var(--accent) !important; }
+html body[data-ep-theme="light"] #historyHint,
+html body[data-ep-theme="light"] .mini {
+  color: var(--muted) !important;
+}
+html body[data-ep-theme="light"] .mini *:not(button):not(a) { color: inherit; }
+html body[data-ep-theme="light"] .output:empty::before { color: #8a94a6; }
+
+/* Testimonials: quote text and avatar initials */
+html body[data-ep-theme="light"] .testimonial p {
+  color: var(--muted) !important;
+}
+html body[data-ep-theme="light"] .testimonial-author .avatar {
+  background: #eef2f9 !important;
+  color: #73572f !important;
+  border-color: var(--border) !important;
+}
+html body[data-ep-theme="light"] .testimonial-author b { color: var(--text) !important; }
+html body[data-ep-theme="light"] .testimonial-author small { color: #2f5fa8 !important; }
+
+/* Form labels such as Lighting, FPS, Mood that were nearly invisible */
+html body[data-ep-theme="light"] .multiselect > label,
+html body[data-ep-theme="light"] #lightingField > label,
+html body[data-ep-theme="light"] #fpsField > label,
+html body[data-ep-theme="light"] #moodField > label,
+html body[data-ep-theme="light"] .two.compact label,
+html body[data-ep-theme="light"] .field label,
+html body[data-ep-theme="light"] .label {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+html body[data-ep-theme="light"] .ms-control .placeholder,
+html body[data-ep-theme="light"] .ms-control span:empty::before { color: var(--muted); }
+
+/* ---- Round 3: remaining faint hints, logo text and hover overlay ---- */
+html body[data-ep-theme="light"] .adv-title small,
+html body[data-ep-theme="light"] .advfields small,
+html body[data-ep-theme="light"] #advCount {
+  color: var(--muted) !important;
+}
+html body[data-ep-theme="light"] .logo { color: #fff !important; }
+html body[data-ep-theme="light"] #store .cover-click-hint,
+html body[data-ep-theme="light"] .cover-click-hint { color: #fff !important; }
+
+/* ---- Round 4: active nav link was white-on-white (e.g. "Software" vanished) ---- */
+html body[data-ep-theme="light"] .nav nav a.active,
+html body[data-ep-theme="light"] nav a.active {
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+html body[data-ep-theme="light"] .app-fav { color: #7b8599 !important; }
+html body[data-ep-theme="light"] .app-compare { color: var(--muted) !important; }
+html body[data-ep-theme="light"] .hb-price { color: #fff !important; }

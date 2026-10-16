@@ -1828,11 +1828,9 @@ app.post(
       req.session.save((saveError) => {
         if (saveError) {
           console.error("Session save error:", saveError);
-          return res
-            .status(500)
-            .json({
-              error: "Login session could not be saved. Please try again.",
-            });
+          return res.status(500).json({
+            error: "Login session could not be saved. Please try again.",
+          });
         }
 
         res.json({
@@ -2392,7 +2390,9 @@ app.get("/api/download/:productId", requireLogin, (req, res) => {
 
   res.download(
     filePath,
-    product.custom ? product.file.replace(/^.*?__[0-9a-f]{6}__/, "") : product.file,
+    product.custom
+      ? product.file.replace(/^.*?__[0-9a-f]{6}__/, "")
+      : product.file,
   );
 });
 
@@ -5034,7 +5034,10 @@ function freeOnlyMediaMode() {
 }
 
 function paidVideoEnabled() {
-  return String(process.env.PAID_VIDEO_ENABLED || "false").toLowerCase() === "true" && !freeOnlyMediaMode();
+  return (
+    String(process.env.PAID_VIDEO_ENABLED || "false").toLowerCase() ===
+      "true" && !freeOnlyMediaMode()
+  );
 }
 
 function mediaEnabled() {
@@ -5049,10 +5052,13 @@ function mediaEnabled() {
 function mediaProviderLabel() {
   const providers = [];
   if (paidVideoEnabled() && hasUsableFalKey()) providers.push("fal-wan2.2");
-  if (paidVideoEnabled() && hasUsableReplicateKey()) providers.push("replicate-wan2.2");
+  if (paidVideoEnabled() && hasUsableReplicateKey())
+    providers.push("replicate-wan2.2");
   if (hasUsableHFToken()) providers.push("huggingface-wan2.2-zerogpu");
-  if (paidVideoEnabled() && hasUsablePollinationsKey()) providers.push("pollinations");
-  if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey()) providers.push("gemini-veo");
+  if (paidVideoEnabled() && hasUsablePollinationsKey())
+    providers.push("pollinations");
+  if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey())
+    providers.push("gemini-veo");
   return providers.join(" → ") || "none";
 }
 
@@ -6133,7 +6139,8 @@ async function generateVideoWithMiniMax({
       const type = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
       const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
       if (!dataLine) continue;
-      if (type === "error") streamError = parseGradioStreamError(dataLine, "Hugging Face MiniMax");
+      if (type === "error")
+        streamError = parseGradioStreamError(dataLine, "Hugging Face MiniMax");
       if (type === "complete") {
         try {
           resultData = JSON.parse(dataLine);
@@ -6187,7 +6194,9 @@ async function downloadRemoteVideo(url, timeoutMs = 900000) {
   const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`Remote video download failed (${response.status}): ${text.slice(0, 300)}`);
+    throw new Error(
+      `Remote video download failed (${response.status}): ${text.slice(0, 300)}`,
+    );
   }
   return {
     buffer: Buffer.from(await response.arrayBuffer()),
@@ -6197,13 +6206,20 @@ async function downloadRemoteVideo(url, timeoutMs = 900000) {
 
 function falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image }) {
   const framesPerSecond = Math.max(4, Math.min(60, Number(fps || 24)));
-  const requestedFrames = Math.max(17, Math.min(161, Math.round(Number(durationSeconds || 5) * framesPerSecond)));
-  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio) ? aspectRatio : "16:9";
+  const requestedFrames = Math.max(
+    17,
+    Math.min(161, Math.round(Number(durationSeconds || 5) * framesPerSecond)),
+  );
+  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio)
+    ? aspectRatio
+    : "16:9";
   const negativePrompt = String(
     process.env.VIDEO_NEGATIVE_PROMPT ||
       "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, abrupt cuts",
   );
-  const resolution = ["480p", "580p", "720p"].includes(String(process.env.FAL_VIDEO_RESOLUTION || "720p"))
+  const resolution = ["480p", "580p", "720p"].includes(
+    String(process.env.FAL_VIDEO_RESOLUTION || "720p"),
+  )
     ? String(process.env.FAL_VIDEO_RESOLUTION || "720p")
     : "720p";
 
@@ -6214,10 +6230,15 @@ function falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image }) {
     frames_per_second: framesPerSecond,
     resolution,
     aspect_ratio: ratio,
-    num_inference_steps: Math.max(1, Math.min(40, Number(process.env.FAL_VIDEO_STEPS || 27))),
+    num_inference_steps: Math.max(
+      1,
+      Math.min(40, Number(process.env.FAL_VIDEO_STEPS || 27)),
+    ),
     enable_safety_checker: true,
     enable_output_safety_checker: true,
-    enable_prompt_expansion: String(process.env.FAL_PROMPT_EXPANSION || "false").toLowerCase() === "true",
+    enable_prompt_expansion:
+      String(process.env.FAL_PROMPT_EXPANSION || "false").toLowerCase() ===
+      "true",
     acceleration: "regular",
     video_quality: String(process.env.FAL_VIDEO_QUALITY || "high"),
     video_write_mode: "balanced",
@@ -6229,9 +6250,18 @@ function falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image }) {
   return input;
 }
 
-async function generateVideoWithFal({ prompt, durationSeconds, image, aspectRatio, fps }) {
+async function generateVideoWithFal({
+  prompt,
+  durationSeconds,
+  image,
+  aspectRatio,
+  fps,
+}) {
   if (!hasUsableFalKey()) throw new Error("fal.ai FAL_KEY is not configured.");
-  if (!paidVideoEnabled()) throw new Error("Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable fal.ai.");
+  if (!paidVideoEnabled())
+    throw new Error(
+      "Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable fal.ai.",
+    );
 
   let falClient;
   try {
@@ -6245,7 +6275,13 @@ async function generateVideoWithFal({ prompt, durationSeconds, image, aspectRati
   const endpoint = imageMode
     ? process.env.FAL_VIDEO_I2V_MODEL || "fal-ai/wan/v2.2-a14b/image-to-video"
     : process.env.FAL_VIDEO_T2V_MODEL || "fal-ai/wan/v2.2-a14b/text-to-video";
-  const input = falVideoInput({ prompt, durationSeconds, aspectRatio, fps, image });
+  const input = falVideoInput({
+    prompt,
+    durationSeconds,
+    aspectRatio,
+    fps,
+    image,
+  });
 
   // fal's SDK keeps the API key server-side and supports queue-backed long-running jobs.
   const result = await falClient.subscribe(endpoint, {
@@ -6263,21 +6299,42 @@ async function generateVideoWithFal({ prompt, durationSeconds, image, aspectRati
     ...downloaded,
     model: `fal:${endpoint}`,
     generatedFps: Number(fps || 24),
-    generatedFrameCount: Math.max(17, Math.min(161, Math.round(Number(durationSeconds || 5) * Number(fps || 24)))),
+    generatedFrameCount: Math.max(
+      17,
+      Math.min(
+        161,
+        Math.round(Number(durationSeconds || 5) * Number(fps || 24)),
+      ),
+    ),
     generatedDurationSeconds: Number(durationSeconds || 5),
   };
 }
 
-async function generateVideoWithReplicate({ prompt, durationSeconds, image, aspectRatio, fps }) {
-  if (!hasUsableReplicateKey()) throw new Error("Replicate API token is not configured.");
-  if (!paidVideoEnabled()) throw new Error("Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable Replicate.");
+async function generateVideoWithReplicate({
+  prompt,
+  durationSeconds,
+  image,
+  aspectRatio,
+  fps,
+}) {
+  if (!hasUsableReplicateKey())
+    throw new Error("Replicate API token is not configured.");
+  if (!paidVideoEnabled())
+    throw new Error(
+      "Paid video providers are disabled. Set PAID_VIDEO_ENABLED=true and FREE_ONLY_MEDIA=false to enable Replicate.",
+    );
 
   const endpoint = image
     ? process.env.REPLICATE_VIDEO_I2V_MODEL || "wan-video/wan-2.2-i2v-fast"
     : process.env.REPLICATE_VIDEO_T2V_MODEL || "wan-video/wan-2.2-t2v-fast";
   const framesPerSecond = Math.max(5, Math.min(30, Number(fps || 24)));
-  const numFrames = Math.max(81, Math.min(121, Math.round(Number(durationSeconds || 5) * framesPerSecond)));
-  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio) ? aspectRatio : "16:9";
+  const numFrames = Math.max(
+    81,
+    Math.min(121, Math.round(Number(durationSeconds || 5) * framesPerSecond)),
+  );
+  const ratio = ["16:9", "9:16", "1:1"].includes(aspectRatio)
+    ? aspectRatio
+    : "16:9";
   const input = {
     prompt: String(prompt || "").slice(0, 8000),
     num_frames: numFrames,
@@ -6285,45 +6342,71 @@ async function generateVideoWithReplicate({ prompt, durationSeconds, image, aspe
     frames_per_second: framesPerSecond,
     resolution: String(process.env.REPLICATE_VIDEO_RESOLUTION || "480p"),
     go_fast: true,
-    negative_prompt: String(process.env.VIDEO_NEGATIVE_PROMPT || "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, abrupt cuts"),
+    negative_prompt: String(
+      process.env.VIDEO_NEGATIVE_PROMPT ||
+        "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, abrupt cuts",
+    ),
   };
-  if (image?.data) input.image = `data:${image.mimeType || "image/png"};base64,${image.data}`;
+  if (image?.data)
+    input.image = `data:${image.mimeType || "image/png"};base64,${image.data}`;
 
-  const response = await fetch(`https://api.replicate.com/v1/models/${endpoint}/predictions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
-      "Content-Type": "application/json",
-      Prefer: "wait=60",
+  const response = await fetch(
+    `https://api.replicate.com/v1/models/${endpoint}/predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+        Prefer: "wait=60",
+      },
+      body: JSON.stringify({ input }),
+      signal: AbortSignal.timeout(
+        Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000),
+      ),
     },
-    body: JSON.stringify({ input }),
-    signal: AbortSignal.timeout(Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000)),
-  });
+  );
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`Replicate video failed (${response.status}): ${String(data?.detail || data?.error || "Unknown error").slice(0, 500)}`);
+    throw new Error(
+      `Replicate video failed (${response.status}): ${String(data?.detail || data?.error || "Unknown error").slice(0, 500)}`,
+    );
   }
 
   let output = data.output;
   if (!output && data.status && data.id) {
-    const deadline = Date.now() + Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000);
+    const deadline =
+      Date.now() + Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000);
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      const poll = await fetch(`https://api.replicate.com/v1/predictions/${data.id}`, {
-        headers: { Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}` },
-        signal: AbortSignal.timeout(30000),
-      });
+      const poll = await fetch(
+        `https://api.replicate.com/v1/predictions/${data.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.REPLICATE_API_TOKEN}`,
+          },
+          signal: AbortSignal.timeout(30000),
+        },
+      );
       const current = await poll.json().catch(() => ({}));
-      if (current.status === "succeeded") { output = current.output; break; }
+      if (current.status === "succeeded") {
+        output = current.output;
+        break;
+      }
       if (["failed", "canceled", "cancelled"].includes(current.status)) {
-        throw new Error(`Replicate video ${current.status}: ${String(current.error || "Unknown error").slice(0, 500)}`);
+        throw new Error(
+          `Replicate video ${current.status}: ${String(current.error || "Unknown error").slice(0, 500)}`,
+        );
       }
     }
   }
 
-  const videoUrl = typeof output === "string" ? output : output?.url || output?.[0];
+  const videoUrl =
+    typeof output === "string" ? output : output?.url || output?.[0];
   if (!videoUrl) throw new Error("Replicate returned no video URL.");
-  const downloaded = await downloadRemoteVideo(videoUrl, Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000));
+  const downloaded = await downloadRemoteVideo(
+    videoUrl,
+    Number(process.env.REPLICATE_VIDEO_TIMEOUT_MS || 900000),
+  );
   return {
     ...downloaded,
     model: `replicate:${endpoint}`,
@@ -6476,7 +6559,6 @@ async function startVideoJob({ prompt, aspectRatio, durationSeconds, image }) {
           aspectRatio,
           durationSeconds,
           resolution: process.env.VEO_RESOLUTION || "720p",
-
 
           personGeneration:
             process.env.VEO_PERSON_GENERATION ||
@@ -7377,13 +7459,11 @@ app.get("/api/media/video/:jobId", requireLogin, async (req, res) => {
   }
 
   if (job.error) {
-    return res
-      .status(502)
-      .json({
-        status: "failed",
-        error: job.error,
-        model: job.model || "unknown",
-      });
+    return res.status(502).json({
+      status: "failed",
+      error: job.error,
+      model: job.model || "unknown",
+    });
   }
 
   // Gemini/Veo is the only provider that needs status polling through its
@@ -7481,120 +7561,301 @@ app.get("/api/media/history", requireLogin, (req, res) => {
 // ============================================================
 app.get("/api/v8/status", (req, res) => {
   res.set("Cache-Control", "no-store");
-  res.json({ version: "8.1.0", freeOnly: freeOnlyMediaMode(), paidVideoEnabled: paidVideoEnabled(), providers: mediaProviderSummary() });
+  res.json({
+    version: "8.1.0",
+    freeOnly: freeOnlyMediaMode(),
+    paidVideoEnabled: paidVideoEnabled(),
+    providers: mediaProviderSummary(),
+  });
 });
 
 function creatorProjectMedia(projectId, userId) {
-  return db.prepare(`SELECT m.id,m.kind,m.prompt,m.file,m.model,m.created_at,
+  return db
+    .prepare(
+      `SELECT m.id,m.kind,m.prompt,m.file,m.model,m.created_at,
     '/api/media/file/' || m.file AS url, '/api/media/file/' || m.file || '?download=1' AS downloadUrl
     FROM creator_project_media pm JOIN media_history m ON m.id=pm.media_id
     JOIN creator_projects p ON p.id=pm.project_id
-    WHERE pm.project_id=? AND p.user_id=? AND m.user_id=? ORDER BY pm.created_at DESC`)
-    .all(projectId, userId, userId).filter(m => fs.existsSync(path.join(MEDIA_DIR, path.basename(m.file))));
+    WHERE pm.project_id=? AND p.user_id=? AND m.user_id=? ORDER BY pm.created_at DESC`,
+    )
+    .all(projectId, userId, userId)
+    .filter((m) => fs.existsSync(path.join(MEDIA_DIR, path.basename(m.file))));
 }
-function saveCreatorProjectVersion(projectId, userId, note = "Autosaved version") {
-  const project = db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(projectId,userId);
+function saveCreatorProjectVersion(
+  projectId,
+  userId,
+  note = "Autosaved version",
+) {
+  const project = db
+    .prepare(
+      "SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?",
+    )
+    .get(projectId, userId);
   if (!project) return null;
-  const media = db.prepare("SELECT media_id FROM creator_project_media WHERE project_id=? ORDER BY media_id").all(projectId).map(x=>x.media_id);
+  const media = db
+    .prepare(
+      "SELECT media_id FROM creator_project_media WHERE project_id=? ORDER BY media_id",
+    )
+    .all(projectId)
+    .map((x) => x.media_id);
   const snapshot = JSON.stringify({ project, media });
-  const previous = db.prepare("SELECT snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 1").get(projectId,userId);
+  const previous = db
+    .prepare(
+      "SELECT snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 1",
+    )
+    .get(projectId, userId);
   if (previous?.snapshot_json === snapshot) return null;
-  const result = db.prepare("INSERT INTO creator_project_versions(project_id,user_id,snapshot_json,note) VALUES(?,?,?,?)").run(projectId,userId,snapshot,String(note||"Autosaved version").slice(0,120));
+  const result = db
+    .prepare(
+      "INSERT INTO creator_project_versions(project_id,user_id,snapshot_json,note) VALUES(?,?,?,?)",
+    )
+    .run(
+      projectId,
+      userId,
+      snapshot,
+      String(note || "Autosaved version").slice(0, 120),
+    );
   // Keep the newest 50 snapshots per project to bound database growth.
-  db.prepare("DELETE FROM creator_project_versions WHERE project_id=? AND user_id=? AND id NOT IN (SELECT id FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50)").run(projectId,userId,projectId,userId);
+  db.prepare(
+    "DELETE FROM creator_project_versions WHERE project_id=? AND user_id=? AND id NOT IN (SELECT id FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50)",
+  ).run(projectId, userId, projectId, userId);
   return Number(result.lastInsertRowid);
 }
 app.get("/api/projects", requireLogin, (req, res) => {
-  const items = db.prepare(`SELECT p.id,p.name,p.description,p.brand_color,p.created_at,p.updated_at,
+  const items = db
+    .prepare(
+      `SELECT p.id,p.name,p.description,p.brand_color,p.created_at,p.updated_at,
     (SELECT COUNT(*) FROM creator_project_media pm JOIN media_history m ON m.id=pm.media_id WHERE pm.project_id=p.id AND m.user_id=p.user_id) AS media_count
-    FROM creator_projects p WHERE p.user_id=? ORDER BY p.updated_at DESC,p.id DESC`).all(req.session.userId);
+    FROM creator_projects p WHERE p.user_id=? ORDER BY p.updated_at DESC,p.id DESC`,
+    )
+    .all(req.session.userId);
   res.json({ items });
 });
-app.post("/api/projects", requireLogin, rateLimit({ windowMs: 60000, max: 20 }), (req, res) => {
-  const name = String(req.body?.name || "").trim().slice(0,100);
-  const description = String(req.body?.description || "").trim().slice(0,1000);
-  const color = /^#[0-9a-f]{6}$/i.test(String(req.body?.brandColor || "")) ? req.body.brandColor : "#7c5cff";
-  if (name.length < 2) return res.status(400).json({ error: "Project name must be at least 2 characters." });
-  const result = db.prepare("INSERT INTO creator_projects(user_id,name,description,brand_color) VALUES(?,?,?,?)").run(req.session.userId,name,description,color);
-  const id=Number(result.lastInsertRowid); saveCreatorProjectVersion(id,req.session.userId,"Project created");
-  res.status(201).json({ item: { id, name, description, brand_color:color, media:[] } });
-});
+app.post(
+  "/api/projects",
+  requireLogin,
+  rateLimit({ windowMs: 60000, max: 20 }),
+  (req, res) => {
+    const name = String(req.body?.name || "")
+      .trim()
+      .slice(0, 100);
+    const description = String(req.body?.description || "")
+      .trim()
+      .slice(0, 1000);
+    const color = /^#[0-9a-f]{6}$/i.test(String(req.body?.brandColor || ""))
+      ? req.body.brandColor
+      : "#7c5cff";
+    if (name.length < 2)
+      return res
+        .status(400)
+        .json({ error: "Project name must be at least 2 characters." });
+    const result = db
+      .prepare(
+        "INSERT INTO creator_projects(user_id,name,description,brand_color) VALUES(?,?,?,?)",
+      )
+      .run(req.session.userId, name, description, color);
+    const id = Number(result.lastInsertRowid);
+    saveCreatorProjectVersion(id, req.session.userId, "Project created");
+    res
+      .status(201)
+      .json({ item: { id, name, description, brand_color: color, media: [] } });
+  },
+);
 app.get("/api/projects/:id", requireLogin, (req, res) => {
   const id = Number(req.params.id);
-  const p = db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(id,req.session.userId);
+  const p = db
+    .prepare(
+      "SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?",
+    )
+    .get(id, req.session.userId);
   if (!p) return res.status(404).json({ error: "Project not found." });
-  res.json({ item: { ...p, media: creatorProjectMedia(id,req.session.userId) } });
+  res.json({
+    item: { ...p, media: creatorProjectMedia(id, req.session.userId) },
+  });
 });
 app.patch("/api/projects/:id", requireLogin, (req, res) => {
-  const id=Number(req.params.id), uid=req.session.userId;
-  const p=db.prepare("SELECT * FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!p) return res.status(404).json({error:"Project not found."});
-  const name=String(req.body?.name ?? p.name).trim().slice(0,100), description=String(req.body?.description ?? p.description).trim().slice(0,1000);
-  const color=/^#[0-9a-f]{6}$/i.test(String(req.body?.brandColor ?? p.brand_color))?String(req.body?.brandColor ?? p.brand_color):p.brand_color;
-  if(name.length<2) return res.status(400).json({error:"Project name must be at least 2 characters."});
-  saveCreatorProjectVersion(id,uid,"Before project edit");
-  db.prepare("UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(name,description,color,id,uid);
-  saveCreatorProjectVersion(id,uid,"Project details updated");
-  res.json({ok:true});
+  const id = Number(req.params.id),
+    uid = req.session.userId;
+  const p = db
+    .prepare("SELECT * FROM creator_projects WHERE id=? AND user_id=?")
+    .get(id, uid);
+  if (!p) return res.status(404).json({ error: "Project not found." });
+  const name = String(req.body?.name ?? p.name)
+      .trim()
+      .slice(0, 100),
+    description = String(req.body?.description ?? p.description)
+      .trim()
+      .slice(0, 1000);
+  const color = /^#[0-9a-f]{6}$/i.test(
+    String(req.body?.brandColor ?? p.brand_color),
+  )
+    ? String(req.body?.brandColor ?? p.brand_color)
+    : p.brand_color;
+  if (name.length < 2)
+    return res
+      .status(400)
+      .json({ error: "Project name must be at least 2 characters." });
+  saveCreatorProjectVersion(id, uid, "Before project edit");
+  db.prepare(
+    "UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+  ).run(name, description, color, id, uid);
+  saveCreatorProjectVersion(id, uid, "Project details updated");
+  res.json({ ok: true });
 });
-app.delete("/api/projects/:id", requireLogin, (req,res)=>{
-  const r=db.prepare("DELETE FROM creator_projects WHERE id=? AND user_id=?").run(Number(req.params.id),req.session.userId);
-  if(!r.changes) return res.status(404).json({error:"Project not found."});
-  res.json({ok:true});
+app.delete("/api/projects/:id", requireLogin, (req, res) => {
+  const r = db
+    .prepare("DELETE FROM creator_projects WHERE id=? AND user_id=?")
+    .run(Number(req.params.id), req.session.userId);
+  if (!r.changes) return res.status(404).json({ error: "Project not found." });
+  res.json({ ok: true });
 });
-app.post("/api/projects/:id/media", requireLogin, (req,res)=>{
-  const id=Number(req.params.id), mediaId=Number(req.body?.mediaId), uid=req.session.userId;
-  const p=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!p) return res.status(404).json({error:"Project not found."});
-  const m=db.prepare("SELECT id FROM media_history WHERE id=? AND user_id=?").get(mediaId,uid);
-  if(!m) return res.status(404).json({error:"Media not found in your library."});
-  try { db.prepare("INSERT INTO creator_project_media(project_id,media_id) VALUES(?,?)").run(id,mediaId); }
-  catch(e) { if(!String(e.message).includes("UNIQUE")) throw e; }
-  db.prepare("UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(id,uid);
-  saveCreatorProjectVersion(id,uid,"Media added to project");
-  res.json({ok:true});
+app.post("/api/projects/:id/media", requireLogin, (req, res) => {
+  const id = Number(req.params.id),
+    mediaId = Number(req.body?.mediaId),
+    uid = req.session.userId;
+  const p = db
+    .prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?")
+    .get(id, uid);
+  if (!p) return res.status(404).json({ error: "Project not found." });
+  const m = db
+    .prepare("SELECT id FROM media_history WHERE id=? AND user_id=?")
+    .get(mediaId, uid);
+  if (!m)
+    return res.status(404).json({ error: "Media not found in your library." });
+  try {
+    db.prepare(
+      "INSERT INTO creator_project_media(project_id,media_id) VALUES(?,?)",
+    ).run(id, mediaId);
+  } catch (e) {
+    if (!String(e.message).includes("UNIQUE")) throw e;
+  }
+  db.prepare(
+    "UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+  ).run(id, uid);
+  saveCreatorProjectVersion(id, uid, "Media added to project");
+  res.json({ ok: true });
 });
-app.delete("/api/projects/:id/media/:mediaId", requireLogin, (req,res)=>{
-  const id=Number(req.params.id), mid=Number(req.params.mediaId), uid=req.session.userId;
-  const p=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!p) return res.status(404).json({error:"Project not found."});
-  db.prepare("DELETE FROM creator_project_media WHERE project_id=? AND media_id=?").run(id,mid);
-  db.prepare("UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(id,uid);
-  saveCreatorProjectVersion(id,uid,"Media removed from project");
-  res.json({ok:true});
+app.delete("/api/projects/:id/media/:mediaId", requireLogin, (req, res) => {
+  const id = Number(req.params.id),
+    mid = Number(req.params.mediaId),
+    uid = req.session.userId;
+  const p = db
+    .prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?")
+    .get(id, uid);
+  if (!p) return res.status(404).json({ error: "Project not found." });
+  db.prepare(
+    "DELETE FROM creator_project_media WHERE project_id=? AND media_id=?",
+  ).run(id, mid);
+  db.prepare(
+    "UPDATE creator_projects SET updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+  ).run(id, uid);
+  saveCreatorProjectVersion(id, uid, "Media removed from project");
+  res.json({ ok: true });
 });
-app.get("/api/projects/:id/versions", requireLogin, (req,res)=>{
-  const id=Number(req.params.id), uid=req.session.userId;
-  const project=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!project) return res.status(404).json({error:"Project not found."});
-  const items=db.prepare("SELECT id,note,created_at,snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50").all(id,uid).map(v=>{let snapshot={};try{snapshot=JSON.parse(v.snapshot_json)}catch{};return {id:v.id,note:v.note,created_at:v.created_at,project:snapshot.project||{},mediaCount:Array.isArray(snapshot.media)?snapshot.media.length:0};});
-  res.json({items});
+app.get("/api/projects/:id/versions", requireLogin, (req, res) => {
+  const id = Number(req.params.id),
+    uid = req.session.userId;
+  const project = db
+    .prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?")
+    .get(id, uid);
+  if (!project) return res.status(404).json({ error: "Project not found." });
+  const items = db
+    .prepare(
+      "SELECT id,note,created_at,snapshot_json FROM creator_project_versions WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 50",
+    )
+    .all(id, uid)
+    .map((v) => {
+      let snapshot = {};
+      try {
+        snapshot = JSON.parse(v.snapshot_json);
+      } catch {}
+      return {
+        id: v.id,
+        note: v.note,
+        created_at: v.created_at,
+        project: snapshot.project || {},
+        mediaCount: Array.isArray(snapshot.media) ? snapshot.media.length : 0,
+      };
+    });
+  res.json({ items });
 });
-app.post("/api/projects/:id/versions/:versionId/restore", requireLogin, (req,res)=>{
-  const id=Number(req.params.id), versionId=Number(req.params.versionId), uid=req.session.userId;
-  const project=db.prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!project) return res.status(404).json({error:"Project not found."});
-  const version=db.prepare("SELECT snapshot_json FROM creator_project_versions WHERE id=? AND project_id=? AND user_id=?").get(versionId,id,uid);
-  if(!version) return res.status(404).json({error:"Version not found."});
-  let snapshot;try{snapshot=JSON.parse(version.snapshot_json)}catch{return res.status(400).json({error:"This version snapshot is invalid."});}
-  if(!snapshot.project || !Array.isArray(snapshot.media)) return res.status(400).json({error:"This version snapshot is incomplete."});
-  saveCreatorProjectVersion(id,uid,"Before restoring version "+versionId);
-  const p=snapshot.project;
-  db.prepare("UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").run(String(p.name||"Restored project").slice(0,100),String(p.description||"").slice(0,1000),/^#[0-9a-f]{6}$/i.test(p.brand_color||"")?p.brand_color:"#7c5cff",id,uid);
-  db.prepare("DELETE FROM creator_project_media WHERE project_id=?").run(id);
-  const add=db.prepare("INSERT OR IGNORE INTO creator_project_media(project_id,media_id) SELECT ?,id FROM media_history WHERE id=? AND user_id=?");
-  for(const mediaId of snapshot.media) add.run(id,Number(mediaId),uid);
-  saveCreatorProjectVersion(id,uid,"Restored version "+versionId);
-  res.json({ok:true});
-});
-app.get("/api/projects/:id/export-manifest", requireLogin, (req,res)=>{
-  const id=Number(req.params.id), uid=req.session.userId;
-  const p=db.prepare("SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?").get(id,uid);
-  if(!p) return res.status(404).json({error:"Project not found."});
-  const manifest={format:"editprompt-project-manifest-v1",project:p,media:creatorProjectMedia(id,uid).map(m=>({id:m.id,kind:m.kind,prompt:m.prompt,file:m.file,model:m.model,created_at:m.created_at,url:m.url}))};
-  res.setHeader("Content-Type","application/json; charset=utf-8");
-  res.setHeader("Content-Disposition",`attachment; filename="editprompt-project-${id}.json"`);
-  res.send(JSON.stringify(manifest,null,2));
+app.post(
+  "/api/projects/:id/versions/:versionId/restore",
+  requireLogin,
+  (req, res) => {
+    const id = Number(req.params.id),
+      versionId = Number(req.params.versionId),
+      uid = req.session.userId;
+    const project = db
+      .prepare("SELECT id FROM creator_projects WHERE id=? AND user_id=?")
+      .get(id, uid);
+    if (!project) return res.status(404).json({ error: "Project not found." });
+    const version = db
+      .prepare(
+        "SELECT snapshot_json FROM creator_project_versions WHERE id=? AND project_id=? AND user_id=?",
+      )
+      .get(versionId, id, uid);
+    if (!version) return res.status(404).json({ error: "Version not found." });
+    let snapshot;
+    try {
+      snapshot = JSON.parse(version.snapshot_json);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "This version snapshot is invalid." });
+    }
+    if (!snapshot.project || !Array.isArray(snapshot.media))
+      return res
+        .status(400)
+        .json({ error: "This version snapshot is incomplete." });
+    saveCreatorProjectVersion(id, uid, "Before restoring version " + versionId);
+    const p = snapshot.project;
+    db.prepare(
+      "UPDATE creator_projects SET name=?,description=?,brand_color=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+    ).run(
+      String(p.name || "Restored project").slice(0, 100),
+      String(p.description || "").slice(0, 1000),
+      /^#[0-9a-f]{6}$/i.test(p.brand_color || "") ? p.brand_color : "#7c5cff",
+      id,
+      uid,
+    );
+    db.prepare("DELETE FROM creator_project_media WHERE project_id=?").run(id);
+    const add = db.prepare(
+      "INSERT OR IGNORE INTO creator_project_media(project_id,media_id) SELECT ?,id FROM media_history WHERE id=? AND user_id=?",
+    );
+    for (const mediaId of snapshot.media) add.run(id, Number(mediaId), uid);
+    saveCreatorProjectVersion(id, uid, "Restored version " + versionId);
+    res.json({ ok: true });
+  },
+);
+app.get("/api/projects/:id/export-manifest", requireLogin, (req, res) => {
+  const id = Number(req.params.id),
+    uid = req.session.userId;
+  const p = db
+    .prepare(
+      "SELECT id,name,description,brand_color,created_at,updated_at FROM creator_projects WHERE id=? AND user_id=?",
+    )
+    .get(id, uid);
+  if (!p) return res.status(404).json({ error: "Project not found." });
+  const manifest = {
+    format: "editprompt-project-manifest-v1",
+    project: p,
+    media: creatorProjectMedia(id, uid).map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      prompt: m.prompt,
+      file: m.file,
+      model: m.model,
+      created_at: m.created_at,
+      url: m.url,
+    })),
+  };
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="editprompt-project-${id}.json"`,
+  );
+  res.send(JSON.stringify(manifest, null, 2));
 });
 
 // ============================================================
