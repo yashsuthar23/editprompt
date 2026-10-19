@@ -15,6 +15,7 @@
 
   function setOpen(open) {
     header.classList.toggle("nav-open", open);
+    document.body.classList.toggle("ep-menu-open", open);
     btn.setAttribute("aria-expanded", open ? "true" : "false");
     btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
   }
