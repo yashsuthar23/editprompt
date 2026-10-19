@@ -24,7 +24,8 @@
   .nav.nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
   .nav.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  .nav > .right { order: 3; }
+  /* Login + appearance (gear) live inside the menu on mobile, not in the header row */
+  .nav > .right { display: none; }
 
   /* Full-screen menu sheet, like a native mobile app menu */
   .nav.nav-open {
@@ -36,7 +37,13 @@
   }
   .nav.nav-open > .brand { order: 1; }
   .nav.nav-open > .nav-toggle { order: 2; }
-  .nav.nav-open > .right { order: 3; }
+  .nav.nav-open > .right {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px;
+    order: 3; width: 100%; margin-top: 18px; padding-top: 4px;
+  }
+  .nav.nav-open > .right .btn,
+  .nav.nav-open > .right #loginBtn,
+  .nav.nav-open > .right #logoutBtn { height: 44px; padding: 0 18px; border-radius: 12px; }
 
   .nav.nav-open nav {
     display: flex; flex-direction: column; align-items: stretch; gap: 0;
