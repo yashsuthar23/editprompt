@@ -33,8 +33,12 @@
         inherits: false;
         initial-value: 0deg;
       }
-      .tool-hero, .tool-panel { position: relative; }
-      .tool-hero::before, .tool-panel::before {
+      .tool-hero,
+      .tool-panel {
+        position: relative;
+      }
+      .tool-hero::before,
+      .tool-panel::before {
         content: "";
         position: absolute;
         inset: 0;
@@ -49,83 +53,206 @@
           #7c5cff 352deg,
           transparent 360deg
         );
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
         -webkit-mask-composite: xor;
-        mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+        mask:
+          linear-gradient(#000 0 0) content-box exclude,
+          linear-gradient(#000 0 0);
         animation: edgeSpin 6s linear infinite;
       }
       @keyframes edgeSpin {
-        to { --edge-angle: 360deg; }
+        to {
+          --edge-angle: 360deg;
+        }
       }
       /* compare handle, labels and drag */
-      .ba-handle, .ba-tag { display: none; }
-      .compare-grid.ba-on { touch-action: pan-y; cursor: ew-resize; }
+      .ba-handle,
+      .ba-tag {
+        display: none;
+      }
+      .compare-grid.ba-on {
+        touch-action: pan-y;
+        cursor: ew-resize;
+      }
       .compare-grid.ba-on .ba-handle {
-        display: block; position: absolute; top: 0; bottom: 0;
-        left: var(--split, 50%); width: 2px; margin-left: -1px;
-        background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
-        pointer-events: none; z-index: 2;
+        display: block;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: var(--split, 50%);
+        width: 2px;
+        margin-left: -1px;
+        background: #fff;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+        z-index: 2;
       }
       .compare-grid.ba-on .ba-handle::after {
-        content: ""; position: absolute; top: 50%; left: 50%;
-        width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%;
-        background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 28px;
+        height: 28px;
+        margin: -14px 0 0 -14px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
       }
       .compare-grid.ba-on .ba-tag {
-        display: block; position: absolute; top: 8px; z-index: 2; pointer-events: none;
-        font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
-        background: rgba(0, 0, 0, 0.6); color: #fff;
+        display: block;
+        position: absolute;
+        top: 8px;
+        z-index: 2;
+        pointer-events: none;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
       }
-      .compare-grid.ba-on .ba-tag-l { left: 8px; }
-      .compare-grid.ba-on .ba-tag-r { right: 8px; }
+      .compare-grid.ba-on .ba-tag-l {
+        left: 8px;
+      }
+      .compare-grid.ba-on .ba-tag-r {
+        right: 8px;
+      }
       /* scene undo / redo are plain buttons; library search row */
-      .recent-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-      .recent-controls input { flex: 1; min-width: 160px; }
+      .recent-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .recent-controls input {
+        flex: 1;
+        min-width: 160px;
+      }
       /* keyboard shortcuts panel */
       #shortcutsPanel {
-        position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-items: center;
         background: rgba(0, 0, 0, 0.55);
       }
-      #shortcutsPanel[hidden] { display: none; }
-      .sc-card {
-        width: calc(100% - 32px); max-width: 440px; padding: 22px; border-radius: 16px;
-        background: var(--card, #151515); border: 1px solid var(--border, #333);
+      #shortcutsPanel[hidden] {
+        display: none;
       }
-      .sc-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 12px 0 16px; }
-      .sc-list dt { font-weight: 700; }
-      .sc-list dd { margin: 0; opacity: 0.85; }
+      .sc-card {
+        width: calc(100% - 32px);
+        max-width: 440px;
+        padding: 22px;
+        border-radius: 16px;
+        background: var(--card, #151515);
+        border: 1px solid var(--border, #333);
+      }
+      .sc-list {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px 16px;
+        margin: 12px 0 16px;
+      }
+      .sc-list dt {
+        font-weight: 700;
+      }
+      .sc-list dd {
+        margin: 0;
+        opacity: 0.85;
+      }
       /* light theme for the new pieces */
-      body[data-ep-theme="light"] .tag-chip { color: #333; border-color: #c9c9d4; }
-      body[data-ep-theme="light"] .tag-chip[aria-pressed="true"] { color: #111; }
-      body[data-ep-theme="light"] .recent-row { border-color: #ddd; }
-      body[data-ep-theme="light"] .sc-card { background: #fff; color: #111; }
+      body[data-ep-theme="light"] .tag-chip {
+        color: #333;
+        border-color: #c9c9d4;
+      }
+      body[data-ep-theme="light"] .tag-chip[aria-pressed="true"] {
+        color: #111;
+      }
+      body[data-ep-theme="light"] .recent-row {
+        border-color: #ddd;
+      }
+      body[data-ep-theme="light"] .sc-card {
+        background: #fff;
+        color: #111;
+      }
       /* hook timer bar */
-      .hook-track { height: 10px; border-radius: 999px; background: var(--border, #333); overflow: hidden; margin: 8px 0; }
-      .hook-bar { height: 100%; width: 0; background: var(--accent, #e5233a); transition: width 0.1s linear; }
+      .hook-track {
+        height: 10px;
+        border-radius: 999px;
+        background: var(--border, #333);
+        overflow: hidden;
+        margin: 8px 0;
+      }
+      .hook-bar {
+        height: 100%;
+        width: 0;
+        background: var(--accent, #e5233a);
+        transition: width 0.1s linear;
+      }
       /* keyboard focus is always visible */
-      :focus-visible { outline: 2px solid var(--accent, #e5233a); outline-offset: 2px; }
+      :focus-visible {
+        outline: 2px solid var(--accent, #e5233a);
+        outline-offset: 2px;
+      }
       /* hashtag chips and reel output fade in */
-      .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 6px 0 12px;
+      }
       .tag-chip {
-        font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
-        padding: 6px 11px; border-radius: 999px;
-        border: 1px solid var(--border, #333); background: transparent; color: var(--muted, #aaa);
-        transition: background .2s ease, color .2s ease, border-color .2s ease, transform .15s ease;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 6px 11px;
+        border-radius: 999px;
+        border: 1px solid var(--border, #333);
+        background: transparent;
+        color: var(--muted, #aaa);
+        transition:
+          background 0.2s ease,
+          color 0.2s ease,
+          border-color 0.2s ease,
+          transform 0.15s ease;
       }
       .tag-chip[aria-pressed="true"] {
-        background: rgba(var(--accent-rgb, 229,35,58), .14);
-        border-color: var(--accent, #e5233a); color: var(--text, #fff);
+        background: rgba(var(--accent-rgb, 229, 35, 58), 0.14);
+        border-color: var(--accent, #e5233a);
+        color: var(--text, #fff);
       }
-      .tag-chip:hover { transform: translateY(-1px); }
+      .tag-chip:hover {
+        transform: translateY(-1px);
+      }
       @keyframes outIn {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
       .reel-tools .out:not([hidden]),
-      #reelOutput:not([hidden]) { animation: outIn .35s ease both; }
+      #reelOutput:not([hidden]) {
+        animation: outIn 0.35s ease both;
+      }
       @media (prefers-reduced-motion: reduce) {
-        .tool-hero::before, .tool-panel::before, .reel-tools .out, #reelOutput { animation: none !important; }
-        .tag-chip { transition: none; }
+        .tool-hero::before,
+        .tool-panel::before,
+        .reel-tools .out,
+        #reelOutput {
+          animation: none !important;
+        }
+        .tag-chip {
+          transition: none;
+        }
       }
       .tool-hero h1 {
         font-size: clamp(28px, 4vw, 42px);
@@ -139,6 +266,7 @@
       .tool-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: dense;
         gap: 16px;
       }
       .tool-panel h2 {
@@ -241,36 +369,102 @@
         flex-wrap: wrap;
         margin-top: 12px;
       }
-      #clearDraft { flex-shrink: 0; }
-      .pe-panel { grid-column: 1 / -1; }
-      .pe-layout { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 6px; }
-      .pe-preview { position: sticky; top: calc(var(--nav-h, 68px) + 8px); }
-      .pe-preview .compare-grid { margin-top: 0; }
-      .pe-preview .compare-card canvas { max-height: min(360px, 42vh); }
-      .pe-controls > input[type="file"] { margin-top: 0; }
-      @media (max-width: 900px) {
-        .pe-layout { grid-template-columns: 1fr; gap: 12px; }
-        .pe-preview { display: contents; }
-        .pe-compare { order: -1; position: sticky; top: calc(var(--nav-h, 64px) + 2px); z-index: 5; padding: 6px 0 8px; background: var(--card, #151515); }
-        .pe-compare .compare-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px; }
-        .pe-preview .compare-card canvas { max-height: 24vh; }
-        .pe-preview .compare-card .canvas-wrap { min-height: 80px; }
-        .pe-rest { order: 1; }
+      #clearDraft {
+        flex-shrink: 0;
       }
-      .pe-group { margin: 14px 0 4px; }
-      .pe-title { font-weight: 700; margin-bottom: 6px; }
-      .pe-row { display: flex; flex-wrap: wrap; gap: 6px; }
-      .pe-btn { padding: 7px 11px; font-size: 12px; }
-      .pe-btn.on { border-color: var(--accent, #e5233a); color: var(--accent, #e5233a); }
-      .pe-more { margin-top: 12px; }
-      .pe-more summary { cursor: pointer; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-      .pe-export { margin-top: 12px; }
+      .pe-panel {
+        grid-column: 1 / -1;
+      }
+      .pe-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: start;
+        margin-top: 6px;
+      }
+      .pe-preview {
+        position: sticky;
+        top: calc(var(--nav-h, 68px) + 8px);
+      }
+      .pe-preview .compare-grid {
+        margin-top: 0;
+      }
+      .pe-preview .compare-card canvas {
+        max-height: min(360px, 42vh);
+      }
+      .pe-controls > input[type="file"] {
+        margin-top: 0;
+      }
+      @media (max-width: 900px) {
+        .pe-layout {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .pe-preview {
+          display: contents;
+        }
+        .pe-compare {
+          order: -1;
+          position: sticky;
+          top: calc(var(--nav-h, 64px) + 2px);
+          z-index: 5;
+          padding: 6px 0 8px;
+          background: var(--card, #151515);
+        }
+        .pe-compare .compare-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 6px;
+        }
+        .pe-preview .compare-card canvas {
+          max-height: 24vh;
+        }
+        .pe-preview .compare-card .canvas-wrap {
+          min-height: 80px;
+        }
+        .pe-rest {
+          order: 1;
+        }
+      }
+      .pe-group {
+        margin: 14px 0 4px;
+      }
+      .pe-title {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .pe-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .pe-btn {
+        padding: 7px 11px;
+        font-size: 12px;
+      }
+      .pe-btn.on {
+        border-color: var(--accent, #e5233a);
+        color: var(--accent, #e5233a);
+      }
+      .pe-more {
+        margin-top: 12px;
+      }
+      .pe-more summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .pe-export {
+        margin-top: 12px;
+      }
       .canvas-placeholder {
         padding: 22px 14px;
         text-align: center;
         font-size: 13px;
       }
-      .canvas-wrap canvas:not([width]) { display: none; }
+      .canvas-wrap canvas:not([width]) {
+        display: none;
+      }
       body[data-ep-theme="light"] {
         --bg: #f4f5f9;
         --card: #fff;
@@ -296,34 +490,79 @@
       .out-toggle {
         margin-top: 10px;
       }
-      [hidden] { display: none !important; }
-      .reel-tools { display: grid; gap: 14px; margin-top: 14px; }
-      .reel-tools textarea { width: 100%; min-height: 90px; resize: vertical; }
-      .recent-list { display: grid; gap: 6px; margin-top: 8px; font-size: 14px; }
+      [hidden] {
+        display: none !important;
+      }
+      .reel-tools {
+        display: grid;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .reel-tools textarea {
+        width: 100%;
+        min-height: 90px;
+        resize: vertical;
+      }
+      .recent-list {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 14px;
+      }
       .recent-row {
-        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-        justify-content: space-between; padding: 8px 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
         border-bottom: 1px solid var(--border, #333);
       }
-      .recent-row small { opacity: 0.7; }
-      .recent-row .actions { margin-top: 0; }
-      .compare-grid.ba-on { display: block; position: relative; }
-      .compare-grid.ba-on .compare-label { display: none; }
+      .recent-row small {
+        opacity: 0.7;
+      }
+      .recent-row .actions {
+        margin-top: 0;
+      }
+      .compare-grid.ba-on {
+        display: block;
+        position: relative;
+      }
+      .compare-grid.ba-on .compare-label {
+        display: none;
+      }
       .compare-grid.ba-on .compare-card + .compare-card {
-        position: absolute; inset: 0;
+        position: absolute;
+        inset: 0;
         clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0);
       }
-      #printArea { display: none; }
+      #printArea {
+        display: none;
+      }
       @media print {
-        @page { margin: 14mm; }
-        body > *:not(#printArea) { display: none !important; }
-        body { background: #fff !important; color: #000 !important; }
+        @page {
+          margin: 14mm;
+        }
+        body > *:not(#printArea) {
+          display: none !important;
+        }
+        body {
+          background: #fff !important;
+          color: #000 !important;
+        }
         #printArea {
-          display: block !important; position: static !important;
-          margin: 0 !important; padding: 0 !important;
-          background: #fff !important; color: #000 !important;
-          font: 11pt/1.55 Arial, Helvetica, sans-serif;
-          white-space: pre-wrap; overflow-wrap: anywhere;
+          display: block !important;
+          position: static !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          color: #000 !important;
+          font:
+            11pt/1.55 Arial,
+            Helvetica,
+            sans-serif;
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
         }
       }
       @media (max-width: 520px) {
@@ -364,7 +603,8 @@
         }
       }
     </style>
-      <link rel="stylesheet" href="/light-fixes.css?v=1">
+    <link rel="stylesheet" href="/light-fixes.css?v=1" />
+      <link rel="stylesheet" href="/mobile-nav.css">
 </head>
   <body>
     <header class="nav">
@@ -389,182 +629,467 @@
         <div class="eyebrow">CREATOR WORKSPACE • FREE-FIRST</div>
         <h1>Creator Studio Tools</h1>
         <p>
-          Plan scenes, prepare social ads, and edit images locally in your browser.
-          Your photo editor files are not uploaded by these tools.
+          Plan scenes, prepare social ads, and edit images locally in your
+          browser. Your photo editor files are not uploaded by these tools.
         </p>
-</section>
+      </section>
       <div class="tool-grid">
         <section class="tool-panel pe-panel">
           <span class="pill">Photo Editor Pro</span>
           <h2>Quick image adjustments</h2>
           <p class="muted">
-            Runs in your browser using Canvas: filter presets, crop, rotate / flip,
-            colour adjustments, undo / redo and PNG / JPG / WebP export. It is not
-            a generative object-removal or AI upscaling tool.
+            Runs in your browser using Canvas: filter presets, crop, rotate /
+            flip, colour adjustments, undo / redo and PNG / JPG / WebP export.
+            It is not a generative object-removal or AI upscaling tool.
           </p>
           <div class="pe-layout">
-<div class="pe-controls">
-          <input
-            id="photoInput"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-          /><label for="brightness" class="status">Brightness</label
-          ><input
-            id="brightness"
-            type="range"
-            min="50"
-            max="160"
-            value="100"
-          /><label for="contrast" class="status">Contrast</label
-          ><input
-            id="contrast"
-            type="range"
-            min="50"
-            max="180"
-            value="100"
-          /><label for="saturation" class="status">Saturation</label
-          ><input id="saturation" type="range" min="0" max="200" value="100" />
-          <div class="pe-group">
-            <div class="status pe-title">Filter presets</div>
-            <div class="pe-row" id="photoPresets">
-              <button type="button" class="btn ghost pe-btn" data-preset="original">Original</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="cinematic">Cinematic</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="warm">Warm</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="cool">Cool</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="bw">B&amp;W</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="vintage">Vintage</button>
-              <button type="button" class="btn ghost pe-btn" data-preset="tealorange">Teal-Orange</button>
-            </div>
-          </div>
-          <details class="pe-more">
-            <summary>More adjustments (hue, blur, sepia, grayscale)</summary>
-            <label for="hue" class="status">Hue</label>
-            <input id="hue" type="range" min="-180" max="180" value="0" />
-            <label for="blur" class="status">Blur</label>
-            <input id="blur" type="range" min="0" max="20" step="0.5" value="0" />
-            <label for="sepia" class="status">Sepia</label>
-            <input id="sepia" type="range" min="0" max="100" value="0" />
-            <label for="gray" class="status">Grayscale</label>
-            <input id="gray" type="range" min="0" max="100" value="0" />
-          </details>
-          <div class="pe-group">
-            <div class="status pe-title">Transform</div>
-            <div class="pe-row">
-              <button type="button" class="btn ghost pe-btn" id="rotLeft" title="Rotate left 90°">↺ Rotate left</button>
-              <button type="button" class="btn ghost pe-btn" id="rotRight" title="Rotate right 90°">↻ Rotate right</button>
-              <button type="button" class="btn ghost pe-btn" id="flipH" title="Flip horizontally">⇋ Flip H</button>
-              <button type="button" class="btn ghost pe-btn" id="flipV" title="Flip vertically">⇅ Flip V</button>
-              <button type="button" class="btn ghost pe-btn" id="undoPhoto" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
-              <button type="button" class="btn ghost pe-btn" id="redoPhoto" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
-            </div>
-          </div>
-          <div class="pe-group">
-            <div class="status pe-title">Crop</div>
-            <label for="cropRatio" class="status">Crop to</label>
-            <select id="cropRatio">
-              <option value="orig">Original (no crop)</option>
-              <option value="1:1">1:1 · Square</option>
-              <option value="4:5">4:5 · Instagram post</option>
-              <option value="9:16">9:16 · Reel / Story / Shorts</option>
-              <option value="16:9">16:9 · YouTube / Landscape</option>
-              <option value="4:3">4:3</option>
-              <option value="3:2">3:2</option>
-            </select>
-            <label for="cropZoom" class="status">Crop zoom</label>
-            <input id="cropZoom" type="range" min="100" max="300" value="100" />
-            <label for="cropX" class="status">Crop position · left ↔ right</label>
-            <input id="cropX" type="range" min="0" max="100" value="50" />
-            <label for="cropY" class="status">Crop position · top ↔ bottom</label>
-            <input id="cropY" type="range" min="0" max="100" value="50" />
-          </div>
-<div class="pe-group">
-            <div class="status pe-title">Text / watermark</div>
-            <input id="wmText" maxlength="60" placeholder="Brand name or caption (optional)" />
-            <label for="wmPos" class="status">Position</label>
-            <select id="wmPos">
-              <option value="br">Bottom right</option>
-              <option value="bl">Bottom left</option>
-              <option value="tr">Top right</option>
-              <option value="tl">Top left</option>
-              <option value="c">Centre</option>
-            </select>
-            <label for="wmSize" class="status">Size</label>
-            <input id="wmSize" type="range" min="2" max="20" value="5" />
-            <label for="wmOpacity" class="status">Opacity</label>
-            <input id="wmOpacity" type="range" min="10" max="100" value="80" />
-            <label for="wmColor" class="status">Colour</label>
-            <input id="wmColor" type="color" value="#ffffff" />
-          </div>
-          <div class="pe-group">
-            <div class="status pe-title">Before / after</div>
-            <div class="pe-row">
-              <button type="button" class="btn ghost pe-btn" id="baToggle" aria-pressed="false">Show slider view</button>
-            </div>
-            <label for="baSplit" class="status">Slider position</label>
-            <input id="baSplit" type="range" min="0" max="100" value="50" />
-          </div>
-          <div class="pe-group">
-            <div class="status pe-title">Saved looks</div>
-            <label for="savedLooks" class="status">Your saved looks (filter values only)</label>
-            <select id="savedLooks"></select>
-            <div class="pe-row">
-              <button type="button" class="btn ghost pe-btn" id="saveLook">Save current look</button>
-              <button type="button" class="btn ghost pe-btn" id="applyLook">Apply</button>
-              <button type="button" class="btn ghost pe-btn" id="deleteLook">Delete</button>
-            </div>
-          </div>
-</div>
-<div class="pe-preview">
-<div class="pe-compare">
-          <div class="compare-grid" id="compareGrid">
-            <div class="compare-card">
-              <div class="compare-label">BEFORE · Original</div>
-              <div class="canvas-wrap">
-                <canvas
-                  id="originalCanvas"
-                  aria-label="Original photo preview"
-                ></canvas
-                ><span id="photoPlaceholder" class="muted canvas-placeholder"
-                  >Choose an image to preview edits.</span
+            <div class="pe-controls">
+              <input
+                id="photoInput"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+              /><label for="brightness" class="status">Brightness</label
+              ><input
+                id="brightness"
+                type="range"
+                min="50"
+                max="160"
+                value="100"
+              /><label for="contrast" class="status">Contrast</label
+              ><input
+                id="contrast"
+                type="range"
+                min="50"
+                max="180"
+                value="100"
+              /><label for="saturation" class="status">Saturation</label
+              ><input
+                id="saturation"
+                type="range"
+                min="0"
+                max="200"
+                value="100"
+              />
+              <div class="pe-group">
+                <div class="status pe-title">Filter presets</div>
+                <div class="pe-row" id="photoPresets">
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="original"
+                  >
+                    Original
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="cinematic"
+                  >
+                    Cinematic
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="warm"
+                  >
+                    Warm
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="cool"
+                  >
+                    Cool
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="bw"
+                  >
+                    B&amp;W
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="vintage"
+                  >
+                    Vintage
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    data-preset="tealorange"
+                  >
+                    Teal-Orange
+                  </button>
+                </div>
+              </div>
+              <details class="pe-more">
+                <summary>
+                  More adjustments (hue, blur, sepia, grayscale)
+                </summary>
+                <label for="hue" class="status">Hue</label>
+                <input id="hue" type="range" min="-180" max="180" value="0" />
+                <label for="blur" class="status">Blur</label>
+                <input
+                  id="blur"
+                  type="range"
+                  min="0"
+                  max="20"
+                  step="0.5"
+                  value="0"
+                />
+                <label for="sepia" class="status">Sepia</label>
+                <input id="sepia" type="range" min="0" max="100" value="0" />
+                <label for="gray" class="status">Grayscale</label>
+                <input id="gray" type="range" min="0" max="100" value="0" />
+              </details>
+              <div class="pe-group">
+                <div class="status pe-title">Transform</div>
+                <div class="pe-row">
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="rotLeft"
+                    title="Rotate left 90°"
+                  >
+                    ↺ Rotate left
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="rotRight"
+                    title="Rotate right 90°"
+                  >
+                    ↻ Rotate right
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="flipH"
+                    title="Flip horizontally"
+                  >
+                    ⇋ Flip H
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="flipV"
+                    title="Flip vertically"
+                  >
+                    ⇅ Flip V
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="undoPhoto"
+                    title="Undo (Ctrl+Z)"
+                    disabled
+                  >
+                    ↶ Undo
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="redoPhoto"
+                    title="Redo (Ctrl+Y)"
+                    disabled
+                  >
+                    ↷ Redo
+                  </button>
+                </div>
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Crop</div>
+                <label for="cropRatio" class="status">Crop to</label>
+                <select id="cropRatio">
+                  <option value="orig">Original (no crop)</option>
+                  <option value="1:1">1:1 · Square</option>
+                  <option value="4:5">4:5 · Instagram post</option>
+                  <option value="9:16">9:16 · Reel / Story / Shorts</option>
+                  <option value="16:9">16:9 · YouTube / Landscape</option>
+                  <option value="4:3">4:3</option>
+                  <option value="3:2">3:2</option>
+                </select>
+                <label for="cropZoom" class="status">Crop zoom</label>
+                <input
+                  id="cropZoom"
+                  type="range"
+                  min="100"
+                  max="300"
+                  value="100"
+                />
+                <label for="cropX" class="status"
+                  >Crop position · left ↔ right</label
                 >
+                <input id="cropX" type="range" min="0" max="100" value="50" />
+                <label for="cropY" class="status"
+                  >Crop position · top ↔ bottom</label
+                >
+                <input id="cropY" type="range" min="0" max="100" value="50" />
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Text / watermark</div>
+                <input
+                  id="wmText"
+                  maxlength="60"
+                  placeholder="Brand name or caption (optional)"
+                />
+                <label for="wmPos" class="status">Position</label>
+                <select id="wmPos">
+                  <option value="br">Bottom right</option>
+                  <option value="bl">Bottom left</option>
+                  <option value="tr">Top right</option>
+                  <option value="tl">Top left</option>
+                  <option value="c">Centre</option>
+                </select>
+                <label for="wmSize" class="status">Size</label>
+                <input id="wmSize" type="range" min="2" max="20" value="5" />
+                <label for="wmOpacity" class="status">Opacity</label>
+                <input
+                  id="wmOpacity"
+                  type="range"
+                  min="10"
+                  max="100"
+                  value="80"
+                />
+                <label for="wmColor" class="status">Colour</label>
+                <input id="wmColor" type="color" value="#ffffff" />
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Before / after</div>
+                <div class="pe-row">
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="baToggle"
+                    aria-pressed="false"
+                  >
+                    Show slider view
+                  </button>
+                </div>
+                <label for="baSplit" class="status">Slider position</label>
+                <input id="baSplit" type="range" min="0" max="100" value="50" />
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Saved looks</div>
+                <label for="savedLooks" class="status"
+                  >Your saved looks (filter values only)</label
+                >
+                <select id="savedLooks"></select>
+                <div class="pe-row">
+                  <button type="button" class="btn ghost pe-btn" id="saveLook">
+                    Save current look
+                  </button>
+                  <button type="button" class="btn ghost pe-btn" id="applyLook">
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost pe-btn"
+                    id="deleteLook"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="compare-card">
-              <div class="compare-label">AFTER · Edited</div>
-              <div class="canvas-wrap">
-                <canvas
-                  id="photoCanvas"
-                  aria-label="Edited photo preview"
-                ></canvas>
-                <span id="editedPlaceholder" class="muted canvas-placeholder">Your edited preview will appear here.</span>
+            <div class="pe-preview">
+              <div class="pe-compare">
+                <div class="compare-grid" id="compareGrid">
+                  <div class="compare-card">
+                    <div class="compare-label">BEFORE · Original</div>
+                    <div class="canvas-wrap">
+                      <canvas
+                        id="originalCanvas"
+                        aria-label="Original photo preview"
+                      ></canvas
+                      ><span
+                        id="photoPlaceholder"
+                        class="muted canvas-placeholder"
+                        >Choose an image to preview edits.</span
+                      >
+                    </div>
+                  </div>
+                  <div class="compare-card">
+                    <div class="compare-label">AFTER · Edited</div>
+                    <div class="canvas-wrap">
+                      <canvas
+                        id="photoCanvas"
+                        aria-label="Edited photo preview"
+                      ></canvas>
+                      <span
+                        id="editedPlaceholder"
+                        class="muted canvas-placeholder"
+                        >Your edited preview will appear here.</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="pe-rest">
+                <div class="actions">
+                  <button class="btn ghost" id="resetPhoto">Reset all</button
+                  ><button class="btn ghost" id="clearPhoto">Clear image</button
+                  ><button class="btn" id="savePhoto">
+                    Export edited image
+                  </button>
+                </div>
+                <div class="pe-group pe-export">
+                  <label for="photoFormat" class="status">Export format</label>
+                  <select id="exportPreset" aria-label="Social export size">
+                    <option value="orig">Original size</option>
+                    <option value="1:1">Instagram square 1080×1080</option>
+                    <option value="4:5">Instagram portrait 1080×1350</option>
+                    <option value="9:16">Reels / Shorts 1080×1920</option>
+                    <option value="16:9">YouTube 1920×1080</option>
+                    <option value="fb">Facebook link 1200×630</option>
+                  </select>
+                  <select id="photoFormat">
+                    <option value="png">PNG (lossless, largest file)</option>
+                    <option value="jpeg">
+                      JPG (small file, best for photos)
+                    </option>
+                    <option value="webp">WebP (smallest file)</option>
+                  </select>
+                  <div id="photoQualityWrap" hidden>
+                    <label for="photoQuality" class="status"
+                      >Quality: <span id="photoQualityVal">92</span>%</label
+                    >
+                    <input
+                      id="photoQuality"
+                      type="range"
+                      min="50"
+                      max="100"
+                      value="92"
+                    />
+                  </div>
+                </div>
+                <div id="photoStatus" class="status" aria-live="polite"></div>
               </div>
             </div>
           </div>
-</div>
-<div class="pe-rest">
-          <div class="actions">
-            <button class="btn ghost" id="resetPhoto">Reset all</button
-            ><button class="btn ghost" id="clearPhoto">Clear image</button
-            ><button class="btn" id="savePhoto">Export edited image</button>
-          </div>
-          <div class="pe-group pe-export">
-            <label for="photoFormat" class="status">Export format</label>
-            <select id="exportPreset" aria-label="Social export size"><option value="orig">Original size</option><option value="1:1">Instagram square 1080×1080</option><option value="4:5">Instagram portrait 1080×1350</option><option value="9:16">Reels / Shorts 1080×1920</option><option value="16:9">YouTube 1920×1080</option><option value="fb">Facebook link 1200×630</option></select>
-            <select id="photoFormat">
-              <option value="png">PNG (lossless, largest file)</option>
-              <option value="jpeg">JPG (small file, best for photos)</option>
-              <option value="webp">WebP (smallest file)</option>
-            </select>
-            <div id="photoQualityWrap" hidden>
-              <label for="photoQuality" class="status">Quality: <span id="photoQualityVal">92</span>%</label>
-              <input id="photoQuality" type="range" min="50" max="100" value="92" />
-            </div>
-          </div>
-          <div id="photoStatus" class="status" aria-live="polite"></div>
-</div>
-</div>
-</div>
         </section>
+        <section class="tool-panel pe-panel">
+          <span class="pill">Reel & Ad Maker</span>
+          <h2>Write a social video brief</h2>
+          <p class="muted">
+            Creates a hook, scene plan, CTA and caption pack for editing in your
+            preferred editor.
+          </p>
+          <div class="pe-layout">
+            <div class="pe-controls">
+              <input
+                id="brandName"
+                maxlength="100"
+                placeholder="Brand / creator name"
+              /><input
+                id="productName"
+                maxlength="140"
+                placeholder="Product or topic"
+              /><select id="reelGoal">
+                <option value="awareness">Brand awareness</option>
+                <option value="sales">Sales / product ad</option>
+                <option value="engagement">Engagement</option>
+                <option value="announcement">Announcement</option></select
+              ><input
+                id="audience"
+                maxlength="180"
+                placeholder="Target audience (optional)"
+              /><select
+                id="reelPlatform"
+                aria-label="Social media output format"
+              >
+                <option value="Instagram Reels / YouTube Shorts · 9:16">
+                  Instagram Reels / YouTube Shorts · 9:16
+                </option>
+                <option value="YouTube landscape · 16:9">
+                  YouTube landscape · 16:9
+                </option>
+                <option value="Square social post · 1:1">
+                  Square social post · 1:1
+                </option>
+                <option value="Facebook feed · 4:5">Facebook feed · 4:5</option>
+              </select>
+              <div class="actions">
+                <button class="btn" id="buildReel">Create reel brief</button
+                ><button class="btn ghost" id="clearReel">Clear brief</button
+                ><button class="btn ghost" id="downloadReel">
+                  Download brief
+                </button>
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Caption</div>
+                <textarea
+                  id="captionEdit"
+                  placeholder="Build a brief first, or write your caption here"
+                ></textarea>
+                <div id="captionCount" class="status">0 / 2200 characters</div>
+                <div id="platformTip" class="status"></div>
+                <div id="captionChecks" class="status"></div>
+                <div class="actions">
+                  <button type="button" class="btn ghost" id="writeCaption">
+                    Write caption ideas
+                  </button>
+                </div>
+                <div id="captionOutput" class="out" hidden></div>
+                <div class="actions">
+                  <button type="button" class="btn ghost" id="copyCaption">
+                    Copy caption
+                  </button>
+                  <button type="button" class="btn ghost" id="hashtagBtn">
+                    Suggest hashtags
+                  </button>
+                </div>
+                <div id="hashtagOutput" class="out" hidden></div>
+                <div class="actions">
+                  <button type="button" class="btn ghost" id="thumbBtn">
+                    Thumbnail title ideas
+                  </button>
+                </div>
+                <div id="thumbOutput" class="out" hidden></div>
+              </div>
+            </div>
+            <div class="pe-preview reel-tools">
+              <div id="reelOutput" class="out" aria-live="polite">
+                Your reel brief will appear here.
+              </div>
+              <div class="pe-group">
+                <div class="status pe-title">Brand preview card</div>
+                <div class="status">
+                  Uses your brand name, colour, product as headline, goal and
+                  the selected platform.
+                </div>
+                <div class="actions">
+                  <button type="button" class="btn ghost" id="cardBuild">
+                    Build preview card
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    id="cardDownload"
+                    disabled
+                  >
+                    Download PNG
+                  </button>
+                </div>
+                <canvas
+                  id="brandCard"
+                  aria-label="Brand preview card"
+                  hidden
+                  style="
+                    max-width: 100%;
+                    border-radius: 16px;
+                    margin-top: 8px;
+                    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+                  "
+                ></canvas>
+                <div id="cardStatus" class="status" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="tool-panel">
           <span class="pill">Scene Builder</span>
           <h2>Turn an idea into a shot list</h2>
@@ -578,7 +1103,12 @@
             placeholder="e.g. Premium coffee brand launch at sunrise, close-up pour, warm cinematic light"
           ></textarea>
           <div class="actions">
-            <select id="sceneGenre" aria-label="Genre template"><option value="custom">Custom genre</option><option value="ad">Brand ad</option><option value="travel">Travel</option><option value="wedding">Wedding</option><option value="product">Product showcase</option></select
+            <select id="sceneGenre" aria-label="Genre template">
+              <option value="custom">Custom genre</option>
+              <option value="ad">Brand ad</option>
+              <option value="travel">Travel</option>
+              <option value="wedding">Wedding</option>
+              <option value="product">Product showcase</option></select
             ><select id="sceneFormat" aria-label="Video format">
               <option value="9:16">Vertical 9:16 · Reels/Shorts</option>
               <option value="16:9">Landscape 16:9 · YouTube</option>
@@ -632,85 +1162,12 @@
             ><button class="btn ghost" id="newScene">New scene</button
             ><button class="btn ghost" id="copyScene">Copy storyboard</button
             ><button class="btn ghost" id="downloadScene">Download .txt</button
-            ><button class="btn ghost" id="csvScene">Export shot list CSV</button
+            ><button class="btn ghost" id="csvScene">
+              Export shot list CSV</button
             ><button class="btn ghost" id="pdfScene">Download PDF</button
             ><button class="btn ghost" id="printScene">Print</button>
           </div>
         </section>
-        <section class="tool-panel">
-          <span class="pill">Reel & Ad Maker</span>
-          <h2>Write a social video brief</h2>
-          <p class="muted">
-            Creates a hook, scene plan, CTA and caption pack for editing in your
-            preferred editor.
-          </p>
-          <input
-            id="brandName"
-            maxlength="100"
-            placeholder="Brand / creator name"
-          /><input
-            id="productName"
-            maxlength="140"
-            placeholder="Product or topic"
-          /><select id="reelGoal">
-            <option value="awareness">Brand awareness</option>
-            <option value="sales">Sales / product ad</option>
-            <option value="engagement">Engagement</option>
-            <option value="announcement">Announcement</option></select
-          ><input
-            id="audience"
-            maxlength="180"
-            placeholder="Target audience (optional)"
-          /><select id="reelPlatform" aria-label="Social media output format">
-            <option value="Instagram Reels / YouTube Shorts · 9:16">
-              Instagram Reels / YouTube Shorts · 9:16
-            </option>
-            <option value="YouTube landscape · 16:9">
-              YouTube landscape · 16:9
-            </option>
-            <option value="Square social post · 1:1">
-              Square social post · 1:1
-            </option>
-            <option value="Facebook feed · 4:5">Facebook feed · 4:5</option>
-          </select>
-          <div class="actions">
-            <button class="btn" id="buildReel">Create reel brief</button
-            ><button class="btn ghost" id="clearReel">Clear brief</button
-            ><button class="btn ghost" id="downloadReel">Download brief</button>
-          </div>
-          <div id="reelOutput" class="out" aria-live="polite">
-            Your reel brief will appear here.
-          </div>
-          <div class="reel-tools">
-            <div class="pe-group">
-              <div class="status pe-title">Brand preview card</div>
-              <div class="status">Uses your brand name, colour, product as headline, goal and the selected platform.</div>
-              <div class="actions">
-                <button type="button" class="btn ghost" id="cardBuild">Build preview card</button>
-                <button type="button" class="btn ghost" id="cardDownload" disabled>Download PNG</button>
-              </div>
-              <canvas id="brandCard" aria-label="Brand preview card" hidden style="max-width:100%;border-radius:16px;margin-top:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);"></canvas>
-              <div id="cardStatus" class="status" aria-live="polite"></div>
-            </div>
-                                    <div class="pe-group">
-              <div class="status pe-title">Caption</div>
-              <textarea id="captionEdit" placeholder="Build a brief first, or write your caption here"></textarea>
-              <div id="captionCount" class="status">0 / 2200 characters</div>
-              <div id="platformTip" class="status"></div>
-              <div id="captionChecks" class="status"></div>
-              <div class="actions"><button type="button" class="btn ghost" id="writeCaption">Write caption ideas</button></div>
-              <div id="captionOutput" class="out" hidden></div>
-              <div class="actions">
-                <button type="button" class="btn ghost" id="copyCaption">Copy caption</button>
-                <button type="button" class="btn ghost" id="hashtagBtn">Suggest hashtags</button>
-              </div>
-              <div id="hashtagOutput" class="out" hidden></div>
-              <div class="actions"><button type="button" class="btn ghost" id="thumbBtn">Thumbnail title ideas</button></div>
-              <div id="thumbOutput" class="out" hidden></div>
-            </div>
-          </div>
-        </section>
-
         <section class="tool-panel">
           <span class="pill">Project Library</span>
           <h2>Organize generated media</h2>
@@ -725,20 +1182,40 @@
           <div class="pe-group">
             <div class="status pe-title">Brand kit (saved in this browser)</div>
             <label for="brandKitName" class="status">Brand name</label>
-            <input id="brandKitName" maxlength="40" placeholder="Your brand name" />
+            <input
+              id="brandKitName"
+              maxlength="40"
+              placeholder="Your brand name"
+            />
             <label for="brandKitColor" class="status">Brand colour</label>
             <input id="brandKitColor" type="color" value="#e5233a" />
             <div class="actions">
-              <button type="button" class="btn ghost" id="brandKitSave">Save brand kit</button>
-              <button type="button" class="btn ghost" id="brandKitApply">Apply to tools</button>
+              <button type="button" class="btn ghost" id="brandKitSave">
+                Save brand kit
+              </button>
+              <button type="button" class="btn ghost" id="brandKitApply">
+                Apply to tools
+              </button>
             </div>
             <div id="brandKitStatus" class="status"></div>
           </div>
           <div class="pe-group">
-            <div class="status pe-title">Recent items (saved in this browser)</div>
+            <div class="status pe-title">
+              Recent items (saved in this browser)
+            </div>
             <div class="recent-controls">
-              <input id="recentSearch" type="search" placeholder="Search saved items" aria-label="Search saved items" />
-              <select id="recentFilter" aria-label="Filter by type"><option value="all">All types</option><option value="Storyboard">Storyboards</option><option value="Reel brief">Reel briefs</option><option value="Photo export">Photo exports</option></select>
+              <input
+                id="recentSearch"
+                type="search"
+                placeholder="Search saved items"
+                aria-label="Search saved items"
+              />
+              <select id="recentFilter" aria-label="Filter by type">
+                <option value="all">All types</option>
+                <option value="Storyboard">Storyboards</option>
+                <option value="Reel brief">Reel briefs</option>
+                <option value="Photo export">Photo exports</option>
+              </select>
             </div>
             <div id="recentList" class="recent-list"></div>
           </div>
@@ -752,5 +1229,6 @@
     </main>
     <script src="/studio-tools.js" defer></script>
     <script src="/theme.js"></script>
+      <script src="/mobile-nav.js" defer></script>
 </body>
 </html>
