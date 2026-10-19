@@ -58,3 +58,9 @@
 
 /* Stop the page behind the open menu from scrolling */
 body.ep-menu-open { overflow: hidden; }
+
+/* Mobile: theme switch moves into the settings (gear) panel, so hide the header sun button */
+@media (max-width: 950px) {
+  .nav .ep-theme-toggle,
+  .nav #themeToggle { display: none !important; }
+}
