@@ -24,6 +24,10 @@
     setOpen(!header.classList.contains("nav-open"));
   });
 
+  // Login opens its own dialog: close the menu first so the dialog is not hidden behind it
+  var loginBtn = document.getElementById("loginBtn");
+  if (loginBtn) loginBtn.addEventListener("click", function () { setOpen(false); });
+
   nav.addEventListener("click", function (e) {
     if (e.target.closest("a")) setOpen(false);
   });
