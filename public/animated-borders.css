@@ -1,0 +1,235 @@
+/* =====================================================================
+   EditPrompt — Animated gradient borders + professional box polish
+   One shared system for every card, panel and tool box on the site.
+   Loaded last so it refines (does not rewrite) the existing styles.
+   ===================================================================== */
+
+@property --eb-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes eb-spin {
+    to {
+        --eb-angle: 360deg;
+    }
+}
+
+@keyframes eb-breathe {
+    0%, 100% { opacity: 0.62; }
+    50%      { opacity: 0.95; }
+}
+
+/* ---------- 1. Target boxes ---------- */
+.window,
+.panel,
+.card,
+.product,
+.tool-hero,
+.tool-panel,
+.tool-card,
+.resultbox,
+.compare-card,
+.pe-group,
+.pack-specs,
+.modalbox,
+.pack-preview-dialog,
+.side-card,
+.sa-card,
+.dl-panel,
+.historyitem,
+.mediabatch-tile,
+.pack-image-card,
+.float-card,
+.statcard,
+.media-card,
+.v8-panel,
+.adm-modal-card {
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 18px 40px -26px rgba(0, 0, 0, 0.65);
+}
+
+/* ---------- 2. The moving gradient ring (sits exactly on the border) ---------- */
+.window::after,
+.panel::after,
+.card::after,
+.product::after,
+.tool-hero::after,
+.tool-panel::after,
+.tool-card::after,
+.resultbox::after,
+.compare-card::after,
+.pe-group::after,
+.pack-specs::after,
+.modalbox::after,
+.pack-preview-dialog::after,
+.side-card::after,
+.sa-card::after,
+.dl-panel::after,
+.historyitem::after,
+.mediabatch-tile::after,
+.pack-image-card::after,
+.float-card::after,
+.statcard::after,
+.media-card::after,
+.v8-panel::after,
+.adm-modal-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+
+    /* Fallback for browsers without @property: a soft static ring */
+    background: linear-gradient(135deg, rgba(229, 35, 41, 0.55), rgba(233, 216, 187, 0.22), rgba(124, 92, 255, 0.45));
+
+    /* Moving arc: transparent most of the way round, bright comet-like segment */
+    background: conic-gradient(
+        from var(--eb-angle),
+        transparent 0deg 38%,
+        rgba(124, 92, 255, 0.85) 52%,
+        #e52329 62%,
+        #ffb27a 68%,
+        rgba(233, 216, 187, 0.9) 72%,
+        transparent 84%,
+        transparent 360deg
+    );
+
+    /* Keep only the 1px outline */
+    -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#000 0 0) content-box exclude,
+        linear-gradient(#000 0 0);
+
+    animation:
+        eb-spin 5s linear infinite,
+        eb-breathe 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px rgba(229, 35, 41, 0.22));
+    transition: filter 0.3s ease;
+}
+
+/* Interactive boxes glow a little brighter on hover */
+.product:hover::after,
+.card:hover::after,
+.side-card:hover::after,
+.sa-card:hover::after,
+.historyitem:hover::after,
+.mediabatch-tile:hover::after,
+.pack-image-card:hover::after {
+    filter: drop-shadow(0 0 12px rgba(229, 35, 41, 0.45));
+}
+
+/* The window already has a red corner glow; keep its ::before for that */
+.window::before {
+    z-index: 0;
+}
+
+/* ---------- 3. Hover polish for interactive boxes ---------- */
+.card,
+.side-card,
+.sa-card,
+.historyitem,
+.mediabatch-tile {
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.card:hover,
+.side-card:hover,
+.sa-card:hover,
+.historyitem:hover,
+.mediabatch-tile:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 24px 48px -24px rgba(0, 0, 0, 0.75);
+}
+
+/* ---------- 4. Consistent, refined radius & spacing ---------- */
+.window,
+.panel,
+.card,
+.product,
+.tool-hero,
+.tool-panel,
+.tool-card {
+    border-radius: 20px;
+}
+
+.tool-hero h1,
+.tool-panel h2 {
+    letter-spacing: -0.02em;
+}
+
+/* ---------- 5. Light theme: softer shadows, same ring ---------- */
+body[data-ep-theme="light"] .window,
+body[data-ep-theme="light"] .panel,
+body[data-ep-theme="light"] .card,
+body[data-ep-theme="light"] .product,
+body[data-ep-theme="light"] .tool-hero,
+body[data-ep-theme="light"] .tool-panel,
+body[data-ep-theme="light"] .tool-card {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        0 14px 34px -24px rgba(20, 24, 40, 0.28);
+}
+
+body[data-ep-theme="light"] .card:hover,
+body[data-ep-theme="light"] .product:hover {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 22px 44px -22px rgba(20, 24, 40, 0.34);
+}
+
+/* ---------- 6. Accessibility: stop motion for users who ask ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .window::after,
+    .panel::after,
+    .card::after,
+    .product::after,
+    .tool-hero::after,
+    .tool-panel::after,
+    .tool-card::after,
+    .resultbox::after,
+    .compare-card::after,
+    .pe-group::after,
+    .pack-specs::after,
+    .modalbox::after,
+    .pack-preview-dialog::after,
+    .side-card::after,
+    .sa-card::after,
+    .dl-panel::after,
+    .historyitem::after,
+    .mediabatch-tile::after,
+    .pack-image-card::after,
+    .float-card::after,
+    .statcard::after,
+    .media-card::after,
+    .v8-panel::after,
+    .adm-modal-card::after {
+        animation: none;
+    }
+}
+
+/* ---------- 7. Small screens: lighter glow so it never feels heavy ---------- */
+@media (max-width: 720px) {
+    .window::after,
+    .panel::after,
+    .card::after,
+    .product::after,
+    .tool-hero::after,
+    .tool-panel::after {
+        filter: drop-shadow(0 0 3px rgba(229, 35, 41, 0.18));
+    }
+}
