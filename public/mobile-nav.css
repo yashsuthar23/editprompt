@@ -2,14 +2,16 @@
 .nav-toggle { display: none; }
 
 @media (max-width: 950px) {
-  .nav { position: relative; flex-wrap: wrap; }
+  /* Header row: brand left, menu button right. Login + settings live inside the menu. */
+  .nav { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .nav > .brand { flex: 1 1 auto; min-width: 0; }
+  .nav > .right { display: none; }
 
-  /* Same size, radius, border and hover as the theme/settings icon buttons */
   .nav-toggle {
     display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    width: 40px; height: 40px; min-width: 40px; padding: 0; margin: 0;
+    width: 40px; height: 40px; min-width: 40px; padding: 0; margin: 0 0 0 auto;
     color: var(--text); background: var(--panel); border: 1px solid var(--border);
-    border-radius: 12px; cursor: pointer; flex: 0 0 auto; order: 2;
+    border-radius: 12px; cursor: pointer; flex: 0 0 auto;
     transition: border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
   }
   .nav-toggle:hover { color: var(--accent); border-color: var(--accent); box-shadow: 0 8px 20px rgba(var(--accent-rgb), .12); }
@@ -24,31 +26,29 @@
   .nav.nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
   .nav.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  /* Login + appearance (gear) live inside the menu on mobile, not in the header row */
-  .nav > .right { display: none; }
-
-  /* Full-screen menu sheet, like a native mobile app menu */
+  /* Full-screen menu sheet */
   .nav.nav-open {
     position: fixed; inset: 0; z-index: 1000;
-    display: flex; flex-direction: column; align-items: stretch;
+    display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0;
     height: 100vh; height: 100dvh; overflow-y: auto;
     background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none;
-    padding: 13px 16px; box-sizing: border-box;
+    padding: 13px 16px 24px; box-sizing: border-box;
   }
-  .nav.nav-open > .brand { order: 1; }
-  .nav.nav-open > .nav-toggle { order: 2; }
+  .nav.nav-open > .brand { flex: 1 1 auto; }
+  .nav.nav-open > .nav-toggle { margin-left: auto; }
   .nav.nav-open > .right {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px;
-    order: 3; width: 100%; margin-top: 18px; padding-top: 4px;
+    display: flex; align-items: stretch; gap: 10px; width: 100%;
+    margin-top: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
   }
-  .nav.nav-open > .right .btn,
-  .nav.nav-open > .right #loginBtn,
-  .nav.nav-open > .right #logoutBtn { height: 44px; padding: 0 18px; border-radius: 12px; }
+  .nav.nav-open > .right > #loginBtn,
+  .nav.nav-open > .right > #logoutBtn,
+  .nav.nav-open > .right > .btn { flex: 1 1 auto; justify-content: center; height: 46px; border-radius: 12px; font-size: 15px; font-weight: 700; }
+  .nav.nav-open > .right > #epSettingsWrap { flex: 0 0 46px; width: 46px; }
+  .nav.nav-open > .right > #epSettingsWrap .ep-icon-button { width: 46px; height: 46px; border-radius: 12px; }
 
   .nav.nav-open nav {
     display: flex; flex-direction: column; align-items: stretch; gap: 0;
-    order: 4; flex: 1 0 auto; width: 100%;
-    margin-top: 14px; border-top: 1px solid var(--border);
+    width: 100%; margin-top: 4px;
   }
   .nav.nav-open nav a {
     display: block; padding: 20px 4px; border-bottom: 1px solid var(--border);
@@ -66,7 +66,7 @@
 /* Stop the page behind the open menu from scrolling */
 body.ep-menu-open { overflow: hidden; }
 
-/* Mobile: theme switch moves into the settings (gear) panel, so hide the header sun button */
+/* Mobile: theme switch lives in the settings panel, so hide the header sun button */
 @media (max-width: 950px) {
   .nav .ep-theme-toggle,
   .nav #themeToggle { display: none !important; }
