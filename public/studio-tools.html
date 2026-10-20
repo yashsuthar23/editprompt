@@ -26,6 +26,47 @@
           rgba(18, 18, 18, 0.25)
         );
       }
+      /* A short bright segment that travels around the whole border (all four sides and corners).
+         It is a conic gradient painted only on the 1px border ring, so the box content is untouched. */
+      @property --edge-angle {
+        syntax: "<angle>";
+        inherits: false;
+        initial-value: 0deg;
+      }
+      .tool-hero,
+      .tool-panel {
+        position: relative;
+      }
+      .tool-hero::before,
+      .tool-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        border-radius: inherit;
+        pointer-events: none;
+        background: conic-gradient(
+          from var(--edge-angle),
+          transparent 0deg,
+          transparent 300deg,
+          var(--accent, #e5233a) 340deg,
+          #7c5cff 352deg,
+          transparent 360deg
+        );
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box exclude,
+          linear-gradient(#000 0 0);
+        animation: edgeSpin 6s linear infinite;
+      }
+      @keyframes edgeSpin {
+        to {
+          --edge-angle: 360deg;
+        }
+      }
       /* compare handle, labels and drag */
       .ba-handle,
       .ba-tag {
@@ -203,6 +244,8 @@
         animation: outIn 0.35s ease both;
       }
       @media (prefers-reduced-motion: reduce) {
+        .tool-hero::before,
+        .tool-panel::before,
         .reel-tools .out,
         #reelOutput {
           animation: none !important;
@@ -559,10 +602,23 @@
           padding: 16px;
         }
       }
+      /* Reel & Ad Maker: remove extra empty space at the bottom */
+      .pe-panel:has(.reel-tools) {
+        padding-bottom: 14px;
+      }
+      .pe-panel:has(.reel-tools) .pe-layout {
+        margin-bottom: 0;
+      }
+      .pe-panel:has(.reel-tools) .pe-group:last-child,
+      .reel-tools > :last-child {
+        margin-bottom: 0;
+      }
+      .pe-panel:has(.reel-tools) .pe-group {
+        margin-bottom: 0;
+      }
     </style>
     <link rel="stylesheet" href="/light-fixes.css?v=1" />
       <link rel="stylesheet" href="/mobile-nav.css">
-    <link rel="stylesheet" href="/animated-borders.css?v=1" />
 </head>
   <body>
     <header class="nav">
