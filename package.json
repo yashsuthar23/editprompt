@@ -13,13 +13,14 @@
     "build:exe": "powershell -ExecutionPolicy Bypass -File build.ps1"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.9.1",
     "@google/genai": "^2.22.0",
     "@huggingface/inference": "^4.13.30",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "nodemailer": "^10.0.9",
-    "@fal-ai/client": "^1.9.1"
+    "resend": "^6.34.1"
   },
   "overrides": {
     "qs": "^6.16.0"

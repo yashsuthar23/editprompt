@@ -6,7 +6,8 @@ import fs from "fs";
 import session from "express-session";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "url";
-import nodemailer from "nodemailer";
+
+import { Resend } from "resend";
 import { initAdminPro } from "./admin-pro.js";
 import { mountSoftwareDownloads } from "./software-dl.js";
 
@@ -537,21 +538,41 @@ const products = {
 // SMTP
 // ============================================================
 
-const smtpConfigured = Boolean(
-  process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
-);
+// ============================================================
+// RESEND EMAIL
+// ============================================================
 
-const mailer = smtpConfigured
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      family: 4,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+const resendConfigured = Boolean(process.env.RESEND_API_KEY);
+
+const resend = resendConfigured
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+const RESEND_FROM =
+  process.env.RESEND_FROM ||
+  "EditPrompt <onboarding@resend.dev>";
+
+// Compatibility adapter for existing code
+const mailer = resendConfigured
+  ? {
+      async sendMail({ from, to, subject, text, html }) {
+        const result = await resend.emails.send({
+          from: from || RESEND_FROM,
+          to,
+          subject,
+          text,
+          html,
+        });
+
+        if (result.error) {
+          throw new Error(
+            result.error.message || "Resend email failed."
+          );
+        }
+
+        return result.data;
       },
-    })
+    }
   : null;
 
 // ============================================================
@@ -769,21 +790,31 @@ margin-top:18px;
 // ============================================================
 
 async function sendEmail({ to, subject, text, html }) {
-  if (mailer) {
-    await mailer.sendMail({
-      from: `"${BUSINESS_NAME}" <${
-        process.env.SMTP_FROM || process.env.SMTP_USER
-      }>`,
-      to,
-      subject,
-      text,
-      html,
-    });
-  } else {
-    console.log(
-      `[dev] Email to ${email_masked(to)} — "${subject}" (SMTP not configured)`,
+  if (!resend) {
+    throw new Error(
+      "RESEND_API_KEY is not configured."
     );
   }
+
+  const { data, error } = await resend.emails.send({
+    from: RESEND_FROM,
+    to,
+    subject,
+    text,
+    html,
+  });
+
+  if (error) {
+    console.error("Resend email error:", error);
+    throw new Error(
+      error.message || "Failed to send email."
+    );
+  }
+
+  console.log(
+    "Resend email sent:",
+    data?.id || "ok"
+  );
 }
 
 // ============================================================
@@ -865,16 +896,12 @@ If you did not request this code, you can safely ignore this email.
 `,
   );
 
-  if (mailer) {
-    await sendEmail({
-      to: email,
-      subject,
-      text,
-      html,
-    });
-  } else {
-    console.log(`[dev] OTP for ${email}: ${otp}`);
-  }
+  await sendEmail({
+  to: email,
+  subject,
+  text,
+  html,
+});
 }
 
 // ============================================================
@@ -1666,16 +1693,9 @@ app.post(
       await sendOtpEmail(cleanEmail, name.trim(), otp);
 
       const payload = {
-        sent: true,
-
-        message: smtpConfigured
-          ? "Code sent to your email."
-          : "SMTP not configured — check the server console for your code.",
-      };
-
-      if (!smtpConfigured && process.env.NODE_ENV !== "production") {
-        payload.devOtp = otp;
-      }
+  sent: true,
+  message: "Code sent to your email.",
+};
 
       res.json(payload);
     } catch (err) {
@@ -4874,12 +4894,12 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
         : "Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH",
     },
     {
-      label: "Email sending (SMTP)",
-      ok: smtpConfigured,
-      note: smtpConfigured
-        ? "OTP + purchase emails work"
-        : "OTP login and receipts will not be sent",
-    },
+  label: "Email sending (Resend)",
+  ok: resendConfigured,
+  note: resendConfigured
+    ? "OTP + purchase emails work"
+    : "Set RESEND_API_KEY in environment variables",
+},
     {
       label: "Razorpay payments",
       ok: razorpayReady(),
@@ -7894,18 +7914,11 @@ app.get("*", (req, res) =>
 
 const port = Number(process.env.PORT || 3000);
 
-if (
-  mailer &&
-  String(process.env.SMTP_VERIFY_ON_START || "true").toLowerCase() !== "false"
-) {
-  mailer
-    .verify()
-    .then(() => {
-      console.log("SMTP connection: OK");
-    })
-    .catch((error) => {
-      console.error("SMTP connection: FAILED:", error.message);
-    });
+if (resendConfigured) {
+  console.log("Resend email service: CONFIGURED");
+  console.log(`Resend sender: ${RESEND_FROM}`);
+} else {
+  console.warn("Resend email service: NOT CONFIGURED");
 }
 
 app.listen(port, () => {
