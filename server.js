@@ -775,28 +775,38 @@ margin-top:18px;
 // ============================================================
 
 async function sendEmail({ to, subject, text, html }) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is missing.");
+  const emailApiUrl = process.env.GOOGLE_EMAIL_API_URL;
+
+  if (!emailApiUrl) {
+    throw new Error("GOOGLE_EMAIL_API_URL is missing.");
   }
 
-  if (!process.env.RESEND_FROM) {
-    throw new Error("RESEND_FROM is missing.");
-  }
-
-  const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM,
-    to,
-    subject,
-    text,
-    html,
+  const response = await fetch(emailApiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      to,
+      subject,
+      text,
+      html,
+    }),
   });
 
-  if (error) {
-    console.error("Resend email error:", error);
-    throw new Error(error.message || "Failed to send email.");
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data.ok) {
+    console.error("Google Email API error:", data);
+
+    throw new Error(
+      data?.error || "Failed to send email through Google Email API.",
+    );
   }
 
-  console.log(`Email sent successfully to ${email_masked(to)}: ${data?.id || "ok"}`);
+  console.log(
+    `Email sent successfully to ${email_masked(to)}`,
+  );
 
   return data;
 }
@@ -880,16 +890,12 @@ If you did not request this code, you can safely ignore this email.
 `,
   );
 
-  if (mailer) {
-    await sendEmail({
-      to: email,
-      subject,
-      text,
-      html,
-    });
-  } else {
-    console.log(`[dev] OTP for ${email}: ${otp}`);
-  }
+  await sendEmail({
+  to: email,
+  subject,
+  text,
+  html,
+});
 }
 
 // ============================================================
