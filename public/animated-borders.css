@@ -122,7 +122,6 @@
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-  mask-composite: exclude;
   mask:
     linear-gradient(#000 0 0) content-box exclude,
     linear-gradient(#000 0 0);
@@ -242,7 +241,17 @@ body[data-ep-theme="light"] .product:hover {
   background: var(--ep-field-bg-hover);
 }
 
-/* ---------- 8. Accessibility: stop motion for users who ask ---------- */
+/* ---------- 8. Quick Start scene chips: same field background ---------- */
+.scene-chip {
+  background: var(--ep-field-bg);
+  border-color: var(--ep-field-border);
+}
+
+.scene-chip:hover {
+  background: var(--ep-field-bg-hover);
+}
+
+/* ---------- 9. Accessibility: stop motion for users who ask ---------- */
 @media (prefers-reduced-motion: reduce) {
   .window::after,
   .panel::after,
@@ -271,7 +280,7 @@ body[data-ep-theme="light"] .product:hover {
   }
 }
 
-/* ---------- 9. Small screens: lighter glow so it never feels heavy ---------- */
+/* ---------- 10. Small screens: lighter glow so it never feels heavy ---------- */
 @media (max-width: 720px) {
   .window::after,
   .panel::after,
@@ -282,12 +291,45 @@ body[data-ep-theme="light"] .product:hover {
     filter: drop-shadow(0 0 3px rgba(229, 35, 41, 0.18));
   }
 }
-/* ---------- 10. Quick Start scene chips: same field background ---------- */
-.scene-chip {
-  background: var(--ep-field-bg);
-  border-color: var(--ep-field-border);
+
+/* ---------- 10. Performance: pause off-screen rings, static ring on phones ---------- */
+/* Added by animated-borders.js when a box leaves the viewport. */
+.eb-paused::after {
+  animation-play-state: paused !important;
+  filter: none !important;
 }
 
-.scene-chip:hover {
-  background: var(--ep-field-bg-hover);
+@media (max-width: 720px) {
+  .window::after,
+  .panel::after,
+  .card::after,
+  .product::after,
+  .tool-hero::after,
+  .tool-panel::after,
+  .tool-card::after,
+  .resultbox::after,
+  .compare-card::after,
+  .pe-group::after,
+  .modalbox::after,
+  .pack-preview-dialog::after,
+  .side-card::after,
+  .sa-card::after,
+  .dl-panel::after,
+  .historyitem::after,
+  .mediabatch-tile::after,
+  .pack-image-card::after,
+  .float-card::after,
+  .statcard::after,
+  .media-card::after,
+  .v8-panel::after,
+  .adm-modal-card::after {
+    animation: none;
+    filter: none;
+    background: linear-gradient(
+      135deg,
+      rgba(229, 35, 41, 0.5),
+      rgba(233, 216, 187, 0.18),
+      rgba(124, 92, 255, 0.4)
+    );
+  }
 }

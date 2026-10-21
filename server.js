@@ -9,7 +9,9 @@ import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initAdminPro } from "./admin-pro.js";
 import { mountSoftwareDownloads } from "./software-dl.js";
+import { Resend } from "resend";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 dotenv.config();
 
 const app = express();
@@ -341,6 +343,10 @@ CREATE TABLE IF NOT EXISTS favorites(
 
 try {
   db.exec("ALTER TABLE otps ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
+} catch {}
+
+try {
+  db.exec("ALTER TABLE users ADD COLUMN phone TEXT");
 } catch {}
 
 const pro = initAdminPro(db, __dirname);
@@ -769,21 +775,30 @@ margin-top:18px;
 // ============================================================
 
 async function sendEmail({ to, subject, text, html }) {
-  if (mailer) {
-    await mailer.sendMail({
-      from: `"${BUSINESS_NAME}" <${
-        process.env.SMTP_FROM || process.env.SMTP_USER
-      }>`,
-      to,
-      subject,
-      text,
-      html,
-    });
-  } else {
-    console.log(
-      `[dev] Email to ${email_masked(to)} — "${subject}" (SMTP not configured)`,
-    );
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is missing.");
   }
+
+  if (!process.env.RESEND_FROM) {
+    throw new Error("RESEND_FROM is missing.");
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: process.env.RESEND_FROM,
+    to,
+    subject,
+    text,
+    html,
+  });
+
+  if (error) {
+    console.error("Resend email error:", error);
+    throw new Error(error.message || "Failed to send email.");
+  }
+
+  console.log(`Email sent successfully to ${email_masked(to)}: ${data?.id || "ok"}`);
+
+  return data;
 }
 
 // ============================================================
