@@ -349,6 +349,11 @@ try {
   db.exec("ALTER TABLE users ADD COLUMN phone TEXT");
 } catch {}
 
+try {
+  db.exec("ALTER TABLE video_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
+} catch {}
+
+
 const pro = initAdminPro(db, __dirname);
 app.use("/api", pro.gate);
 
