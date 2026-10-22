@@ -353,6 +353,10 @@ try {
   db.exec("ALTER TABLE video_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
 } catch {}
 
+try {
+  db.exec("ALTER TABLE video_jobs ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0");
+} catch {}
+
 
 const pro = initAdminPro(db, __dirname);
 app.use("/api", pro.gate);
