@@ -80,53 +80,48 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
   const unsubToken = (e) => crypto.createHmac("sha256", secret()).update(e.toLowerCase()).digest("hex").slice(0, 32);
   function mount({ app: app2, requireAdmin: requireAdmin2, logAdmin: logAdmin2, products: products2, razorpayKeys: razorpayKeys2, razorpayReady: razorpayReady2, mailer: mailer2, ai: ai2 }) {
     for (const r of db2.prepare("SELECT * FROM product_overrides").all()) if (products2[r.id]) Object.assign(products2[r.id], { name: r.name, price: r.price });
-    // ---- Prompt Pack generator (added) ----
-    db2.exec(`CREATE TABLE IF NOT EXISTS custom_packs(
+    // ---- Prompt Pack generator ----
+    db2.exec(`CREATE TABLE IF NOT EXISTS prompt_packs(
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       price INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'generating',
+      hidden INTEGER NOT NULL DEFAULT 1,
+      progress TEXT NOT NULL DEFAULT '',
+      error TEXT NOT NULL DEFAULT '',
       description TEXT NOT NULL DEFAULT '',
-      note TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
     const aiHook = ai2 || {};
-    const packRow = (id) => db2.prepare("SELECT * FROM custom_packs WHERE id=?").get(id);
-    const setPackStatus = (id, status, note = "") => db2.prepare("UPDATE custom_packs SET status=?, note=? WHERE id=?").run(status, note, id);
-    function addLivePack(row) {
-      products2[row.id] = { name: row.name, price: row.price, file: null, custom: true };
+    const packRow = (id) => db2.prepare("SELECT * FROM prompt_packs WHERE id=?").get(id);
+    // Keep the store catalogue in step with the pack row: shown only when ready and not hidden.
+    function syncStore(id) {
+      const r = packRow(id);
+      if (r && r.status === "ready" && !r.hidden) products2[id] = { name: r.name, price: r.price, file: null, custom: true };
+      else delete products2[id];
     }
-    function dropLivePack(id) {
-      delete products2[id];
-    }
-    for (const r of db2.prepare("SELECT * FROM custom_packs WHERE status='live'").all()) addLivePack(r);
+    for (const r of db2.prepare("SELECT id FROM prompt_packs WHERE status='ready' AND hidden=0").all()) syncStore(r.id);
 
     async function generatePackText(id) {
       const row = packRow(id);
       if (!row) return;
-      db2.prepare("UPDATE custom_packs SET status='generating', note='' WHERE id=?").run(id);
+      db2.prepare("UPDATE prompt_packs SET status='generating', progress='Writing description, tags and categories…', error='' WHERE id=?").run(id);
       try {
-        if (!aiHook.geminiReady || !aiHook.geminiReady()) {
-          setPackStatus(id, "draft", "AI key not set. Add GEMINI_API_KEY on Render, then press Regenerate.");
-          return;
-        }
+        if (!aiHook.geminiReady || !aiHook.geminiReady()) throw new Error("GEMINI_API_KEY is not set on the server.");
         const text = await aiHook.callGemini({
           systemInstruction: "You write product copy for a store that sells AI prompt packs. Reply ONLY with JSON: {\"tag\": string (max 6 words), \"description\": string (2-3 sentences), \"categories\": string[] (max 4)}. No markdown, no code fences.",
           input: `Pack name: ${row.name}\nPrice: Rs ${row.price / 100}`,
           maxOutputTokens: 600,
           temperature: 0.6,
         });
-        const clean = String(text).replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
-        db2.prepare("UPDATE custom_packs SET description=? WHERE id=?").run(JSON.stringify(parsed), id);
-        setPackStatus(id, "draft", "Text ready. Review it, then make it visible on the store.");
+        const parsed = JSON.parse(String(text).replace(/```json|```/g, "").trim());
+        db2.prepare("UPDATE prompt_packs SET status='ready', progress='', description=? WHERE id=?").run(JSON.stringify(parsed), id);
       } catch (err) {
         console.error("Pack generation failed:", err);
-        setPackStatus(id, "draft", "Generation failed: " + String(err.message || err).slice(0, 160));
+        db2.prepare("UPDATE prompt_packs SET status='failed', progress='', error=? WHERE id=?").run(String(err.message || err).slice(0, 200), id);
       }
+      syncStore(id);
     }
-
-    app2.get("/api/admin/packs", requireAdmin2, (req, res) => res.json({ rows: db2.prepare("SELECT * FROM custom_packs ORDER BY created_at DESC").all() }));
 
     app2.post("/api/admin/packs", requireAdmin2, (req, res) => {
       const name = String(req.body?.name || "").trim().slice(0, 80);
@@ -134,7 +129,7 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       if (!name) return res.status(400).json({ error: "Enter a pack name." });
       if (!(rupees >= 1 && rupees <= 100000)) return res.status(400).json({ error: "Enter a price between \u20B91 and \u20B9100000." });
       const id = "pack_" + crypto.randomBytes(4).toString("hex");
-      db2.prepare("INSERT INTO custom_packs(id,name,price,status) VALUES(?,?,?,'generating')").run(id, name, rupees * 100);
+      db2.prepare("INSERT INTO prompt_packs(id,name,price) VALUES(?,?,?)").run(id, name, rupees * 100);
       logAdmin2("pack_create", id, `${name} \u20B9${rupees}`);
       res.json({ ok: true, id });
       generatePackText(id);
@@ -150,9 +145,9 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       const row = packRow(req.params.id);
       if (!row) return res.status(404).json({ error: "Pack not found." });
       const show = !!req.body?.show;
-      if (show && !row.description) return res.status(400).json({ error: "Generate the description first." });
-      setPackStatus(row.id, show ? "live" : "draft", show ? "Live on the store." : "Hidden from the store.");
-      if (show) addLivePack(row); else dropLivePack(row.id);
+      if (show && row.status !== "ready") return res.status(400).json({ error: "Wait until the description is ready." });
+      db2.prepare("UPDATE prompt_packs SET hidden=? WHERE id=?").run(show ? 0 : 1, row.id);
+      syncStore(row.id);
       logAdmin2(show ? "pack_show" : "pack_hide", row.id, row.name);
       res.json({ ok: true });
     });
@@ -160,23 +155,36 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
     app2.post("/api/admin/packs/:id/delete", requireAdmin2, (req, res) => {
       const row = packRow(req.params.id);
       if (!row) return res.status(404).json({ error: "Pack not found." });
-      db2.prepare("DELETE FROM custom_packs WHERE id=?").run(row.id);
-      dropLivePack(row.id);
+      db2.prepare("DELETE FROM prompt_packs WHERE id=?").run(row.id);
+      delete products2[row.id];
       logAdmin2("pack_delete", row.id, row.name);
       res.json({ ok: true });
     });
     // ---- end Prompt Pack generator ----
 
     app2.get("/api/product-prices", (req, res) => res.json(Object.fromEntries(Object.entries(products2).map(([k, v]) => [k, v.price / 100]))));
-    app2.get("/api/admin/products", requireAdmin2, (req, res) => res.json({ products: Object.entries(products2).map(([id, p]) => ({
-      id,
-      name: p.name,
-      price: p.price / 100,
-      file: p.file,
-      sales: db2.prepare("SELECT COUNT(*) n FROM purchases WHERE product_id=? AND status='paid' AND amount>0").get(id).n
-    })) }));
+    app2.get("/api/admin/products", requireAdmin2, (req, res) => {
+      const salesOf = (id) => db2.prepare("SELECT COUNT(*) n FROM purchases WHERE product_id=? AND status='paid' AND amount>0").get(id).n;
+      const rows = [];
+      for (const [id, p] of Object.entries(products2)) {
+        if (p.custom) continue;
+        rows.push({ id, name: p.name, price: p.price / 100, file: p.file, sales: salesOf(id) });
+      }
+      for (const r of db2.prepare("SELECT * FROM prompt_packs ORDER BY created_at DESC").all()) {
+        rows.push({ id: r.id, name: r.name, price: r.price / 100, file: null, sales: salesOf(r.id), custom: true, status: r.status, hidden: !!r.hidden, progress: r.progress, error: r.error });
+      }
+      res.json({ products: rows });
+    });
     app2.post("/api/admin/products", requireAdmin2, (req, res) => {
       const id = String(req.body?.id || ""), name2 = String(req.body?.name || "").trim().slice(0, 80), price = Math.round(Number(req.body?.price) * 100);
+      const packExists = db2.prepare("SELECT id FROM prompt_packs WHERE id=?").get(id);
+      if (packExists) {
+        if (!name2 || !(price >= 100 && price <= 1e7)) return res.status(400).json({ error: "Enter a name and a price between \u20B91 and \u20B9100000." });
+        db2.prepare("UPDATE prompt_packs SET name=?, price=? WHERE id=?").run(name2, price, id);
+        logAdmin2("pack_edit", id, `${name2} \u20B9${price / 100}`);
+        syncStore(id);
+        return res.json({ ok: true });
+      }
       if (!products2[id]) return res.status(404).json({ error: "Unknown product." });
       if (!name2 || !(price >= 100 && price <= 1e7)) return res.status(400).json({ error: "Enter a name and a price between \u20B91 and \u20B9100000." });
       db2.prepare("INSERT INTO product_overrides(id,name,price) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, price=excluded.price").run(id, name2, price);
