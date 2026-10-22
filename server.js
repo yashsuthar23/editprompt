@@ -5335,46 +5335,185 @@ async function generateImageWithPollinations({ prompt, aspectRatio, seed }) {
 }
 
 async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
-  if (!hasUsableHFToken())
+  if (!hasUsableHFToken()) {
     throw new Error("Hugging Face token is not configured.");
-  const model =
-    process.env.HF_IMAGE_MODEL || "black-forest-labs/FLUX.1-schnell";
-  // The old hf-inference endpoint no longer serves FLUX (HTTP 410). Route through the
-  // Inference Providers client instead: "auto" picks a partner provider that hosts the model.
-  const provider = String(process.env.HF_IMAGE_PROVIDER || "auto")
-    .trim()
-    .toLowerCase();
-
-  let InferenceClient;
-  try {
-    ({ InferenceClient } = await import("@huggingface/inference"));
-  } catch {
-    throw new Error(
-      "Hugging Face image needs the client package. Run: npm install",
-    );
   }
 
-  const client = new InferenceClient(process.env.HF_TOKEN);
-  let blob;
+  const spaceBase = String(
+    process.env.HF_IMAGE_SPACE_URL ||
+      "https://mrfakename-z-image-turbo.hf.space",
+  ).replace(/\/+$/, "");
+
+  const [width, height] = imageDimensions(aspectRatio);
+
+  const steps = 9;
+  const seed = Math.floor(Math.random() * 2147483647);
+  const randomizeSeed = true;
+
+  let response;
+
   try {
-    blob = await client.textToImage(
-      { provider, model, inputs: prompt },
+    response = await fetch(
+      `${spaceBase}/gradio_api/call/generate_image`,
       {
-        outputType: "blob",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.HF_TOKEN}`,
+        },
+        body: JSON.stringify({
+          data: [
+            prompt,
+            height,
+            width,
+            steps,
+            seed,
+            randomizeSeed,
+          ],
+        }),
         signal: AbortSignal.timeout(
-          Number(process.env.HF_TIMEOUT_MS || 180000),
+          Number(process.env.HF_IMAGE_TIMEOUT_MS || 180000),
         ),
       },
     );
   } catch (error) {
     throw new Error(
-      `Hugging Face image failed (provider ${provider}, model ${model}): ${String(error.message || error).slice(0, 500)}`,
+      `Hugging Face ZeroGPU image connection failed: ${String(
+        error.message || error,
+      ).slice(0, 400)}`,
     );
   }
+
+  const startText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Hugging Face ZeroGPU image failed (${response.status}): ${startText.slice(
+        0,
+        500,
+      )}`,
+    );
+  }
+
+  let startData;
+
+  try {
+    startData = JSON.parse(startText);
+  } catch {
+    throw new Error(
+      `Hugging Face ZeroGPU returned invalid response: ${startText.slice(
+        0,
+        500,
+      )}`,
+    );
+  }
+
+  const eventId = startData?.event_id;
+
+  if (!eventId) {
+    throw new Error(
+      `Hugging Face ZeroGPU did not return an event ID: ${startText.slice(
+        0,
+        500,
+      )}`,
+    );
+  }
+
+  const resultResponse = await fetch(
+    `${spaceBase}/gradio_api/call/generate_image/${eventId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HF_TOKEN}`,
+      },
+      signal: AbortSignal.timeout(
+        Number(process.env.HF_IMAGE_TIMEOUT_MS || 180000),
+      ),
+    },
+  );
+
+  if (!resultResponse.ok) {
+    const text = await resultResponse.text().catch(() => "");
+
+    throw new Error(
+      `Hugging Face ZeroGPU result failed (${resultResponse.status}): ${text.slice(
+        0,
+        500,
+      )}`,
+    );
+  }
+
+  const resultText = await resultResponse.text();
+
+  const lines = resultText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let outputData = null;
+
+  for (const line of lines) {
+    if (!line.startsWith("data:")) continue;
+
+    const payload = line.slice(5).trim();
+
+    if (!payload || payload === "[DONE]") continue;
+
+    try {
+      const parsed = JSON.parse(payload);
+
+      if (Array.isArray(parsed)) {
+        outputData = parsed;
+        break;
+      }
+    } catch {
+      // Ignore non-JSON progress events.
+    }
+  }
+
+  if (!outputData) {
+    throw new Error(
+      `Hugging Face ZeroGPU returned no image: ${resultText.slice(0, 700)}`,
+    );
+  }
+
+  const imageResult = outputData[0];
+
+  const imageUrl =
+    imageResult?.url ||
+    (imageResult?.path
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(
+          imageResult.path,
+        )}`
+      : null);
+
+  if (!imageUrl) {
+    throw new Error(
+      `Hugging Face ZeroGPU returned an unexpected image result: ${JSON.stringify(
+        imageResult,
+      ).slice(0, 700)}`,
+    );
+  }
+
+  const imageResponse = await fetch(imageUrl, {
+    headers: {
+      Authorization: `Bearer ${process.env.HF_TOKEN}`,
+    },
+    signal: AbortSignal.timeout(
+      Number(process.env.HF_IMAGE_TIMEOUT_MS || 180000),
+    ),
+  });
+
+  if (!imageResponse.ok) {
+    throw new Error(
+      `Hugging Face ZeroGPU image download failed (${imageResponse.status}).`,
+    );
+  }
+
   return {
-    buffer: Buffer.from(await blob.arrayBuffer()),
-    mimeType: blob.type || "image/jpeg",
-    model: `huggingface:${provider}:${model}`,
+    buffer: Buffer.from(await imageResponse.arrayBuffer()),
+    mimeType:
+      imageResponse.headers.get("content-type") || "image/png",
+    model: "huggingface-zerogpu:Z-Image-Turbo",
   };
 }
 
