@@ -5344,7 +5344,10 @@ async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
       "https://mrfakename-z-image-turbo.hf.space",
   ).replace(/\/+$/, "");
 
-  const [width, height] = imageDimensions(aspectRatio);
+const [rawWidth, rawHeight] = imageDimensions(aspectRatio);
+
+const width = Math.max(512, rawWidth);
+const height = Math.max(512, rawHeight);
 
   const steps = 9;
   const seed = Math.floor(Math.random() * 2147483647);
