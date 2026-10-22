@@ -1,4 +1,4 @@
-﻿import path from "path";
+import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 
@@ -78,8 +78,95 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       AND lower(u.email) NOT IN (SELECT lower(email) FROM blocked_emails) AND lower(u.email) NOT IN (SELECT email FROM email_optout)`).all();
   const secret = () => process.env.SESSION_SECRET || "dev";
   const unsubToken = (e) => crypto.createHmac("sha256", secret()).update(e.toLowerCase()).digest("hex").slice(0, 32);
-  function mount({ app: app2, requireAdmin: requireAdmin2, logAdmin: logAdmin2, products: products2, razorpayKeys: razorpayKeys2, razorpayReady: razorpayReady2, mailer: mailer2 }) {
+  function mount({ app: app2, requireAdmin: requireAdmin2, logAdmin: logAdmin2, products: products2, razorpayKeys: razorpayKeys2, razorpayReady: razorpayReady2, mailer: mailer2, ai: ai2 }) {
     for (const r of db2.prepare("SELECT * FROM product_overrides").all()) if (products2[r.id]) Object.assign(products2[r.id], { name: r.name, price: r.price });
+    // ---- Prompt Pack generator (added) ----
+    db2.exec(`CREATE TABLE IF NOT EXISTS custom_packs(
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'generating',
+      description TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+    const aiHook = ai2 || {};
+    const packRow = (id) => db2.prepare("SELECT * FROM custom_packs WHERE id=?").get(id);
+    const setPackStatus = (id, status, note = "") => db2.prepare("UPDATE custom_packs SET status=?, note=? WHERE id=?").run(status, note, id);
+    function addLivePack(row) {
+      products2[row.id] = { name: row.name, price: row.price, file: null, custom: true };
+    }
+    function dropLivePack(id) {
+      delete products2[id];
+    }
+    for (const r of db2.prepare("SELECT * FROM custom_packs WHERE status='live'").all()) addLivePack(r);
+
+    async function generatePackText(id) {
+      const row = packRow(id);
+      if (!row) return;
+      db2.prepare("UPDATE custom_packs SET status='generating', note='' WHERE id=?").run(id);
+      try {
+        if (!aiHook.geminiReady || !aiHook.geminiReady()) {
+          setPackStatus(id, "draft", "AI key not set. Add GEMINI_API_KEY on Render, then press Regenerate.");
+          return;
+        }
+        const text = await aiHook.callGemini({
+          systemInstruction: "You write product copy for a store that sells AI prompt packs. Reply ONLY with JSON: {\"tag\": string (max 6 words), \"description\": string (2-3 sentences), \"categories\": string[] (max 4)}. No markdown, no code fences.",
+          input: `Pack name: ${row.name}\nPrice: Rs ${row.price / 100}`,
+          maxOutputTokens: 600,
+          temperature: 0.6,
+        });
+        const clean = String(text).replace(/```json|```/g, "").trim();
+        const parsed = JSON.parse(clean);
+        db2.prepare("UPDATE custom_packs SET description=? WHERE id=?").run(JSON.stringify(parsed), id);
+        setPackStatus(id, "draft", "Text ready. Review it, then make it visible on the store.");
+      } catch (err) {
+        console.error("Pack generation failed:", err);
+        setPackStatus(id, "draft", "Generation failed: " + String(err.message || err).slice(0, 160));
+      }
+    }
+
+    app2.get("/api/admin/packs", requireAdmin2, (req, res) => res.json({ rows: db2.prepare("SELECT * FROM custom_packs ORDER BY created_at DESC").all() }));
+
+    app2.post("/api/admin/packs", requireAdmin2, (req, res) => {
+      const name = String(req.body?.name || "").trim().slice(0, 80);
+      const rupees = Math.round(Number(req.body?.price));
+      if (!name) return res.status(400).json({ error: "Enter a pack name." });
+      if (!(rupees >= 1 && rupees <= 100000)) return res.status(400).json({ error: "Enter a price between \u20B91 and \u20B9100000." });
+      const id = "pack_" + crypto.randomBytes(4).toString("hex");
+      db2.prepare("INSERT INTO custom_packs(id,name,price,status) VALUES(?,?,?,'generating')").run(id, name, rupees * 100);
+      logAdmin2("pack_create", id, `${name} \u20B9${rupees}`);
+      res.json({ ok: true, id });
+      generatePackText(id);
+    });
+
+    app2.post("/api/admin/packs/:id/regenerate", requireAdmin2, (req, res) => {
+      if (!packRow(req.params.id)) return res.status(404).json({ error: "Pack not found." });
+      res.json({ ok: true });
+      generatePackText(req.params.id);
+    });
+
+    app2.post("/api/admin/packs/:id/visibility", requireAdmin2, (req, res) => {
+      const row = packRow(req.params.id);
+      if (!row) return res.status(404).json({ error: "Pack not found." });
+      const show = !!req.body?.show;
+      if (show && !row.description) return res.status(400).json({ error: "Generate the description first." });
+      setPackStatus(row.id, show ? "live" : "draft", show ? "Live on the store." : "Hidden from the store.");
+      if (show) addLivePack(row); else dropLivePack(row.id);
+      logAdmin2(show ? "pack_show" : "pack_hide", row.id, row.name);
+      res.json({ ok: true });
+    });
+
+    app2.post("/api/admin/packs/:id/delete", requireAdmin2, (req, res) => {
+      const row = packRow(req.params.id);
+      if (!row) return res.status(404).json({ error: "Pack not found." });
+      db2.prepare("DELETE FROM custom_packs WHERE id=?").run(row.id);
+      dropLivePack(row.id);
+      logAdmin2("pack_delete", row.id, row.name);
+      res.json({ ok: true });
+    });
+    // ---- end Prompt Pack generator ----
+
     app2.get("/api/product-prices", (req, res) => res.json(Object.fromEntries(Object.entries(products2).map(([k, v]) => [k, v.price / 100]))));
     app2.get("/api/admin/products", requireAdmin2, (req, res) => res.json({ products: Object.entries(products2).map(([id, p]) => ({
       id,
