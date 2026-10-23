@@ -350,13 +350,16 @@ try {
 } catch {}
 
 try {
-  db.exec("ALTER TABLE video_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0");
+  db.exec(
+    "ALTER TABLE video_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0",
+  );
 } catch {}
 
 try {
-  db.exec("ALTER TABLE video_jobs ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0");
+  db.exec(
+    "ALTER TABLE video_jobs ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0",
+  );
 } catch {}
-
 
 const pro = initAdminPro(db, __dirname);
 app.use("/api", pro.gate);
@@ -813,9 +816,7 @@ async function sendEmail({ to, subject, text, html }) {
     );
   }
 
-  console.log(
-    `Email sent successfully to ${email_masked(to)}`,
-  );
+  console.log(`Email sent successfully to ${email_masked(to)}`);
 
   return data;
 }
@@ -900,11 +901,11 @@ If you did not request this code, you can safely ignore this email.
   );
 
   await sendEmail({
-  to: email,
-  subject,
-  text,
-  html,
-});
+    to: email,
+    subject,
+    text,
+    html,
+  });
 }
 
 // ============================================================
@@ -1248,11 +1249,28 @@ function getGeminiModel() {
   return process.env.AI_MODEL || "gemini-2.5-flash";
 }
 
+// Fast mode: turn off / minimise Gemini "thinking". Thinking tokens are the
+// main reason prompt generation felt slow (10-30s) on mobile networks.
+function geminiThinkingConfig(model) {
+  const forced = String(process.env.GEMINI_THINKING || "").trim().toLowerCase();
+
+  if (forced === "default") return null; // keep Google's default behaviour
+
+  if (/gemini-2\.5-pro/i.test(model)) return { thinkingBudget: 128 };
+  if (/gemini-2\.5/i.test(model)) return { thinkingBudget: 0 };
+  if (/gemini-(3|4|5)/i.test(model)) {
+    return { thinkingLevel: forced || "minimal" };
+  }
+
+  return null;
+}
+
 async function callGemini({
   systemInstruction,
   input,
   maxOutputTokens = 1500,
   temperature = 0.7,
+  timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS) || 40000,
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -1266,44 +1284,56 @@ async function callGemini({
     model,
   )}:generateContent`;
 
-  const response = await fetch(url, {
-    method: "POST",
+  const send = async (thinkingConfig) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    headers: {
-      "Content-Type": "application/json",
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        signal: controller.signal,
 
-      "x-goog-api-key": apiKey,
-    },
-
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [
-          {
-            text: systemInstruction,
-          },
-        ],
-      },
-
-      contents: [
-        {
-          role: "user",
-
-          parts: [
-            {
-              text: input,
-            },
-          ],
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      ],
 
-      generationConfig: {
-        temperature,
-        maxOutputTokens,
-      },
-    }),
-  });
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
 
-  const data = await response.json();
+          contents: [{ role: "user", parts: [{ text: input }] }],
+
+          generationConfig: {
+            temperature,
+            maxOutputTokens,
+            ...(thinkingConfig ? { thinkingConfig } : {}),
+          },
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      return { response, data };
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        throw new Error("Gemini timed out.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  const thinking = geminiThinkingConfig(model);
+  let { response, data } = await send(thinking);
+
+  // If the model rejects the thinking setting, retry once without it.
+  if (
+    !response.ok &&
+    thinking &&
+    /think/i.test(String(data?.error?.message || ""))
+  ) {
+    ({ response, data } = await send(null));
+  }
 
   if (!response.ok) {
     console.error("Gemini API error:", data);
@@ -1313,7 +1343,8 @@ async function callGemini({
 
   const text =
     data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
+      ?.filter((part) => !part.thought)
+      .map((part) => part.text || "")
       .join("")
       .trim() || "";
 
@@ -5353,10 +5384,10 @@ async function generateImageWithHuggingFace({ prompt, aspectRatio }) {
       "https://mrfakename-z-image-turbo.hf.space",
   ).replace(/\/+$/, "");
 
-const [rawWidth, rawHeight] = imageDimensions(aspectRatio);
+  const [rawWidth, rawHeight] = imageDimensions(aspectRatio);
 
-const width = Math.max(512, rawWidth);
-const height = Math.max(512, rawHeight);
+  const width = Math.max(512, rawWidth);
+  const height = Math.max(512, rawHeight);
 
   const steps = 9;
   const seed = Math.floor(Math.random() * 2147483647);
@@ -5365,29 +5396,19 @@ const height = Math.max(512, rawHeight);
   let response;
 
   try {
-    response = await fetch(
-      `${spaceBase}/gradio_api/call/generate_image`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-        },
-        body: JSON.stringify({
-          data: [
-            prompt,
-            height,
-            width,
-            steps,
-            seed,
-            randomizeSeed,
-          ],
-        }),
-        signal: AbortSignal.timeout(
-          Number(process.env.HF_IMAGE_TIMEOUT_MS || 180000),
-        ),
+    response = await fetch(`${spaceBase}/gradio_api/call/generate_image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.HF_TOKEN}`,
       },
-    );
+      body: JSON.stringify({
+        data: [prompt, height, width, steps, seed, randomizeSeed],
+      }),
+      signal: AbortSignal.timeout(
+        Number(process.env.HF_IMAGE_TIMEOUT_MS || 180000),
+      ),
+    });
   } catch (error) {
     throw new Error(
       `Hugging Face ZeroGPU image connection failed: ${String(
@@ -5493,9 +5514,7 @@ const height = Math.max(512, rawHeight);
   const imageUrl =
     imageResult?.url ||
     (imageResult?.path
-      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(
-          imageResult.path,
-        )}`
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(imageResult.path)}`
       : null);
 
   if (!imageUrl) {
@@ -5523,8 +5542,7 @@ const height = Math.max(512, rawHeight);
 
   return {
     buffer: Buffer.from(await imageResponse.arrayBuffer()),
-    mimeType:
-      imageResponse.headers.get("content-type") || "image/png",
+    mimeType: imageResponse.headers.get("content-type") || "image/png",
     model: "huggingface-zerogpu:Z-Image-Turbo",
   };
 }
@@ -5680,35 +5698,76 @@ async function generateVideoWithHuggingFace({
   aspectRatio,
   fps,
 }) {
-  if (!hasUsableHFToken())
+  if (!hasUsableHFToken()) {
     throw new Error("Hugging Face token is not configured.");
+  }
 
-  // Free Hugging Face ZeroGPU Wan2.2 routes.
-  // Text-to-video: zerogpu-aoti/wan2-2-fp8da-aoti
-  // Image-to-video: zerogpu-aoti/wan2-2-fp8da-aoti-faster
-  // These are Gradio Spaces, so they use the Space's ZeroGPU queue rather
-  // than Hugging Face Inference Providers such as fal.ai/Replicate.
   const hasImage = Boolean(image?.data);
+
   const defaultSpace = hasImage
     ? "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space"
     : "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
-  const configuredSpace = String(process.env.HF_ZEROGPU_SPACE_URL || "").trim();
-  // Ignore the old OpenKing Space setting so this replacement really switches
-  // away from the queue that was previously filling up. A custom Space can
-  // still be supplied with HF_ZEROGPU_SPACE_URL.
+
+  const configuredSpace = String(
+    process.env.HF_ZEROGPU_SPACE_URL || "",
+  ).trim();
+
   const legacyOpenKing = configuredSpace
     .toLowerCase()
     .includes("openking-wan2-video-generation");
+
   const spaceBase = (
-    legacyOpenKing || !configuredSpace ? defaultSpace : configuredSpace
-  ).replace(/\/$/, "");
+    legacyOpenKing || !configuredSpace
+      ? defaultSpace
+      : configuredSpace
+  ).replace(/\/+$/, "");
+
   const token = String(process.env.HF_TOKEN || "").trim();
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const timeoutMs = Number(process.env.HF_ZEROGPU_TIMEOUT_MS || 300000);
+
+  const headers = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
+  const timeoutMs = Number(
+    process.env.HF_ZEROGPU_TIMEOUT_MS || 300000,
+  );
+
+  /*
+   * ---------------------------------------------------------
+   * VIDEO PROMPT QUALITY
+   * ---------------------------------------------------------
+   */
+
+  const cleanPrompt = String(prompt || "").trim();
+
+  const videoPrompt = [
+    cleanPrompt,
+    "cinematic high-quality video",
+    "realistic natural motion",
+    "smooth continuous movement",
+    "consistent subject appearance",
+    "stable identity",
+    "realistic lighting",
+    "realistic depth",
+    "natural physics",
+    "subtle cinematic camera movement",
+    "detailed textures",
+    "sharp subject",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  /*
+   * ---------------------------------------------------------
+   * ASPECT RATIO
+   * ---------------------------------------------------------
+   */
 
   const ratio = String(aspectRatio || "16:9");
+
   let width = 832;
   let height = 480;
+
   if (ratio === "9:16") {
     width = 480;
     height = 832;
@@ -5726,92 +5785,223 @@ async function generateVideoWithHuggingFace({
     height = 352;
   }
 
-  // These public Wan2.2 ZeroGPU Spaces currently cap generation at 145 frames
-  // and render at 24 fps. That is about 6 seconds. Do not pretend that a
-  // 10-second/30-fps request was natively generated when the Space cannot do it.
+  /*
+   * ---------------------------------------------------------
+   * WAN 2.2 FREE LIMITS
+   * ---------------------------------------------------------
+   *
+   * Current free Spaces render around 24 FPS and cap at
+   * roughly 145 frames.
+   */
+
   const requestedFrames = Math.max(
     25,
     Math.round(Number(durationSeconds || 3) * 24),
   );
+
   const numFrames = Math.min(145, requestedFrames);
+
   const actualDuration = numFrames / 24;
+
+  /*
+   * T2V = 4 steps
+   * I2V = 6 steps
+   *
+   * I2V gets extra steps because the current Wan2.2
+   * I2V Space is designed around 6 steps.
+   */
+
   const steps = Math.max(
     1,
-    Math.min(30, Number(process.env.HF_ZEROGPU_STEPS || 4)),
-  );
-  const guidance1 = Number(process.env.HF_ZEROGPU_GUIDANCE || 1);
-  const guidance2 = Number(
-    process.env.HF_ZEROGPU_GUIDANCE_2 || (hasImage ? 1 : 3),
-  );
-  const seed = Number.isFinite(Number(process.env.HF_ZEROGPU_SEED))
-    ? Number(process.env.HF_ZEROGPU_SEED)
-    : 42;
-  const randomizeSeed =
-    String(process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true").toLowerCase() ===
-    "true";
-  const negativePrompt = String(
-    process.env.HF_ZEROGPU_NEGATIVE_PROMPT ||
-      "flicker, warping, duplicate objects, text artifacts, deformed hands, unnatural camera jumps, distorted anatomy, unstable identity, jitter, frame interpolation artifacts",
+    Math.min(
+      30,
+      Number(
+        process.env.HF_ZEROGPU_STEPS ||
+          (hasImage ? 6 : 4),
+      ),
+    ),
   );
 
+  /*
+   * ---------------------------------------------------------
+   * GUIDANCE
+   * ---------------------------------------------------------
+   */
+
+  const guidance1 = Number(
+    process.env.HF_ZEROGPU_GUIDANCE || 1,
+  );
+
+  const guidance2 = Number(
+    process.env.HF_ZEROGPU_GUIDANCE_2 || 3,
+  );
+
+  /*
+   * ---------------------------------------------------------
+   * SEED
+   * ---------------------------------------------------------
+   */
+
+  const configuredSeed = Number(
+    process.env.HF_ZEROGPU_SEED,
+  );
+
+  const seed = Number.isFinite(configuredSeed)
+    ? configuredSeed
+    : Math.floor(Math.random() * 2147483647);
+
+  const randomizeSeed =
+    String(
+      process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true",
+    ).toLowerCase() === "true";
+
+  /*
+   * ---------------------------------------------------------
+   * NEGATIVE PROMPT
+   * ---------------------------------------------------------
+   */
+
+  const negativePrompt = String(
+    process.env.HF_ZEROGPU_NEGATIVE_PROMPT ||
+      [
+        "low quality",
+        "blurry",
+        "soft focus",
+        "flicker",
+        "jitter",
+        "warping",
+        "morphing",
+        "unstable identity",
+        "duplicate objects",
+        "duplicate people",
+        "deformed hands",
+        "extra fingers",
+        "missing fingers",
+        "distorted face",
+        "distorted anatomy",
+        "unnatural movement",
+        "unnatural camera motion",
+        "sudden camera jumps",
+        "shaky camera",
+        "frame artifacts",
+        "text",
+        "subtitles",
+        "watermark",
+        "logo",
+        "oversaturated",
+        "overexposed",
+        "underexposed",
+        "static image",
+      ].join(", "),
+  );
+
+  /*
+   * ---------------------------------------------------------
+   * IMAGE UPLOAD FOR I2V
+   * ---------------------------------------------------------
+   */
+
   let imageData = null;
+
   if (hasImage) {
-    const imageBytes = Buffer.from(image.data, "base64");
+    const imageBytes = Buffer.from(
+      image.data,
+      "base64",
+    );
+
     const mime = image.mimeType || "image/png";
+
     const ext =
       mime.includes("jpeg") || mime.includes("jpg")
         ? "jpg"
         : mime.includes("webp")
           ? "webp"
           : "png";
+
     const form = new FormData();
+
     form.append(
       "files",
-      new Blob([imageBytes], { type: mime }),
+      new Blob([imageBytes], {
+        type: mime,
+      }),
       `input.${ext}`,
     );
 
-    const uploadResponse = await fetch(`${spaceBase}/gradio_api/upload`, {
-      method: "POST",
-      headers,
-      body: form,
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    const uploadText = await uploadResponse.text();
+    let uploadResponse;
+
+    try {
+      uploadResponse = await fetch(
+        `${spaceBase}/gradio_api/upload`,
+        {
+          method: "POST",
+          headers,
+          body: form,
+          signal: AbortSignal.timeout(timeoutMs),
+        },
+      );
+    } catch (error) {
+      throw new Error(
+        `Hugging Face image upload failed: ${String(
+          error?.message || error,
+        ).slice(0, 300)}`,
+      );
+    }
+
+    const uploadText =
+      await uploadResponse.text();
+
     if (!uploadResponse.ok) {
       throw new Error(
-        `Hugging Face Wan2.2 image upload failed (${uploadResponse.status}): ${uploadText.slice(0, 500)}`,
+        `Hugging Face Wan2.2 image upload failed (${uploadResponse.status}): ${uploadText.slice(
+          0,
+          500,
+        )}`,
       );
     }
 
     let uploaded;
+
     try {
       uploaded = JSON.parse(uploadText);
     } catch {
       throw new Error(
-        `Hugging Face Wan2.2 returned invalid upload data: ${uploadText.slice(0, 500)}`,
+        `Hugging Face Wan2.2 returned invalid upload data: ${uploadText.slice(
+          0,
+          500,
+        )}`,
       );
     }
 
-    const uploadedPath = Array.isArray(uploaded) ? uploaded[0] : uploaded?.path;
-    if (!uploadedPath)
+    const uploadedPath = Array.isArray(uploaded)
+      ? uploaded[0]
+      : uploaded?.path;
+
+    if (!uploadedPath) {
       throw new Error(
         "Hugging Face Wan2.2 image upload returned no file path.",
       );
+    }
 
     imageData = {
       path: uploadedPath,
-      meta: { _type: "gradio.FileData" },
+      meta: {
+        _type: "gradio.FileData",
+      },
     };
   }
 
-  // Gradio API argument order is taken from the currently published Wan2.2
-  // Spaces. T2V and I2V have different function signatures.
+  /*
+   * ---------------------------------------------------------
+   * GRADIO PAYLOAD
+   * ---------------------------------------------------------
+   */
+
   const payload = hasImage
     ? {
         data: [
           imageData,
-          prompt,
+          videoPrompt,
           steps,
           negativePrompt,
           actualDuration,
@@ -5823,7 +6013,7 @@ async function generateVideoWithHuggingFace({
       }
     : {
         data: [
-          prompt,
+          videoPrompt,
           negativePrompt,
           actualDuration,
           guidance1,
@@ -5834,159 +6024,358 @@ async function generateVideoWithHuggingFace({
         ],
       };
 
-  const apiName = "/generate_video";
+  /*
+   * ---------------------------------------------------------
+   * ZERO GPU QUEUE
+   * ---------------------------------------------------------
+   */
+
   const maxQueueRetries = Math.max(
     0,
-    Math.min(6, Number(process.env.HF_ZEROGPU_QUEUE_RETRIES || 4)),
+    Math.min(
+      6,
+      Number(
+        process.env.HF_ZEROGPU_QUEUE_RETRIES || 4,
+      ),
+    ),
   );
-  const retryDelaysSeconds = [12, 20, 35, 50, 60, 60];
+
+  const retryDelaysSeconds = [
+    12,
+    20,
+    35,
+    50,
+    60,
+    60,
+  ];
+
   let started = null;
   let lastQueueMessage = "";
 
-  for (let attempt = 0; attempt <= maxQueueRetries; attempt += 1) {
-    const startResponse = await fetch(
-      `${spaceBase}/gradio_api/call/generate_video`,
-      {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(timeoutMs),
-      },
-    );
-    const startText = await startResponse.text();
+  for (
+    let attempt = 0;
+    attempt <= maxQueueRetries;
+    attempt += 1
+  ) {
+    let startResponse;
+
+    try {
+      startResponse = await fetch(
+        `${spaceBase}/gradio_api/call/generate_video`,
+        {
+          method: "POST",
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(timeoutMs),
+        },
+      );
+    } catch (error) {
+      throw new Error(
+        `Hugging Face video connection failed: ${String(
+          error?.message || error,
+        ).slice(0, 300)}`,
+      );
+    }
+
+    const startText =
+      await startResponse.text();
 
     if (startResponse.ok) {
       try {
         started = JSON.parse(startText);
       } catch {
         throw new Error(
-          `Hugging Face Wan2.2 returned invalid queue data: ${startText.slice(0, 500)}`,
+          `Hugging Face Wan2.2 returned invalid queue data: ${startText.slice(
+            0,
+            500,
+          )}`,
         );
       }
+
       break;
     }
 
     const lower = startText.toLowerCase();
+
     const queueFull =
       startResponse.status === 503 &&
-      (lower.includes("queue is full") ||
+      (
+        lower.includes("queue is full") ||
         lower.includes("max size") ||
-        lower.includes("queue full"));
+        lower.includes("queue full")
+      );
 
     if (!queueFull) {
       throw new Error(
-        `Hugging Face Wan2.2 request failed (${startResponse.status}): ${startText.slice(0, 500)}`,
+        `Hugging Face Wan2.2 request failed (${startResponse.status}): ${startText.slice(
+          0,
+          500,
+        )}`,
       );
     }
 
-    lastQueueMessage = startText.slice(0, 500);
-    if (attempt >= maxQueueRetries) break;
+    lastQueueMessage =
+      startText.slice(0, 500);
+
+    if (attempt >= maxQueueRetries) {
+      break;
+    }
 
     const delaySeconds =
-      retryDelaysSeconds[Math.min(attempt, retryDelaysSeconds.length - 1)];
+      retryDelaysSeconds[
+        Math.min(
+          attempt,
+          retryDelaysSeconds.length - 1,
+        )
+      ];
+
     console.warn(
-      `Wan2.2 ZeroGPU queue is full. Retry ${attempt + 1}/${maxQueueRetries} in ${delaySeconds}s. ${lastQueueMessage}`,
+      `Wan2.2 ZeroGPU queue full. Retry ${
+        attempt + 1
+      }/${maxQueueRetries} in ${delaySeconds}s.`,
     );
-    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+
+    await new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          delaySeconds * 1000,
+        ),
+    );
   }
 
   if (!started?.event_id) {
     throw new Error(
-      `Wan2.2 ZeroGPU is currently busy. The selected free Space queue remained full after automatic retries. ${lastQueueMessage}`,
+      "Wan2.2 ZeroGPU is currently busy. Please try again later.",
     );
   }
 
+  /*
+   * ---------------------------------------------------------
+   * POLL GENERATION
+   * ---------------------------------------------------------
+   */
+
   const eventId = started.event_id;
+
   const pollResponse = await fetch(
-    `${spaceBase}/gradio_api/call/generate_video/${encodeURIComponent(eventId)}`,
+    `${spaceBase}/gradio_api/call/generate_video/${encodeURIComponent(
+      eventId,
+    )}`,
     {
       headers,
       signal: AbortSignal.timeout(timeoutMs),
     },
   );
 
-  if (!pollResponse.ok || !pollResponse.body) {
-    const text = await pollResponse.text().catch(() => "");
+  if (
+    !pollResponse.ok ||
+    !pollResponse.body
+  ) {
+    const text =
+      await pollResponse.text().catch(
+        () => "",
+      );
+
     throw new Error(
-      `Hugging Face Wan2.2 polling failed (${pollResponse.status}): ${text.slice(0, 500)}`,
+      `Hugging Face Wan2.2 polling failed (${pollResponse.status}): ${text.slice(
+        0,
+        500,
+      )}`,
     );
   }
 
-  const reader = pollResponse.body.getReader();
-  const decoder = new TextDecoder();
+  const reader =
+    pollResponse.body.getReader();
+
+  const decoder =
+    new TextDecoder();
+
   let buffer = "";
   let resultData = null;
   let streamError = null;
 
   while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const events = buffer.split(/\n\n/);
-    buffer = events.pop() || "";
+    const {
+      value,
+      done,
+    } = await reader.read();
+
+    buffer += decoder.decode(
+      value || new Uint8Array(),
+      {
+        stream: !done,
+      },
+    );
+
+    const events =
+      buffer.split(/\n\n/);
+
+    buffer =
+      events.pop() || "";
 
     for (const event of events) {
-      const eventType = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
-      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
+      const eventType =
+        (
+          event.match(
+            /^event:\s*(.+)$/m,
+          )?.[1] || ""
+        ).trim();
+
+      const dataLine =
+        event.match(
+          /^data:\s*(.+)$/m,
+        )?.[1];
+
       if (!dataLine) continue;
 
       if (eventType === "error") {
-        streamError = parseGradioStreamError(dataLine, "Hugging Face Wan2.2");
+        streamError =
+          parseGradioStreamError(
+            dataLine,
+            "Hugging Face Wan2.2",
+          );
       }
 
-      if (eventType === "complete") {
+      if (
+        eventType === "complete"
+      ) {
         try {
-          resultData = JSON.parse(dataLine);
+          resultData =
+            JSON.parse(dataLine);
         } catch {
           throw new Error(
-            `Hugging Face Wan2.2 returned invalid result data: ${dataLine.slice(0, 500)}`,
+            `Hugging Face Wan2.2 returned invalid result data: ${dataLine.slice(
+              0,
+              500,
+            )}`,
           );
         }
       }
     }
 
-    if (resultData !== null || streamError || done) break;
+    if (
+      resultData !== null ||
+      streamError ||
+      done
+    ) {
+      break;
+    }
   }
 
-  if (streamError)
-    throw new Error(`Hugging Face Wan2.2 generation failed: ${streamError}`);
-  if (!Array.isArray(resultData) || !resultData[0]) {
-    throw new Error("Hugging Face Wan2.2 finished without a video file.");
+  if (streamError) {
+    throw new Error(
+      `Hugging Face Wan2.2 generation failed: ${streamError}`,
+    );
   }
 
-  // Wan2.2 T2V returns [video_path, seed]. I2V returns the video path as the
-  // first tuple element as well. Gradio serializes the path as FileData.
-  const output = resultData[0];
-  const outputPath = typeof output === "string" ? output : output?.path;
+  if (
+    !Array.isArray(resultData) ||
+    !resultData[0]
+  ) {
+    throw new Error(
+      "Hugging Face Wan2.2 finished without a video file.",
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * VIDEO FILE
+   * ---------------------------------------------------------
+   */
+
+  const output =
+    resultData[0];
+
+  const outputPath =
+    typeof output === "string"
+      ? output
+      : output?.path;
+
   const outputUrl =
     output?.url ||
-    (outputPath
-      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
-      : null);
+    (
+      outputPath
+        ? `${spaceBase}/gradio_api/file=${encodeURIComponent(
+            outputPath,
+          )}`
+        : null
+    );
 
-  if (!outputUrl)
+  if (!outputUrl) {
     throw new Error(
       "Hugging Face Wan2.2 returned an unusable video file reference.",
     );
+  }
 
-  const fileResponse = await fetch(outputUrl, {
-    headers,
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const fileResponse =
+    await fetch(outputUrl, {
+      headers,
+      signal:
+        AbortSignal.timeout(
+          timeoutMs,
+        ),
+    });
+
   if (!fileResponse.ok) {
-    const text = await fileResponse.text().catch(() => "");
+    const text =
+      await fileResponse
+        .text()
+        .catch(() => "");
+
     throw new Error(
-      `Hugging Face Wan2.2 video download failed (${fileResponse.status}): ${text.slice(0, 500)}`,
+      `Hugging Face Wan2.2 video download failed (${fileResponse.status}): ${text.slice(
+        0,
+        500,
+      )}`,
     );
   }
 
+  const videoBuffer =
+  Buffer.from(
+    await fileResponse.arrayBuffer(),
+  );
+
+if (!videoBuffer.length) {
+  throw new Error(
+    "Hugging Face Wan2.2 returned an empty video.",
+  );
+}
+
+  /*
+   * ---------------------------------------------------------
+   * FINAL RESULT
+   * ---------------------------------------------------------
+   */
+
   return {
-    buffer: Buffer.from(await fileResponse.arrayBuffer()),
-    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
-    model: `huggingface-zerogpu:${hasImage ? "Wan2.2-14B-I2V-Fast" : "Wan2.2-14B-T2V-Fast"}`,
+    buffer,
+    mimeType:
+      fileResponse.headers.get(
+        "content-type",
+      ) || "video/mp4",
+
+    model:
+      `huggingface-zerogpu:${
+        hasImage
+          ? "Wan2.2-14B-I2V-Fast"
+          : "Wan2.2-14B-T2V-Fast"
+      }`,
+
     generatedFps: 24,
-    generatedDurationSeconds: actualDuration,
-    generatedFrameCount: numFrames,
-    requestedFps: Number(fps || 24),
+    generatedDurationSeconds:
+      actualDuration,
+    generatedFrameCount:
+      numFrames,
+    requestedFps:
+      Number(fps || 24),
+
+    requestedAspectRatio: ratio,
+    generatedWidth: width,
+    generatedHeight: height,
   };
 }
 
@@ -7482,13 +7871,12 @@ async function runVideoGenerationJob(job) {
 
       if (hasZeroGpuQuotaError) {
         throw new Error(
-          `${joined} | Free-only mode: no paid provider was attempted. Hugging Face ZeroGPU quota is currently exhausted; retry after its reset.`,
+          "Free video limit reached. Please try again after the free quota resets.",
         );
       }
 
       throw new Error(
-        joined ||
-          "No free video provider is currently available. ComfyUI is not used for video in this configuration.",
+        "Free video generation is temporarily unavailable. Please try again later.",
       );
     }
 
