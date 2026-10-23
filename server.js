@@ -1249,28 +1249,11 @@ function getGeminiModel() {
   return process.env.AI_MODEL || "gemini-2.5-flash";
 }
 
-// Fast mode: turn off / minimise Gemini "thinking". Thinking tokens are the
-// main reason prompt generation felt slow (10-30s) on mobile networks.
-function geminiThinkingConfig(model) {
-  const forced = String(process.env.GEMINI_THINKING || "").trim().toLowerCase();
-
-  if (forced === "default") return null; // keep Google's default behaviour
-
-  if (/gemini-2\.5-pro/i.test(model)) return { thinkingBudget: 128 };
-  if (/gemini-2\.5/i.test(model)) return { thinkingBudget: 0 };
-  if (/gemini-(3|4|5)/i.test(model)) {
-    return { thinkingLevel: forced || "minimal" };
-  }
-
-  return null;
-}
-
 async function callGemini({
   systemInstruction,
   input,
   maxOutputTokens = 1500,
   temperature = 0.7,
-  timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS) || 40000,
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -1284,56 +1267,44 @@ async function callGemini({
     model,
   )}:generateContent`;
 
-  const send = async (thinkingConfig) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const response = await fetch(url, {
+    method: "POST",
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        signal: controller.signal,
+    headers: {
+      "Content-Type": "application/json",
 
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
+      "x-goog-api-key": apiKey,
+    },
 
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-
-          contents: [{ role: "user", parts: [{ text: input }] }],
-
-          generationConfig: {
-            temperature,
-            maxOutputTokens,
-            ...(thinkingConfig ? { thinkingConfig } : {}),
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [
+          {
+            text: systemInstruction,
           },
-        }),
-      });
+        ],
+      },
 
-      const data = await response.json().catch(() => ({}));
-      return { response, data };
-    } catch (err) {
-      if (err?.name === "AbortError") {
-        throw new Error("Gemini timed out.");
-      }
-      throw err;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
+      contents: [
+        {
+          role: "user",
 
-  const thinking = geminiThinkingConfig(model);
-  let { response, data } = await send(thinking);
+          parts: [
+            {
+              text: input,
+            },
+          ],
+        },
+      ],
 
-  // If the model rejects the thinking setting, retry once without it.
-  if (
-    !response.ok &&
-    thinking &&
-    /think/i.test(String(data?.error?.message || ""))
-  ) {
-    ({ response, data } = await send(null));
-  }
+      generationConfig: {
+        temperature,
+        maxOutputTokens,
+      },
+    }),
+  });
+
+  const data = await response.json();
 
   if (!response.ok) {
     console.error("Gemini API error:", data);
@@ -1343,8 +1314,7 @@ async function callGemini({
 
   const text =
     data?.candidates?.[0]?.content?.parts
-      ?.filter((part) => !part.thought)
-      .map((part) => part.text || "")
+      ?.map((part) => part.text || "")
       .join("")
       .trim() || "";
 

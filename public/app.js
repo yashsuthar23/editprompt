@@ -1765,13 +1765,8 @@ if ($("generateBtn")) {
           toast(data.languageNote);
         }
 
-        // Do not block the UI: refresh history in the background so the
-        // button resets instantly (this was the slow part on mobile).
-        button.disabled = false;
-        button.textContent = "Generate with AI";
-
         if (currentUser) {
-          loadDashboard().catch(() => {});
+          await loadDashboard();
         }
       } catch (error) {
         console.error(
