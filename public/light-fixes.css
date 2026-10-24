@@ -326,3 +326,27 @@ html body[data-ep-theme="light"] .modalbox .x {
 html body[data-ep-theme="light"] .modalbox .x:hover {
   background: #eef2f9 !important;
 }
+
+/* ---------- 7. Admin panel: dark stat cards and faint labels in light mode ---------- */
+html body[data-ep-theme="light"] .statcard {
+  background: #ffffff !important;
+  border-color: #d5dbe7 !important;
+  box-shadow: 0 8px 22px rgba(26,34,51,.06);
+}
+html body[data-ep-theme="light"] .statcard:hover { border-color: var(--accent) !important; }
+html body[data-ep-theme="light"] .statcard b { color: #1a2233 !important; }
+html body[data-ep-theme="light"] .statcard small { color: #596579 !important; }
+html body[data-ep-theme="light"] .statcard span { color: inherit; }
+
+/* Form labels and checkbox labels (Site controls, Pro tools, etc.) */
+html body[data-ep-theme="light"] label {
+  color: #3d4a5f !important;
+}
+html body[data-ep-theme="light"] .adm-tools label,
+html body[data-ep-theme="light"] .panel label {
+  color: #1a2233 !important;
+  opacity: 1 !important;
+}
+html body[data-ep-theme="light"] input[type="checkbox"] {
+  accent-color: var(--accent);
+}
