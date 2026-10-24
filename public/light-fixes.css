@@ -237,3 +237,26 @@ html body[data-ep-theme="light"] nav a.active {
 html body[data-ep-theme="light"] .app-fav { color: #7b8599 !important; }
 html body[data-ep-theme="light"] .app-compare { color: var(--muted) !important; }
 html body[data-ep-theme="light"] .hb-price { color: #fff !important; }
+
+/* ---- Native <select> dropdowns (Creator Preset, Optimize For, Ratio, Lens, Duration, FPS, etc.) ---- */
+html body[data-ep-theme="light"] select,
+html body[data-ep-theme="light"] select:hover,
+html body[data-ep-theme="light"] select:focus,
+html body[data-ep-theme="light"] select:disabled {
+  background-color: #ffffff !important;
+  color: #1a2233 !important;
+  -webkit-text-fill-color: #1a2233 !important;
+  border-color: #d5dbe7 !important;
+  opacity: 1 !important;
+  color-scheme: light;
+}
+html body[data-ep-theme="light"] select option,
+html body[data-ep-theme="light"] select optgroup {
+  background-color: #ffffff !important;
+  color: #1a2233 !important;
+}
+html body[data-ep-theme="dark"] select option,
+html body[data-ep-theme="dark"] select optgroup {
+  background-color: #171a22;
+  color: #f4f6fb;
+}
