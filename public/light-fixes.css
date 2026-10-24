@@ -290,3 +290,39 @@ html body .toast.show {
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+/* ---------- 6. Login / OTP modal: dark box with dark heading in light mode ---------- */
+html body[data-ep-theme="light"] .modal {
+  background: rgba(26,34,51,.45);
+}
+html body[data-ep-theme="light"] .modalbox {
+  background: #ffffff !important;
+  border-color: #d5dbe7 !important;
+  box-shadow: 0 30px 80px rgba(26,34,51,.22) !important;
+}
+html body[data-ep-theme="light"] .modalbox h2 {
+  color: #1a2233 !important;
+}
+html body[data-ep-theme="light"] .modalbox p {
+  color: #596579 !important;
+}
+html body[data-ep-theme="light"] .modalbox input {
+  background-color: #f6f8fc !important;
+  color: #1a2233 !important;
+  -webkit-text-fill-color: #1a2233 !important;
+  border: 1px solid #d5dbe7 !important;
+}
+html body[data-ep-theme="light"] .modalbox input::placeholder {
+  color: #8a94a6 !important;
+  opacity: 1;
+}
+html body[data-ep-theme="light"] .modalbox input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(229,35,41,.12) !important;
+}
+html body[data-ep-theme="light"] .modalbox .x {
+  color: #1a2233 !important;
+}
+html body[data-ep-theme="light"] .modalbox .x:hover {
+  background: #eef2f9 !important;
+}
