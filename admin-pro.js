@@ -274,6 +274,43 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       res.json({ ok: true });
     });
 
+    // ---- Public storefront routes for AI-generated packs ----
+    function publicPack(r) {
+      let info = {};
+      try {
+        info = JSON.parse(r.description || "{}");
+      } catch (e) {
+        info = {};
+      }
+      const text = info.description || "";
+      return {
+        id: r.id,
+        name: r.name,
+        price: r.price / 100,
+        tag: info.tag || "NEW",
+        tagline: text,
+        description: text,
+        categories: Array.isArray(info.categories) ? info.categories : [],
+        samples: [],
+        promptCount: "",
+        cover: "",
+      };
+    }
+    app2.get("/api/packs", (req, res) => {
+      const rows = db2
+        .prepare(
+          "SELECT * FROM prompt_packs WHERE status='ready' AND hidden=0 ORDER BY created_at DESC",
+        )
+        .all();
+      res.json({ packs: rows.map(publicPack) });
+    });
+    app2.get("/api/packs/:id", (req, res) => {
+      const row = packRow(req.params.id);
+      if (!row || row.status !== "ready" || row.hidden)
+        return res.status(404).json({ error: "Pack not found." });
+      res.json(publicPack(row));
+    });
+
     app2.post("/api/admin/packs/:id/delete", requireAdmin2, (req, res) => {
       const row = packRow(req.params.id);
       if (!row) return res.status(404).json({ error: "Pack not found." });
