@@ -275,6 +275,35 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
     });
 
     // ---- Public storefront routes for AI-generated packs ----
+    // Builds a cover card (same style as the built-in packs) when no image exists.
+    function coverFor(name, tag) {
+      const xml = (v) =>
+        String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
+      const words = String(name || "").replace(/prompt pack/i, "").trim().split(/\s+/).filter(Boolean);
+      const initials = (words.map((w) => w[0]).join("") || "AI").slice(0, 3).toUpperCase();
+      const title = xml(String(name || "").slice(0, 34));
+      const label = xml(String(tag || "NEW PACK").slice(0, 28).toUpperCase());
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#1f2a44"/><stop offset="1" stop-color="#e52329"/></linearGradient></defs>' +
+        '<rect width="1200" height="675" fill="url(#g)"/>' +
+        '<circle cx="980" cy="200" r="260" fill="#ffffff" fill-opacity="0.08"/>' +
+        '<rect x="60" y="60" width="150" height="34" rx="17" fill="#000000" fill-opacity="0.55"/>' +
+        '<text x="135" y="83" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">EDITPROMPT</text>' +
+        '<text x="60" y="160" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff" fill-opacity="0.8">' + label + "</text>" +
+        '<text x="60" y="300" font-family="Arial,sans-serif" font-size="78" font-weight="800" fill="#ffffff">' + title + "</text>" +
+        '<text x="1080" y="470" font-family="Arial,sans-serif" font-size="180" font-weight="800" fill="#ffffff" fill-opacity="0.9" text-anchor="end">' + xml(initials) + "</text>" +
+        '<line x1="60" y1="600" x2="1140" y2="600" stroke="#ffffff" stroke-opacity="0.35"/>' +
+        '<text x="60" y="640" font-family="Arial,sans-serif" font-size="20" fill="#ffffff" fill-opacity="0.8">PRODUCTION READY PROMPTS</text>' +
+        "</svg>";
+      // Encode for a CSS url('...') value: percent-encode quotes and parentheses too.
+      return (
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(svg).replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29")
+      );
+    }
+
     function publicPack(r) {
       let info = {};
       try {
@@ -293,7 +322,7 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
         categories: Array.isArray(info.categories) ? info.categories : [],
         samples: [],
         promptCount: "",
-        cover: "",
+        cover: coverFor(r.name, info.tag),
       };
     }
     app2.get("/api/packs", (req, res) => {
@@ -781,3 +810,4 @@ Unsubscribe: ${link}`,
 // software-dl.js
 
 export { initAdminPro };
+
