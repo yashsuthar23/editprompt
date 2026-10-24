@@ -304,6 +304,35 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       );
     }
 
+    // Second preview image: lists what is inside (the category names).
+    function coverInside(name, categories) {
+      const xml = (v) =>
+        String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
+      const cats = (Array.isArray(categories) ? categories : []).slice(0, 4);
+      const rows = (cats.length ? cats : ["Production-ready prompts"])
+        .map(
+          (c, i) =>
+            '<text x="90" y="' + (250 + i * 78) + '" font-family="Arial,sans-serif" font-size="40" font-weight="700" fill="#ffffff">' +
+            (i + 1 < 10 ? "0" + (i + 1) : i + 1) + "  " + xml(String(c).slice(0, 38)) + "</text>",
+        )
+        .join("");
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#2a1f2e"/><stop offset="1" stop-color="#7a1d24"/></linearGradient></defs>' +
+        '<rect width="1200" height="675" fill="url(#g)"/>' +
+        '<text x="90" y="130" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff" fill-opacity="0.75">WHAT YOU GET</text>' +
+        '<text x="90" y="180" font-family="Arial,sans-serif" font-size="44" font-weight="800" fill="#ffffff">' + xml(String(name || "").slice(0, 36)) + "</text>" +
+        rows +
+        '<line x1="90" y1="600" x2="1110" y2="600" stroke="#ffffff" stroke-opacity="0.35"/>' +
+        '<text x="90" y="640" font-family="Arial,sans-serif" font-size="20" fill="#ffffff" fill-opacity="0.8">PRODUCTION READY PROMPTS</text>' +
+        "</svg>";
+      return (
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(svg).replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29")
+      );
+    }
+
     function publicPack(r) {
       let info = {};
       try {
@@ -323,6 +352,7 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
         samples: [],
         promptCount: "",
         cover: coverFor(r.name, info.tag),
+        cover2: coverInside(r.name, info.categories),
       };
     }
     app2.get("/api/packs", (req, res) => {
@@ -810,4 +840,3 @@ Unsubscribe: ${link}`,
 // software-dl.js
 
 export { initAdminPro };
-
