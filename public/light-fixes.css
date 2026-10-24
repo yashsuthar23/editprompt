@@ -260,3 +260,31 @@ html body[data-ep-theme="dark"] select optgroup {
   background-color: #171a22;
   color: #f4f6fb;
 }
+
+/* ---- Toast notification: dark box with dark text in light mode. Make it readable. ---- */
+html body[data-ep-theme="light"] .toast,
+html body[data-ep-theme="light"] #toast {
+  background: #1a2233 !important;
+  border-color: #1a2233 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(26,34,51,.18);
+}
+
+/* ---- Selected tags/chips: dark pills with dark text in light mode ---- */
+html body[data-ep-theme="light"] .chip,
+html body[data-ep-theme="light"] .ms-chips .chip,
+html body[data-ep-theme="light"] .ms-control .chip,
+html body[data-ep-theme="light"] .advfields .chip {
+  background-color: #e8edf6 !important;
+  border: 1px solid #c9d2e3 !important;
+  color: #1a2233 !important;
+  -webkit-text-fill-color: #1a2233 !important;
+}
+html body[data-ep-theme="light"] .chip button {
+  color: #4a5568 !important;
+}
+html body[data-ep-theme="light"] .chip button:hover {
+  color: #e5233a !important;
+}
+
+
