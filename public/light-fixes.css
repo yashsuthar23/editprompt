@@ -1,8 +1,11 @@
-/* Light-mode corrections for legacy components that use hard-coded dark colors.
-   Every rule is scoped to body[data-ep-theme="light"] with a high-specificity prefix,
-   so dark mode is untouched and inline <style> blocks cannot override these. */
+/* =====================================================================
+   light-fixes.css
+   Light-mode corrections for legacy components that use hard-coded dark colors.
+   Every rule is scoped to body[data-ep-theme="light"] (or uses html body prefix)
+   so dark mode is untouched. Cache version: index.html -> /light-fixes.css?v=4
+   ===================================================================== */
 
-/* Surfaces: dark hard-coded cards, panels, inputs and boxes become white/soft */
+/* ---------- 1. Surfaces: dark hard-coded cards, panels, inputs -> white/soft ---------- */
 html body[data-ep-theme="light"] #store .product,
 html body[data-ep-theme="light"] .advfields,
 html body[data-ep-theme="light"] .advfields .ms-control,
@@ -55,9 +58,7 @@ html body[data-ep-theme="light"] .advfields .ms-dropdown label:hover,
 html body[data-ep-theme="light"] .adv-suggestion:hover,
 html body[data-ep-theme="light"] .scene-chip:hover,
 html body[data-ep-theme="light"] #store .tag,
-html body[data-ep-theme="light"] #store .pack-specs span,
-html body[data-ep-theme="light"] .advfields .chip,
-html body[data-ep-theme="light"] .v8-project.active {
+html body[data-ep-theme="light"] #store .pack-specs span {
   background-color: #f3f6fb !important;
   color: var(--text) !important;
 }
@@ -73,97 +74,13 @@ html body[data-ep-theme="light"] .v8-message {
   background: #eeebff !important;
   color: var(--text) !important;
 }
-
-/* Text: light/white text that sits on those surfaces becomes readable dark text */
-html body[data-ep-theme="light"] #store .product h3,
-html body[data-ep-theme="light"] #store .product .price,
-html body[data-ep-theme="light"] #store .pack-specs span:first-child,
-html body[data-ep-theme="light"] .generator-section-head label,
-html body[data-ep-theme="light"] .adv-title b,
-html body[data-ep-theme="light"] .advfields .chip,
-html body[data-ep-theme="light"] .adv-suggestion,
-html body[data-ep-theme="light"] .scene-chip,
-html body[data-ep-theme="light"] .pack-image-card .image-label,
-html body[data-ep-theme="light"] .list-row .right,
-html body[data-ep-theme="light"] .big-num,
-html body[data-ep-theme="light"] .linkish b,
-html body[data-ep-theme="light"] .v8-hero h1,
-html body[data-ep-theme="light"] .v8-panel h2,
-html body[data-ep-theme="light"] .v8-project .name,
-html body[data-ep-theme="light"] .v8-card p,
-html body[data-ep-theme="light"] .v8-edit-form label {
-  color: var(--text) !important;
+html body[data-ep-theme="light"] .pack-image-card {
+  background: #f1f4f9 !important;
+  box-shadow: 0 16px 40px rgba(26,34,51,.08) !important;
 }
-html body[data-ep-theme="light"] .big-num { color: #73572f !important; }
-html body[data-ep-theme="light"] .adm-field label,
-html body[data-ep-theme="light"] .admin-meta,
-html body[data-ep-theme="light"] .admin-loading,
-html body[data-ep-theme="light"] .empty-state,
-html body[data-ep-theme="light"] .chart-axis,
-html body[data-ep-theme="light"] .lib-meta,
-html body[data-ep-theme="light"] .advfields label,
-html body[data-ep-theme="light"] .adv-text-field label,
-html body[data-ep-theme="light"] .v8-card .body small,
-html body[data-ep-theme="light"] .v8-project small,
-html body[data-ep-theme="light"] .v8-version small,
-html body[data-ep-theme="light"] .v8-status,
-html body[data-ep-theme="light"] .v8-empty,
-html body[data-ep-theme="light"] .v8-note,
-html body[data-ep-theme="light"] .v8-wrap .muted,
-html body[data-ep-theme="light"] #store .product .muted,
-html body[data-ep-theme="light"] #store .tag,
-html body[data-ep-theme="light"] #store .product p {
-  color: var(--muted) !important;
-}
-html body[data-ep-theme="light"] .compare-table td:first-child { color: var(--muted) !important; }
 html body[data-ep-theme="light"] .compare-table th { background: #f3f6fb !important; }
-html body[data-ep-theme="light"] .app-fav.on { color: #d99a00 !important; }
 
-/* Table and list rows in the admin panel */
-html body[data-ep-theme="light"] .adm-table th,
-html body[data-ep-theme="light"] .admin-table th { color: var(--muted) !important; border-color: var(--border) !important; }
-html body[data-ep-theme="light"] .adm-table td,
-html body[data-ep-theme="light"] .admin-table td,
-html body[data-ep-theme="light"] .list-row { color: var(--text) !important; border-color: var(--border) !important; }
-html body[data-ep-theme="light"] .seg button { color: var(--muted) !important; }
-html body[data-ep-theme="light"] .seg button.active,
-html body[data-ep-theme="light"] .adm-tab-btn.active { color: #fff !important; }
-
-/* Status badges: keep their meaning, improve contrast on white */
-html body[data-ep-theme="light"] .status-pending { color: #92400e !important; }
-html body[data-ep-theme="light"] .status-paid,
-html body[data-ep-theme="light"] .status-active { color: #166534 !important; }
-html body[data-ep-theme="light"] .status-failed,
-html body[data-ep-theme="light"] .status-cancelled,
-html body[data-ep-theme="light"] .status-blocked { color: #b91c1c !important; }
-html body[data-ep-theme="light"] .status-other { color: #334155 !important; }
-html body[data-ep-theme="light"] #creatorLibrary .lib-media-card img,
-html body[data-ep-theme="light"] #creatorLibrary .lib-media-card video,
-html body[data-ep-theme="light"] .v8-card img,
-html body[data-ep-theme="light"] .v8-card video { background-color: #f1f4f9 !important; }
-
-/* Video/prompt boxes and image frames: a soft light frame, not black */
-html body[data-ep-theme="light"] .pack-image-card { box-shadow: 0 16px 40px rgba(26,34,51,.08) !important; background: #f1f4f9 !important; }
-
-/* Keep the one thing that should stay strong: primary buttons and the active filter */
-html body[data-ep-theme="light"] .btn.primary,
-html body[data-ep-theme="light"] button.primary,
-html body[data-ep-theme="light"] .hub-filter.on,
-html body[data-ep-theme="light"] .hub-tabs button.on,
-html body[data-ep-theme="light"] .adm-tab-btn.active,
-html body[data-ep-theme="light"] .seg button.active {
-  color: #fff !important;
-}
-html body[data-ep-theme="light"] .hub-filter.on,
-html body[data-ep-theme="light"] .hub-tabs button.on,
-html body[data-ep-theme="light"] .adm-tab-btn.active {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
-
-/* ---- Round 2: remaining black output boxes, testimonials and faint labels ---- */
-
-/* Generated prompt box and small result/hint boxes (were #101010 with light text) */
+/* Output boxes, mini panels, media frames and inputs (were near-black) */
 html body[data-ep-theme="light"] .output,
 html body[data-ep-theme="light"] .mini,
 html body[data-ep-theme="light"] #historyHint,
@@ -185,26 +102,66 @@ html body[data-ep-theme="light"] .tool-mini textarea {
 }
 html body[data-ep-theme="light"] .output { box-shadow: inset 0 1px 2px rgba(26,34,51,.03); }
 html body[data-ep-theme="light"] .output:focus { border-color: var(--accent) !important; }
-html body[data-ep-theme="light"] #historyHint,
-html body[data-ep-theme="light"] .mini {
-  color: var(--muted) !important;
-}
-html body[data-ep-theme="light"] .mini *:not(button):not(a) { color: inherit; }
 html body[data-ep-theme="light"] .output:empty::before { color: #8a94a6; }
+html body[data-ep-theme="light"] .mini *:not(button):not(a) { color: inherit; }
 
-/* Testimonials: quote text and avatar initials */
-html body[data-ep-theme="light"] .testimonial p {
+html body[data-ep-theme="light"] #creatorLibrary .lib-media-card img,
+html body[data-ep-theme="light"] #creatorLibrary .lib-media-card video,
+html body[data-ep-theme="light"] .v8-card img,
+html body[data-ep-theme="light"] .v8-card video { background-color: #f1f4f9 !important; }
+
+/* ---------- 2. Text: light text on those surfaces -> dark text ---------- */
+html body[data-ep-theme="light"] #store .product h3,
+html body[data-ep-theme="light"] #store .product .price,
+html body[data-ep-theme="light"] #store .pack-specs span:first-child,
+html body[data-ep-theme="light"] .generator-section-head label,
+html body[data-ep-theme="light"] .adv-title b,
+html body[data-ep-theme="light"] .adv-suggestion,
+html body[data-ep-theme="light"] .scene-chip,
+html body[data-ep-theme="light"] .pack-image-card .image-label,
+html body[data-ep-theme="light"] .list-row .right,
+html body[data-ep-theme="light"] .linkish b,
+html body[data-ep-theme="light"] .v8-hero h1,
+html body[data-ep-theme="light"] .v8-panel h2,
+html body[data-ep-theme="light"] .v8-project .name,
+html body[data-ep-theme="light"] .v8-card p,
+html body[data-ep-theme="light"] .v8-edit-form label {
+  color: var(--text) !important;
+}
+html body[data-ep-theme="light"] .big-num { color: #73572f !important; }
+
+/* Muted helper text, labels and hints */
+html body[data-ep-theme="light"] .adm-field label,
+html body[data-ep-theme="light"] .admin-meta,
+html body[data-ep-theme="light"] .admin-loading,
+html body[data-ep-theme="light"] .empty-state,
+html body[data-ep-theme="light"] .chart-axis,
+html body[data-ep-theme="light"] .lib-meta,
+html body[data-ep-theme="light"] .advfields label,
+html body[data-ep-theme="light"] .adv-text-field label,
+html body[data-ep-theme="light"] .adv-title small,
+html body[data-ep-theme="light"] .advfields small,
+html body[data-ep-theme="light"] #advCount,
+html body[data-ep-theme="light"] .v8-card .body small,
+html body[data-ep-theme="light"] .v8-project small,
+html body[data-ep-theme="light"] .v8-version small,
+html body[data-ep-theme="light"] .v8-status,
+html body[data-ep-theme="light"] .v8-empty,
+html body[data-ep-theme="light"] .v8-note,
+html body[data-ep-theme="light"] .v8-wrap .muted,
+html body[data-ep-theme="light"] #store .product .muted,
+html body[data-ep-theme="light"] #store .tag,
+html body[data-ep-theme="light"] #store .product p,
+html body[data-ep-theme="light"] #historyHint,
+html body[data-ep-theme="light"] .mini,
+html body[data-ep-theme="light"] .compare-table td:first-child,
+html body[data-ep-theme="light"] .app-compare {
   color: var(--muted) !important;
 }
-html body[data-ep-theme="light"] .testimonial-author .avatar {
-  background: #eef2f9 !important;
-  color: #73572f !important;
-  border-color: var(--border) !important;
-}
-html body[data-ep-theme="light"] .testimonial-author b { color: var(--text) !important; }
-html body[data-ep-theme="light"] .testimonial-author small { color: #2f5fa8 !important; }
+html body[data-ep-theme="light"] .app-fav { color: #7b8599 !important; }
+html body[data-ep-theme="light"] .app-fav.on { color: #d99a00 !important; }
 
-/* Form labels such as Lighting, FPS, Mood that were nearly invisible */
+/* Form labels (Lighting, FPS, Mood, etc.) */
 html body[data-ep-theme="light"] .multiselect > label,
 html body[data-ep-theme="light"] #lightingField > label,
 html body[data-ep-theme="light"] #fpsField > label,
@@ -218,27 +175,69 @@ html body[data-ep-theme="light"] .label {
 html body[data-ep-theme="light"] .ms-control .placeholder,
 html body[data-ep-theme="light"] .ms-control span:empty::before { color: var(--muted); }
 
-/* ---- Round 3: remaining faint hints, logo text and hover overlay ---- */
-html body[data-ep-theme="light"] .adv-title small,
-html body[data-ep-theme="light"] .advfields small,
-html body[data-ep-theme="light"] #advCount {
+/* Tables and list rows */
+html body[data-ep-theme="light"] .adm-table th,
+html body[data-ep-theme="light"] .admin-table th {
   color: var(--muted) !important;
+  border-color: var(--border) !important;
 }
-html body[data-ep-theme="light"] .logo { color: #fff !important; }
-html body[data-ep-theme="light"] #store .cover-click-hint,
-html body[data-ep-theme="light"] .cover-click-hint { color: #fff !important; }
+html body[data-ep-theme="light"] .adm-table td,
+html body[data-ep-theme="light"] .admin-table td,
+html body[data-ep-theme="light"] .list-row {
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
 
-/* ---- Round 4: active nav link was white-on-white (e.g. "Software" vanished) ---- */
+/* Segmented controls and tabs */
+html body[data-ep-theme="light"] .seg button { color: var(--muted) !important; }
+html body[data-ep-theme="light"] .seg button.active,
+html body[data-ep-theme="light"] .adm-tab-btn.active,
+html body[data-ep-theme="light"] .btn.primary,
+html body[data-ep-theme="light"] button.primary,
+html body[data-ep-theme="light"] .hub-filter.on,
+html body[data-ep-theme="light"] .hub-tabs button.on {
+  color: #ffffff !important;
+}
+html body[data-ep-theme="light"] .hub-filter.on,
+html body[data-ep-theme="light"] .hub-tabs button.on,
+html body[data-ep-theme="light"] .adm-tab-btn.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Status badges: keep meaning, improve contrast on white */
+html body[data-ep-theme="light"] .status-pending { color: #92400e !important; }
+html body[data-ep-theme="light"] .status-paid,
+html body[data-ep-theme="light"] .status-active { color: #166534 !important; }
+html body[data-ep-theme="light"] .status-failed,
+html body[data-ep-theme="light"] .status-cancelled,
+html body[data-ep-theme="light"] .status-blocked { color: #b91c1c !important; }
+html body[data-ep-theme="light"] .status-other { color: #334155 !important; }
+
+/* Testimonials */
+html body[data-ep-theme="light"] .testimonial p { color: var(--muted) !important; }
+html body[data-ep-theme="light"] .testimonial-author .avatar {
+  background: #eef2f9 !important;
+  color: #73572f !important;
+  border-color: var(--border) !important;
+}
+html body[data-ep-theme="light"] .testimonial-author b { color: var(--text) !important; }
+html body[data-ep-theme="light"] .testimonial-author small { color: #2f5fa8 !important; }
+
+/* Logo, hover overlays, hero price */
+html body[data-ep-theme="light"] .logo { color: #ffffff !important; }
+html body[data-ep-theme="light"] #store .cover-click-hint,
+html body[data-ep-theme="light"] .cover-click-hint { color: #ffffff !important; }
+html body[data-ep-theme="light"] .hb-price { color: #ffffff !important; }
+
+/* Nav: active link was white-on-white */
 html body[data-ep-theme="light"] .nav nav a.active,
 html body[data-ep-theme="light"] nav a.active {
   color: var(--accent) !important;
   font-weight: 700;
 }
-html body[data-ep-theme="light"] .app-fav { color: #7b8599 !important; }
-html body[data-ep-theme="light"] .app-compare { color: var(--muted) !important; }
-html body[data-ep-theme="light"] .hb-price { color: #fff !important; }
 
-/* ---- Native <select> dropdowns (Creator Preset, Optimize For, Ratio, Lens, Duration, FPS, etc.) ---- */
+/* ---------- 3. Native <select> dropdowns ---------- */
 html body[data-ep-theme="light"] select,
 html body[data-ep-theme="light"] select:hover,
 html body[data-ep-theme="light"] select:focus,
@@ -261,16 +260,7 @@ html body[data-ep-theme="dark"] select optgroup {
   color: #f4f6fb;
 }
 
-/* ---- Toast notification: dark box with dark text in light mode. Make it readable. ---- */
-html body[data-ep-theme="light"] .toast,
-html body[data-ep-theme="light"] #toast {
-  background: #1a2233 !important;
-  border-color: #1a2233 !important;
-  color: #ffffff !important;
-  box-shadow: 0 10px 28px rgba(26,34,51,.18);
-}
-
-/* ---- Selected tags/chips: dark pills with dark text in light mode ---- */
+/* ---------- 4. Selected chips / tags (Visual Style, Camera, Lighting, Mood) ---------- */
 html body[data-ep-theme="light"] .chip,
 html body[data-ep-theme="light"] .ms-chips .chip,
 html body[data-ep-theme="light"] .ms-control .chip,
@@ -280,11 +270,23 @@ html body[data-ep-theme="light"] .advfields .chip {
   color: #1a2233 !important;
   -webkit-text-fill-color: #1a2233 !important;
 }
-html body[data-ep-theme="light"] .chip button {
-  color: #4a5568 !important;
-}
-html body[data-ep-theme="light"] .chip button:hover {
-  color: #e5233a !important;
-}
+html body[data-ep-theme="light"] .chip button { color: #4a5568 !important; }
+html body[data-ep-theme="light"] .chip button:hover { color: #e5233a !important; }
 
-
+/* ---------- 5. Toast notification: always white text on a dark box ---------- */
+html body #toast,
+html body .toast,
+html body[data-ep-theme="light"] #toast,
+html body[data-ep-theme="light"] .toast {
+  background: #1a2233 !important;
+  border: 1px solid #1a2233 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1;
+  box-shadow: 0 10px 28px rgba(26,34,51,.22);
+}
+html body #toast.show,
+html body .toast.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
