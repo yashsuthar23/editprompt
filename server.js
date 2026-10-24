@@ -1249,11 +1249,12 @@ function getGeminiModel() {
   return process.env.AI_MODEL || "gemini-2.5-flash";
 }
 
-async function callGemini({
+async function callGeminiOnce({
   systemInstruction,
   input,
   maxOutputTokens = 1500,
   temperature = 0.7,
+  model: modelOverride,
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -1261,7 +1262,7 @@ async function callGemini({
     throw new Error("Gemini API key is missing.");
   }
 
-  const model = getGeminiModel();
+  const model = modelOverride || getGeminiModel();
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model,
@@ -1323,6 +1324,40 @@ async function callGemini({
   }
 
   return text;
+}
+
+// Retries Gemini on temporary overload ("high demand", 429/5xx) with backoff,
+// then falls back to a second model. Non-temporary errors are thrown at once.
+const GEMINI_TEMPORARY_ERROR =
+  /high demand|overloaded|unavailable|try again|RESOURCE_EXHAUSTED|\b(429|500|502|503|504)\b/i;
+
+async function callGemini(options = {}) {
+  const primary = getGeminiModel();
+  const fallback = process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash";
+  const models = [primary, fallback].filter((m, i, arr) => m && arr.indexOf(m) === i);
+  const maxAttemptsPerModel = 3;
+
+  for (const model of models) {
+    for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
+      try {
+        return await callGeminiOnce({ ...options, model });
+      } catch (err) {
+        const message = String(err?.message || "");
+        if (!GEMINI_TEMPORARY_ERROR.test(message)) throw err;
+
+        console.warn(
+          `Gemini busy (model ${model}, attempt ${attempt}/${maxAttemptsPerModel}): ${message}`,
+        );
+
+        const isLastAttempt = attempt === maxAttemptsPerModel;
+        const isLastModel = model === models[models.length - 1];
+        if (isLastAttempt && isLastModel) throw err;
+        if (!isLastAttempt) {
+          await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+        }
+      }
+    }
+  }
 }
 
 // ============================================================
