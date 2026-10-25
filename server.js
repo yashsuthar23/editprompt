@@ -9,9 +9,6 @@ import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initAdminPro } from "./admin-pro.js";
 import { mountSoftwareDownloads } from "./software-dl.js";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 dotenv.config();
 
@@ -1240,8 +1237,7 @@ if (!adminConfigured()) {
 // GEMINI AI
 // ============================================================
 
-const GEMINI_BASE_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 60000);
 const GEMINI_MAX_ATTEMPTS_PER_MODEL = 3;
 
@@ -1254,11 +1250,11 @@ function hasUsableGeminiKey() {
 }
 
 function getGeminiModel() {
-  return (process.env.AI_MODEL || "gemini-2.5-flash").trim();
+  return (process.env.AI_MODEL || "gemini-3.8-flash").trim();
 }
 
 function getGeminiFallbackModel() {
-  return (process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash").trim();
+  return (process.env.GEMINI_FALLBACK_MODEL || "gemini-3.8-flash").trim();
 }
 
 async function callGeminiOnce({
@@ -1304,14 +1300,8 @@ async function callGeminiOnce({
   }
 
   if (!response.ok) {
-    console.error(
-      `Gemini API error (${model}, HTTP ${response.status}):`,
-      data,
-    );
-    throw new Error(
-      data?.error?.message ||
-        `Gemini API request failed (HTTP ${response.status}).`,
-    );
+    console.error(`Gemini API error (${model}, HTTP ${response.status}):`, data);
+    throw new Error(data?.error?.message || `Gemini API request failed (HTTP ${response.status}).`);
   }
 
   const text =
@@ -5711,21 +5701,29 @@ async function generateVideoWithHuggingFace({
     ? "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space"
     : "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
 
-  const configuredSpace = String(process.env.HF_ZEROGPU_SPACE_URL || "").trim();
+  const configuredSpace = String(
+    process.env.HF_ZEROGPU_SPACE_URL || "",
+  ).trim();
 
   const legacyOpenKing = configuredSpace
     .toLowerCase()
     .includes("openking-wan2-video-generation");
 
   const spaceBase = (
-    legacyOpenKing || !configuredSpace ? defaultSpace : configuredSpace
+    legacyOpenKing || !configuredSpace
+      ? defaultSpace
+      : configuredSpace
   ).replace(/\/+$/, "");
 
   const token = String(process.env.HF_TOKEN || "").trim();
 
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
 
-  const timeoutMs = Number(process.env.HF_ZEROGPU_TIMEOUT_MS || 300000);
+  const timeoutMs = Number(
+    process.env.HF_ZEROGPU_TIMEOUT_MS || 300000,
+  );
 
   /*
    * ---------------------------------------------------------
@@ -5808,7 +5806,13 @@ async function generateVideoWithHuggingFace({
 
   const steps = Math.max(
     1,
-    Math.min(30, Number(process.env.HF_ZEROGPU_STEPS || (hasImage ? 6 : 4))),
+    Math.min(
+      30,
+      Number(
+        process.env.HF_ZEROGPU_STEPS ||
+          (hasImage ? 6 : 4),
+      ),
+    ),
   );
 
   /*
@@ -5817,9 +5821,13 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const guidance1 = Number(process.env.HF_ZEROGPU_GUIDANCE || 1);
+  const guidance1 = Number(
+    process.env.HF_ZEROGPU_GUIDANCE || 1,
+  );
 
-  const guidance2 = Number(process.env.HF_ZEROGPU_GUIDANCE_2 || 3);
+  const guidance2 = Number(
+    process.env.HF_ZEROGPU_GUIDANCE_2 || 3,
+  );
 
   /*
    * ---------------------------------------------------------
@@ -5827,15 +5835,18 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const configuredSeed = Number(process.env.HF_ZEROGPU_SEED);
+  const configuredSeed = Number(
+    process.env.HF_ZEROGPU_SEED,
+  );
 
   const seed = Number.isFinite(configuredSeed)
     ? configuredSeed
     : Math.floor(Math.random() * 2147483647);
 
   const randomizeSeed =
-    String(process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true").toLowerCase() ===
-    "true";
+    String(
+      process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true",
+    ).toLowerCase() === "true";
 
   /*
    * ---------------------------------------------------------
@@ -5886,7 +5897,10 @@ async function generateVideoWithHuggingFace({
   let imageData = null;
 
   if (hasImage) {
-    const imageBytes = Buffer.from(image.data, "base64");
+    const imageBytes = Buffer.from(
+      image.data,
+      "base64",
+    );
 
     const mime = image.mimeType || "image/png";
 
@@ -5910,12 +5924,15 @@ async function generateVideoWithHuggingFace({
     let uploadResponse;
 
     try {
-      uploadResponse = await fetch(`${spaceBase}/gradio_api/upload`, {
-        method: "POST",
-        headers,
-        body: form,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      uploadResponse = await fetch(
+        `${spaceBase}/gradio_api/upload`,
+        {
+          method: "POST",
+          headers,
+          body: form,
+          signal: AbortSignal.timeout(timeoutMs),
+        },
+      );
     } catch (error) {
       throw new Error(
         `Hugging Face image upload failed: ${String(
@@ -5924,7 +5941,8 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const uploadText = await uploadResponse.text();
+    const uploadText =
+      await uploadResponse.text();
 
     if (!uploadResponse.ok) {
       throw new Error(
@@ -5948,7 +5966,9 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const uploadedPath = Array.isArray(uploaded) ? uploaded[0] : uploaded?.path;
+    const uploadedPath = Array.isArray(uploaded)
+      ? uploaded[0]
+      : uploaded?.path;
 
     if (!uploadedPath) {
       throw new Error(
@@ -6005,15 +6025,31 @@ async function generateVideoWithHuggingFace({
 
   const maxQueueRetries = Math.max(
     0,
-    Math.min(6, Number(process.env.HF_ZEROGPU_QUEUE_RETRIES || 4)),
+    Math.min(
+      6,
+      Number(
+        process.env.HF_ZEROGPU_QUEUE_RETRIES || 4,
+      ),
+    ),
   );
 
-  const retryDelaysSeconds = [12, 20, 35, 50, 60, 60];
+  const retryDelaysSeconds = [
+    12,
+    20,
+    35,
+    50,
+    60,
+    60,
+  ];
 
   let started = null;
   let lastQueueMessage = "";
 
-  for (let attempt = 0; attempt <= maxQueueRetries; attempt += 1) {
+  for (
+    let attempt = 0;
+    attempt <= maxQueueRetries;
+    attempt += 1
+  ) {
     let startResponse;
 
     try {
@@ -6037,7 +6073,8 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const startText = await startResponse.text();
+    const startText =
+      await startResponse.text();
 
     if (startResponse.ok) {
       try {
@@ -6058,9 +6095,11 @@ async function generateVideoWithHuggingFace({
 
     const queueFull =
       startResponse.status === 503 &&
-      (lower.includes("queue is full") ||
+      (
+        lower.includes("queue is full") ||
         lower.includes("max size") ||
-        lower.includes("queue full"));
+        lower.includes("queue full")
+      );
 
     if (!queueFull) {
       throw new Error(
@@ -6071,14 +6110,20 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    lastQueueMessage = startText.slice(0, 500);
+    lastQueueMessage =
+      startText.slice(0, 500);
 
     if (attempt >= maxQueueRetries) {
       break;
     }
 
     const delaySeconds =
-      retryDelaysSeconds[Math.min(attempt, retryDelaysSeconds.length - 1)];
+      retryDelaysSeconds[
+        Math.min(
+          attempt,
+          retryDelaysSeconds.length - 1,
+        )
+      ];
 
     console.warn(
       `Wan2.2 ZeroGPU queue full. Retry ${
@@ -6086,7 +6131,13 @@ async function generateVideoWithHuggingFace({
       }/${maxQueueRetries} in ${delaySeconds}s.`,
     );
 
-    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+    await new Promise(
+      (resolve) =>
+        setTimeout(
+          resolve,
+          delaySeconds * 1000,
+        ),
+    );
   }
 
   if (!started?.event_id) {
@@ -6113,8 +6164,14 @@ async function generateVideoWithHuggingFace({
     },
   );
 
-  if (!pollResponse.ok || !pollResponse.body) {
-    const text = await pollResponse.text().catch(() => "");
+  if (
+    !pollResponse.ok ||
+    !pollResponse.body
+  ) {
+    const text =
+      await pollResponse.text().catch(
+        () => "",
+      );
 
     throw new Error(
       `Hugging Face Wan2.2 polling failed (${pollResponse.status}): ${text.slice(
@@ -6124,39 +6181,64 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const reader = pollResponse.body.getReader();
+  const reader =
+    pollResponse.body.getReader();
 
-  const decoder = new TextDecoder();
+  const decoder =
+    new TextDecoder();
 
   let buffer = "";
   let resultData = null;
   let streamError = null;
 
   while (true) {
-    const { value, done } = await reader.read();
+    const {
+      value,
+      done,
+    } = await reader.read();
 
-    buffer += decoder.decode(value || new Uint8Array(), {
-      stream: !done,
-    });
+    buffer += decoder.decode(
+      value || new Uint8Array(),
+      {
+        stream: !done,
+      },
+    );
 
-    const events = buffer.split(/\n\n/);
+    const events =
+      buffer.split(/\n\n/);
 
-    buffer = events.pop() || "";
+    buffer =
+      events.pop() || "";
 
     for (const event of events) {
-      const eventType = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
+      const eventType =
+        (
+          event.match(
+            /^event:\s*(.+)$/m,
+          )?.[1] || ""
+        ).trim();
 
-      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
+      const dataLine =
+        event.match(
+          /^data:\s*(.+)$/m,
+        )?.[1];
 
       if (!dataLine) continue;
 
       if (eventType === "error") {
-        streamError = parseGradioStreamError(dataLine, "Hugging Face Wan2.2");
+        streamError =
+          parseGradioStreamError(
+            dataLine,
+            "Hugging Face Wan2.2",
+          );
       }
 
-      if (eventType === "complete") {
+      if (
+        eventType === "complete"
+      ) {
         try {
-          resultData = JSON.parse(dataLine);
+          resultData =
+            JSON.parse(dataLine);
         } catch {
           throw new Error(
             `Hugging Face Wan2.2 returned invalid result data: ${dataLine.slice(
@@ -6168,17 +6250,28 @@ async function generateVideoWithHuggingFace({
       }
     }
 
-    if (resultData !== null || streamError || done) {
+    if (
+      resultData !== null ||
+      streamError ||
+      done
+    ) {
       break;
     }
   }
 
   if (streamError) {
-    throw new Error(`Hugging Face Wan2.2 generation failed: ${streamError}`);
+    throw new Error(
+      `Hugging Face Wan2.2 generation failed: ${streamError}`,
+    );
   }
 
-  if (!Array.isArray(resultData) || !resultData[0]) {
-    throw new Error("Hugging Face Wan2.2 finished without a video file.");
+  if (
+    !Array.isArray(resultData) ||
+    !resultData[0]
+  ) {
+    throw new Error(
+      "Hugging Face Wan2.2 finished without a video file.",
+    );
   }
 
   /*
@@ -6187,15 +6280,23 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const output = resultData[0];
+  const output =
+    resultData[0];
 
-  const outputPath = typeof output === "string" ? output : output?.path;
+  const outputPath =
+    typeof output === "string"
+      ? output
+      : output?.path;
 
   const outputUrl =
     output?.url ||
-    (outputPath
-      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
-      : null);
+    (
+      outputPath
+        ? `${spaceBase}/gradio_api/file=${encodeURIComponent(
+            outputPath,
+          )}`
+        : null
+    );
 
   if (!outputUrl) {
     throw new Error(
@@ -6203,13 +6304,20 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const fileResponse = await fetch(outputUrl, {
-    headers,
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const fileResponse =
+    await fetch(outputUrl, {
+      headers,
+      signal:
+        AbortSignal.timeout(
+          timeoutMs,
+        ),
+    });
 
   if (!fileResponse.ok) {
-    const text = await fileResponse.text().catch(() => "");
+    const text =
+      await fileResponse
+        .text()
+        .catch(() => "");
 
     throw new Error(
       `Hugging Face Wan2.2 video download failed (${fileResponse.status}): ${text.slice(
@@ -6219,11 +6327,16 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const videoBuffer = Buffer.from(await fileResponse.arrayBuffer());
+  const videoBuffer =
+  Buffer.from(
+    await fileResponse.arrayBuffer(),
+  );
 
-  if (!videoBuffer.length) {
-    throw new Error("Hugging Face Wan2.2 returned an empty video.");
-  }
+if (!videoBuffer.length) {
+  throw new Error(
+    "Hugging Face Wan2.2 returned an empty video.",
+  );
+}
 
   /*
    * ---------------------------------------------------------
@@ -6231,9 +6344,10 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  return {
-    buffer,
-    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
+    return {
+    buffer: videoBuffer,
+    mimeType:
+      fileResponse.headers.get("content-type") || "video/mp4",
 
     model: `huggingface-zerogpu:${
       hasImage ? "Wan2.2-14B-I2V-Fast" : "Wan2.2-14B-T2V-Fast"
