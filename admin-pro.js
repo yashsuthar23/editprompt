@@ -341,28 +341,32 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
     });
 
     // ---- Public storefront routes for AI-generated packs ----
-    // Builds a cover card (same style as the built-in packs) when no image exists.
-    function coverFor(name, tag) {
-      const xml = (v) =>
-        String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
-      const words = String(name || "").replace(/prompt pack/i, "").trim().split(/\s+/).filter(Boolean);
-      const initials = (words.map((w) => w[0]).join("") || "AI").slice(0, 3).toUpperCase();
-      const title = xml(String(name || "").slice(0, 34));
-      const label = xml(String(tag || "NEW PACK").slice(0, 28).toUpperCase());
-      const svg =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">' +
-        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-        '<stop offset="0" stop-color="#1f2a44"/><stop offset="1" stop-color="#e52329"/></linearGradient></defs>' +
-        '<rect width="1200" height="675" fill="url(#g)"/>' +
-        '<circle cx="980" cy="200" r="260" fill="#ffffff" fill-opacity="0.08"/>' +
-        '<rect x="60" y="60" width="150" height="34" rx="17" fill="#000000" fill-opacity="0.55"/>' +
-        '<text x="135" y="83" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">EDITPROMPT</text>' +
-        '<text x="60" y="160" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff" fill-opacity="0.8">' + label + "</text>" +
-        '<text x="60" y="300" font-family="Arial,sans-serif" font-size="78" font-weight="800" fill="#ffffff">' + title + "</text>" +
-        '<text x="1080" y="470" font-family="Arial,sans-serif" font-size="180" font-weight="800" fill="#ffffff" fill-opacity="0.9" text-anchor="end">' + xml(initials) + "</text>" +
-        '<line x1="60" y1="600" x2="1140" y2="600" stroke="#ffffff" stroke-opacity="0.35"/>' +
-        '<text x="60" y="640" font-family="Arial,sans-serif" font-size="20" fill="#ffffff" fill-opacity="0.8">PRODUCTION READY PROMPTS</text>' +
-        "</svg>";
+    // Shared helpers for the generated cover images. Text stays inside a safe zone:
+    // away from the top-left (where the "PACK PREVIEW" / "INSIDE" label sits on the pack page)
+    // and away from the edges, so nothing is cropped on any card size.
+    const svgXml = (v) =>
+      String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
+    function wrapWords(text, maxChars, maxLines) {
+      const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+      const lines = [];
+      let cur = "";
+      for (const w of words) {
+        const next = cur ? cur + " " + w : w;
+        if (next.length <= maxChars || !cur) cur = next;
+        else {
+          lines.push(cur);
+          cur = w;
+        }
+      }
+      if (cur) lines.push(cur);
+      if (lines.length > maxLines) {
+        const kept = lines.slice(0, maxLines);
+        kept[maxLines - 1] = kept[maxLines - 1].slice(0, maxChars - 1).trim() + "\u2026";
+        return kept;
+      }
+      return lines.map((l) => (l.length > maxChars + 3 ? l.slice(0, maxChars) : l));
+    }
+    function svgDataUri(svg) {
       // Encode for a CSS url('...') value: percent-encode quotes and parentheses too.
       return (
         "data:image/svg+xml;charset=utf-8," +
@@ -370,33 +374,58 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       );
     }
 
+    // Builds a cover card (same style as the built-in packs) when no image exists.
+    function coverFor(name, tag) {
+      const words = String(name || "").replace(/prompt pack/i, "").trim().split(/\s+/).filter(Boolean);
+      const initials = (words.map((w) => w[0]).join("") || "AI").slice(0, 3).toUpperCase();
+      const lines = wrapWords(name, 16, 3);
+      const size = lines.length <= 2 ? 84 : 66;
+      const gap = Math.round(size * 1.12);
+      const titleSvg = lines
+        .map(
+          (l, i) =>
+            '<text x="90" y="' + (330 + i * gap) + '" font-family="Arial,sans-serif" font-size="' + size + '" font-weight="800" fill="#ffffff">' + svgXml(l) + "</text>",
+        )
+        .join("");
+      const label = svgXml(String(tag || "NEW PACK").slice(0, 28).toUpperCase());
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#1f2a44"/><stop offset="1" stop-color="#e52329"/></linearGradient></defs>' +
+        '<rect width="1200" height="675" fill="url(#g)"/>' +
+        '<circle cx="1000" cy="520" r="260" fill="#ffffff" fill-opacity="0.07"/>' +
+        '<text x="1110" y="560" font-family="Arial,sans-serif" font-size="260" font-weight="800" fill="#ffffff" fill-opacity="0.16" text-anchor="end">' + svgXml(initials) + "</text>" +
+        '<text x="90" y="250" font-family="Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="2" fill="#ffffff" fill-opacity="0.85">' + label + "</text>" +
+        titleSvg +
+        '<line x1="90" y1="590" x2="1110" y2="590" stroke="#ffffff" stroke-opacity="0.35"/>' +
+        '<text x="90" y="632" font-family="Arial,sans-serif" font-size="22" letter-spacing="1" fill="#ffffff" fill-opacity="0.85">EDITPROMPT  \u2022  PRODUCTION READY PROMPTS</text>' +
+        "</svg>";
+      return svgDataUri(svg);
+    }
+
     // Second preview image: lists what is inside (the category names).
     function coverInside(name, categories) {
-      const xml = (v) =>
-        String(v || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
       const cats = (Array.isArray(categories) ? categories : []).slice(0, 4);
       const rows = (cats.length ? cats : ["Production-ready prompts"])
         .map(
           (c, i) =>
-            '<text x="90" y="' + (250 + i * 78) + '" font-family="Arial,sans-serif" font-size="40" font-weight="700" fill="#ffffff">' +
-            (i + 1 < 10 ? "0" + (i + 1) : i + 1) + "  " + xml(String(c).slice(0, 38)) + "</text>",
+            '<text x="90" y="' + (360 + i * 62) + '" font-family="Arial,sans-serif" font-size="38" font-weight="700" fill="#ffffff">' +
+            (i + 1 < 10 ? "0" + (i + 1) : i + 1) + "   " + svgXml(String(c).slice(0, 30)) + "</text>",
         )
         .join("");
+      const title = wrapWords(name, 28, 1)[0] || "";
       const svg =
         '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">' +
         '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
         '<stop offset="0" stop-color="#2a1f2e"/><stop offset="1" stop-color="#7a1d24"/></linearGradient></defs>' +
         '<rect width="1200" height="675" fill="url(#g)"/>' +
-        '<text x="90" y="130" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#ffffff" fill-opacity="0.75">WHAT YOU GET</text>' +
-        '<text x="90" y="180" font-family="Arial,sans-serif" font-size="44" font-weight="800" fill="#ffffff">' + xml(String(name || "").slice(0, 36)) + "</text>" +
+        '<text x="90" y="235" font-family="Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="2" fill="#ffffff" fill-opacity="0.8">WHAT YOU GET</text>' +
+        '<text x="90" y="285" font-family="Arial,sans-serif" font-size="44" font-weight="800" fill="#ffffff">' + svgXml(title) + "</text>" +
         rows +
-        '<line x1="90" y1="600" x2="1110" y2="600" stroke="#ffffff" stroke-opacity="0.35"/>' +
-        '<text x="90" y="640" font-family="Arial,sans-serif" font-size="20" fill="#ffffff" fill-opacity="0.8">PRODUCTION READY PROMPTS</text>' +
+        '<line x1="90" y1="590" x2="1110" y2="590" stroke="#ffffff" stroke-opacity="0.35"/>' +
+        '<text x="90" y="632" font-family="Arial,sans-serif" font-size="22" letter-spacing="1" fill="#ffffff" fill-opacity="0.85">EDITPROMPT  \u2022  PRODUCTION READY PROMPTS</text>' +
         "</svg>";
-      return (
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(svg).replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29")
-      );
+      return svgDataUri(svg);
     }
 
     function publicPack(r) {

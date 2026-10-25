@@ -18,7 +18,7 @@
 
     <title>EditPrompt.in — AI Video Prompt Generator & Creator Platform</title>
 
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=3">
 
     <!-- Razorpay Checkout -->
     <script
@@ -4442,7 +4442,7 @@
                 var card=document.createElement('div');
                 card.className='product'; card.dataset.catFilter='New'; card.dataset.custom='1';
                 card.innerHTML=
-                    '<a class="thumb" href="/pack.html?id='+encodeURIComponent(p.id)+'" aria-label="'+esc(p.name)+'" style="background-image:url(\''+esc(p.cover)+'\');background-size:cover;background-position:center;display:block"></a>'+
+                    '<a class="thumb custom-pack-thumb" href="/pack.html?id='+encodeURIComponent(p.id)+'" aria-label="'+esc(p.name)+'" style="background-image:url(\''+esc(p.cover)+'\');background-size:cover;background-position:center;display:block"></a>'+
                     '<div class="tag">'+esc(p.tag)+'</div>'+
                     '<h3>'+esc(p.name)+'</h3>'+
                     '<p>'+esc(p.tagline||p.description)+'</p>'+

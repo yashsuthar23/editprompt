@@ -2703,3 +2703,23 @@ body[data-ep-theme="light"] .advfields { box-shadow: 0 8px 24px rgba(26,34,51,.0
 body[data-ep-theme="light"] .advfields label,
 body[data-ep-theme="light"] .adv-text-field label { color: var(--muted) !important; }
 body[data-ep-theme="light"] .categorygrid button.active { color: var(--text) !important; }
+
+/* Store cards for packs created in Admin > Pro Tools: show the whole cover, no zoom/pan crop */
+#store .thumb.custom-pack-thumb{
+    width:100%;
+    aspect-ratio:16/9;
+    min-height:0;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background-size:cover !important;
+    background-position:center !important;
+    background-repeat:no-repeat;
+    background-color:#101010;
+    overflow:hidden;
+    animation:none !important;
+}
+#store .thumb.custom-pack-thumb::before{
+    content:none !important;
+    display:none !important;
+    animation:none !important;
+}
