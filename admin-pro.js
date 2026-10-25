@@ -192,6 +192,51 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
         };
       } else delete products2[id];
     }
+    // ---- Starter packs from seed-packs.json ----
+    // Inserted once per id when missing, so they survive redeploys on hosts with a fresh disk.
+    // A pack you delete in Admin is remembered in seed_pack_skip and is not added back.
+    // Set SEED_PACKS=false in the environment to turn this off.
+    db2.exec(
+      "CREATE TABLE IF NOT EXISTS seed_pack_skip(id TEXT PRIMARY KEY)",
+    );
+    if (String(process.env.SEED_PACKS || "true").toLowerCase() !== "false") {
+      try {
+        const seedFile = path.join(baseDir, "seed-packs.json");
+        if (fs.existsSync(seedFile)) {
+          const seeds = JSON.parse(fs.readFileSync(seedFile, "utf8"));
+          const exists = db2.prepare("SELECT 1 AS x FROM prompt_packs WHERE id=?");
+          const skipped = db2.prepare("SELECT 1 AS x FROM seed_pack_skip WHERE id=?");
+          const addPack = db2.prepare(
+            "INSERT INTO prompt_packs(id,name,price,status,hidden,description) VALUES(?,?,?,'ready',0,?)",
+          );
+          const addFile = db2.prepare(
+            "INSERT OR REPLACE INTO pack_files(pack_id,content) VALUES(?,?)",
+          );
+          let added = 0;
+          for (const p of Array.isArray(seeds) ? seeds : []) {
+            if (!p?.id || !p?.name || !p?.text) continue;
+            if (exists.get(p.id) || skipped.get(p.id)) continue;
+            addPack.run(
+              String(p.id),
+              String(p.name).slice(0, 80),
+              Math.round(Number(p.price) || 299) * 100,
+              JSON.stringify({
+                tag: String(p.tag || "").slice(0, 60),
+                description: String(p.description || "").slice(0, 600),
+                categories: Array.isArray(p.categories) ? p.categories.slice(0, 4) : [],
+                count: String(p.count || ""),
+                samples: Array.isArray(p.samples) ? p.samples.slice(0, 3) : [],
+              }),
+            );
+            addFile.run(String(p.id), String(p.text));
+            added++;
+          }
+          if (added) console.log(`Seeded ${added} starter prompt packs.`);
+        }
+      } catch (err) {
+        console.warn("Starter packs skipped:", err.message);
+      }
+    }
     for (const r of db2
       .prepare("SELECT id FROM prompt_packs WHERE status='ready' AND hidden=0")
       .all())
@@ -444,8 +489,8 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
         tagline: text,
         description: text,
         categories: Array.isArray(info.categories) ? info.categories : [],
-        samples: [],
-        promptCount: "",
+        samples: Array.isArray(info.samples) ? info.samples.slice(0, 3).map(String) : [],
+        promptCount: info.count ? String(info.count) : "",
         cover: coverFor(r.name, info.tag),
         cover2: coverInside(r.name, info.categories),
       };
@@ -469,6 +514,9 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       const row = packRow(req.params.id);
       if (!row) return res.status(404).json({ error: "Pack not found." });
       db2.prepare("DELETE FROM prompt_packs WHERE id=?").run(row.id);
+      db2.prepare("DELETE FROM pack_files WHERE pack_id=?").run(row.id);
+      if (String(row.id).startsWith("seed_"))
+        db2.prepare("INSERT OR IGNORE INTO seed_pack_skip(id) VALUES(?)").run(row.id);
       delete products2[row.id];
       logAdmin2("pack_delete", row.id, row.name);
       res.json({ ok: true });
