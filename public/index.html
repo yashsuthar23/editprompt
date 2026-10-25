@@ -18,7 +18,7 @@
 
     <title>EditPrompt.in — AI Video Prompt Generator & Creator Platform</title>
 
-    <link rel="stylesheet" href="/styles.css?v=3">
+    <link rel="stylesheet" href="/styles.css?v=4">
 
     <!-- Razorpay Checkout -->
     <script
@@ -3848,13 +3848,18 @@
                     <div class="store-meta">
                         <span>⚡ Instant digital access</span>
                         <span>🔒 Secure checkout</span>
-                        <span>📚 9 premium packs</span>
+                        <span id="storePackCount">📚 9 premium packs</span>
                     </div>
 
                 </div>
 
             </div>
 
+
+            <div class="store-search">
+                <input id="storeSearch" type="search" placeholder="🔍 Search prompt packs (e.g. gaming, wedding, reels)" aria-label="Search prompt packs" autocomplete="off">
+                <span id="storeResultInfo" aria-live="polite"></span>
+            </div>
 
             <div class="store-tabs" role="tablist" aria-label="Filter packs">
                 <button type="button" class="on" data-filter="all">All</button>
@@ -4454,14 +4459,48 @@
             if(tabs){
                 var b=document.createElement('button'); b.type='button'; b.dataset.filter='New'; b.textContent='✨ New Packs';
                 tabs.appendChild(b);
-                tabs.addEventListener('click',function(e){
-                    var t=e.target.closest('button'); if(!t) return;
-                    var f=t.dataset.filter;
-                    tabs.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===t);});
-                    grid.querySelectorAll('.product[data-custom]').forEach(function(c){c.classList.toggle('is-hidden',!(f==='all'||f==='New'));});
-                });
             }
+            if(window.storeFilterRefresh) window.storeFilterRefresh();
         }).catch(function(){});
+    })();
+    </script>
+
+    <script>
+    /* store: tab filter + search + live pack count */
+    (function(){
+        var store=document.getElementById('store'); if(!store) return;
+        var tabs=store.querySelector('.store-tabs'), grid=store.querySelector('.store-grid');
+        var input=document.getElementById('storeSearch'), info=document.getElementById('storeResultInfo'), meta=document.getElementById('storePackCount');
+        if(!tabs||!grid) return;
+        var empty=document.createElement('p'); empty.className='store-empty'; empty.hidden=true;
+        grid.parentNode.insertBefore(empty,grid.nextSibling);
+        function norm(s){return String(s||'').toLowerCase();}
+        function current(){var b=tabs.querySelector('button.on'); return b?b.dataset.filter:'all';}
+        function textOf(c){
+            return Array.prototype.map.call(c.querySelectorAll('h3,.tag,p'),function(n){return n.textContent;}).join(' ')+' '+(c.dataset.catFilter||'');
+        }
+        function apply(){
+            var f=current(), q=norm(input&&input.value).trim(), terms=q?q.split(/\s+/):[];
+            var cards=grid.querySelectorAll('.product'), shown=0;
+            Array.prototype.forEach.call(cards,function(c){
+                var hay=norm(textOf(c));
+                var show=(f==='all'||c.dataset.catFilter===f)&&terms.every(function(t){return hay.indexOf(t)!==-1;});
+                c.classList.toggle('is-hidden',!show);
+                if(show) shown++;
+            });
+            if(meta) meta.textContent='📚 '+cards.length+' premium pack'+(cards.length===1?'':'s');
+            if(info) info.textContent=(q||f!=='all')?('Showing '+shown+' of '+cards.length+' packs'):'';
+            empty.hidden=shown!==0;
+            if(!shown) empty.textContent=q?('No packs found for "'+input.value.trim()+'". Try another word or choose All.'):'No packs in this category yet.';
+        }
+        tabs.addEventListener('click',function(e){
+            var t=e.target.closest('button'); if(!t||!tabs.contains(t)) return;
+            Array.prototype.forEach.call(tabs.querySelectorAll('button'),function(x){x.classList.toggle('on',x===t);});
+            apply();
+        });
+        if(input) input.addEventListener('input',apply);
+        window.storeFilterRefresh=apply;
+        apply();
     })();
     </script>
 
@@ -4476,11 +4515,7 @@
             title=document.getElementById('packPreviewTitle'),
             copy=document.getElementById('packPreviewCopy');
 
-        tabs.forEach(function(t){t.addEventListener('click',function(){
-            tabs.forEach(function(x){x.classList.toggle('on',x===t)});
-            var f=t.dataset.filter;
-            cards.forEach(function(c){ c.classList.toggle('is-hidden',!(f==='all'||c.dataset.catFilter===f)); });
-        });});
+        /* tab filtering + search is handled by the 'store: tab filter + search' script */
 
         document.querySelectorAll('#store .thumb[data-preview-image]').forEach(function(th){
             /* Keep the card exactly as designed; the preview chip is visual,

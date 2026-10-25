@@ -2723,3 +2723,12 @@ body[data-ep-theme="light"] .categorygrid button.active { color: var(--text) !im
     display:none !important;
     animation:none !important;
 }
+
+/* Store: category filter must really hide cards (beats "#store .product" display rules) + search box */
+#store .product.is-hidden{display:none !important}
+.store-search{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.store-search input{flex:1 1 280px;max-width:440px;padding:11px 18px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.12);color:inherit;font:inherit;font-size:14px}
+.store-search input:focus{outline:2px solid var(--red,#e52329);outline-offset:1px}
+.store-search span{font-size:13px;opacity:.7}
+.store-empty{padding:30px 8px;text-align:center;opacity:.8;font-size:15px}
+.store-empty[hidden]{display:none}
