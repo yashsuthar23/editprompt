@@ -12,6 +12,7 @@ import { mountSoftwareDownloads } from "./software-dl.js";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
 dotenv.config();
 
 const app = express();
@@ -1239,14 +1240,25 @@ if (!adminConfigured()) {
 // GEMINI AI
 // ============================================================
 
-function hasUsableGeminiKey() {
-  const key = process.env.GEMINI_API_KEY || "";
+const GEMINI_BASE_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 60000);
+const GEMINI_MAX_ATTEMPTS_PER_MODEL = 3;
 
-  return key.length > 20;
+// Temporary failures worth retrying: overload, rate limit, 5xx, and network/timeout errors.
+const GEMINI_RETRYABLE_ERROR =
+  /high demand|overloaded|unavailable|try again|RESOURCE_EXHAUSTED|network error|aborted|timeout|\b(429|500|502|503|504)\b/i;
+
+function hasUsableGeminiKey() {
+  return (process.env.GEMINI_API_KEY || "").trim().length > 20;
 }
 
 function getGeminiModel() {
-  return process.env.AI_MODEL || "gemini-2.5-flash";
+  return (process.env.AI_MODEL || "gemini-2.5-flash").trim();
+}
+
+function getGeminiFallbackModel() {
+  return (process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash").trim();
 }
 
 async function callGeminiOnce({
@@ -1254,63 +1266,52 @@ async function callGeminiOnce({
   input,
   maxOutputTokens = 1500,
   temperature = 0.7,
-  model: modelOverride,
+  model,
 }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (!apiKey) throw new Error("Gemini API key is missing.");
 
-  if (!apiKey) {
-    throw new Error("Gemini API key is missing.");
+  const url = `${GEMINI_BASE_URL}/${encodeURIComponent(model)}:generateContent`;
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ role: "user", parts: [{ text: input }] }],
+        generationConfig: { temperature, maxOutputTokens },
+      }),
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+    });
+  } catch (err) {
+    // "fetch failed" ka asli reason err.cause mein hota hai (ENOTFOUND, ETIMEDOUT, ECONNREFUSED...)
+    const reason = err.cause?.code || err.cause?.message || err.message;
+    throw new Error(`Gemini network error (${model}): ${reason}`);
   }
 
-  const model = modelOverride || getGeminiModel();
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model,
-  )}:generateContent`;
-
-  const response = await fetch(url, {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-
-      "x-goog-api-key": apiKey,
-    },
-
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [
-          {
-            text: systemInstruction,
-          },
-        ],
-      },
-
-      contents: [
-        {
-          role: "user",
-
-          parts: [
-            {
-              text: input,
-            },
-          ],
-        },
-      ],
-
-      generationConfig: {
-        temperature,
-        maxOutputTokens,
-      },
-    }),
-  });
-
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      `Gemini returned a non-JSON response (HTTP ${response.status}).`,
+    );
+  }
 
   if (!response.ok) {
-    console.error("Gemini API error:", data);
-
-    throw new Error(data?.error?.message || "Gemini API request failed.");
+    console.error(
+      `Gemini API error (${model}, HTTP ${response.status}):`,
+      data,
+    );
+    throw new Error(
+      data?.error?.message ||
+        `Gemini API request failed (HTTP ${response.status}).`,
+    );
   }
 
   const text =
@@ -1319,45 +1320,42 @@ async function callGeminiOnce({
       .join("")
       .trim() || "";
 
-  if (!text) {
-    throw new Error("Gemini returned no text.");
-  }
+  if (!text) throw new Error("Gemini returned no text.");
 
   return text;
 }
 
-// Retries Gemini on temporary overload ("high demand", 429/5xx) with backoff,
-// then falls back to a second model. Non-temporary errors are thrown at once.
-const GEMINI_TEMPORARY_ERROR =
-  /high demand|overloaded|unavailable|try again|RESOURCE_EXHAUSTED|\b(429|500|502|503|504)\b/i;
-
+// Retries temporary errors with backoff on the primary model, then tries the fallback model.
+// Permanent errors (bad key, unknown model, bad request) are thrown immediately.
 async function callGemini(options = {}) {
-  const primary = getGeminiModel();
-  const fallback = process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash";
-  const models = [primary, fallback].filter((m, i, arr) => m && arr.indexOf(m) === i);
-  const maxAttemptsPerModel = 3;
+  const models = [getGeminiModel(), getGeminiFallbackModel()].filter(
+    (m, i, arr) => m && arr.indexOf(m) === i,
+  );
+
+  let lastErr = new Error("Gemini request failed.");
 
   for (const model of models) {
-    for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
+    for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS_PER_MODEL; attempt++) {
       try {
         return await callGeminiOnce({ ...options, model });
       } catch (err) {
+        lastErr = err;
         const message = String(err?.message || "");
-        if (!GEMINI_TEMPORARY_ERROR.test(message)) throw err;
+
+        if (!GEMINI_RETRYABLE_ERROR.test(message)) throw err;
 
         console.warn(
-          `Gemini busy (model ${model}, attempt ${attempt}/${maxAttemptsPerModel}): ${message}`,
+          `Gemini retryable error (model ${model}, attempt ${attempt}/${GEMINI_MAX_ATTEMPTS_PER_MODEL}): ${message}`,
         );
 
-        const isLastAttempt = attempt === maxAttemptsPerModel;
-        const isLastModel = model === models[models.length - 1];
-        if (isLastAttempt && isLastModel) throw err;
-        if (!isLastAttempt) {
+        if (attempt < GEMINI_MAX_ATTEMPTS_PER_MODEL) {
           await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
         }
       }
     }
   }
+
+  throw lastErr;
 }
 
 // ============================================================
@@ -5713,29 +5711,21 @@ async function generateVideoWithHuggingFace({
     ? "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space"
     : "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
 
-  const configuredSpace = String(
-    process.env.HF_ZEROGPU_SPACE_URL || "",
-  ).trim();
+  const configuredSpace = String(process.env.HF_ZEROGPU_SPACE_URL || "").trim();
 
   const legacyOpenKing = configuredSpace
     .toLowerCase()
     .includes("openking-wan2-video-generation");
 
   const spaceBase = (
-    legacyOpenKing || !configuredSpace
-      ? defaultSpace
-      : configuredSpace
+    legacyOpenKing || !configuredSpace ? defaultSpace : configuredSpace
   ).replace(/\/+$/, "");
 
   const token = String(process.env.HF_TOKEN || "").trim();
 
-  const headers = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-  const timeoutMs = Number(
-    process.env.HF_ZEROGPU_TIMEOUT_MS || 300000,
-  );
+  const timeoutMs = Number(process.env.HF_ZEROGPU_TIMEOUT_MS || 300000);
 
   /*
    * ---------------------------------------------------------
@@ -5818,13 +5808,7 @@ async function generateVideoWithHuggingFace({
 
   const steps = Math.max(
     1,
-    Math.min(
-      30,
-      Number(
-        process.env.HF_ZEROGPU_STEPS ||
-          (hasImage ? 6 : 4),
-      ),
-    ),
+    Math.min(30, Number(process.env.HF_ZEROGPU_STEPS || (hasImage ? 6 : 4))),
   );
 
   /*
@@ -5833,13 +5817,9 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const guidance1 = Number(
-    process.env.HF_ZEROGPU_GUIDANCE || 1,
-  );
+  const guidance1 = Number(process.env.HF_ZEROGPU_GUIDANCE || 1);
 
-  const guidance2 = Number(
-    process.env.HF_ZEROGPU_GUIDANCE_2 || 3,
-  );
+  const guidance2 = Number(process.env.HF_ZEROGPU_GUIDANCE_2 || 3);
 
   /*
    * ---------------------------------------------------------
@@ -5847,18 +5827,15 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const configuredSeed = Number(
-    process.env.HF_ZEROGPU_SEED,
-  );
+  const configuredSeed = Number(process.env.HF_ZEROGPU_SEED);
 
   const seed = Number.isFinite(configuredSeed)
     ? configuredSeed
     : Math.floor(Math.random() * 2147483647);
 
   const randomizeSeed =
-    String(
-      process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true",
-    ).toLowerCase() === "true";
+    String(process.env.HF_ZEROGPU_RANDOMIZE_SEED || "true").toLowerCase() ===
+    "true";
 
   /*
    * ---------------------------------------------------------
@@ -5909,10 +5886,7 @@ async function generateVideoWithHuggingFace({
   let imageData = null;
 
   if (hasImage) {
-    const imageBytes = Buffer.from(
-      image.data,
-      "base64",
-    );
+    const imageBytes = Buffer.from(image.data, "base64");
 
     const mime = image.mimeType || "image/png";
 
@@ -5936,15 +5910,12 @@ async function generateVideoWithHuggingFace({
     let uploadResponse;
 
     try {
-      uploadResponse = await fetch(
-        `${spaceBase}/gradio_api/upload`,
-        {
-          method: "POST",
-          headers,
-          body: form,
-          signal: AbortSignal.timeout(timeoutMs),
-        },
-      );
+      uploadResponse = await fetch(`${spaceBase}/gradio_api/upload`, {
+        method: "POST",
+        headers,
+        body: form,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
     } catch (error) {
       throw new Error(
         `Hugging Face image upload failed: ${String(
@@ -5953,8 +5924,7 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const uploadText =
-      await uploadResponse.text();
+    const uploadText = await uploadResponse.text();
 
     if (!uploadResponse.ok) {
       throw new Error(
@@ -5978,9 +5948,7 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const uploadedPath = Array.isArray(uploaded)
-      ? uploaded[0]
-      : uploaded?.path;
+    const uploadedPath = Array.isArray(uploaded) ? uploaded[0] : uploaded?.path;
 
     if (!uploadedPath) {
       throw new Error(
@@ -6037,31 +6005,15 @@ async function generateVideoWithHuggingFace({
 
   const maxQueueRetries = Math.max(
     0,
-    Math.min(
-      6,
-      Number(
-        process.env.HF_ZEROGPU_QUEUE_RETRIES || 4,
-      ),
-    ),
+    Math.min(6, Number(process.env.HF_ZEROGPU_QUEUE_RETRIES || 4)),
   );
 
-  const retryDelaysSeconds = [
-    12,
-    20,
-    35,
-    50,
-    60,
-    60,
-  ];
+  const retryDelaysSeconds = [12, 20, 35, 50, 60, 60];
 
   let started = null;
   let lastQueueMessage = "";
 
-  for (
-    let attempt = 0;
-    attempt <= maxQueueRetries;
-    attempt += 1
-  ) {
+  for (let attempt = 0; attempt <= maxQueueRetries; attempt += 1) {
     let startResponse;
 
     try {
@@ -6085,8 +6037,7 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    const startText =
-      await startResponse.text();
+    const startText = await startResponse.text();
 
     if (startResponse.ok) {
       try {
@@ -6107,11 +6058,9 @@ async function generateVideoWithHuggingFace({
 
     const queueFull =
       startResponse.status === 503 &&
-      (
-        lower.includes("queue is full") ||
+      (lower.includes("queue is full") ||
         lower.includes("max size") ||
-        lower.includes("queue full")
-      );
+        lower.includes("queue full"));
 
     if (!queueFull) {
       throw new Error(
@@ -6122,20 +6071,14 @@ async function generateVideoWithHuggingFace({
       );
     }
 
-    lastQueueMessage =
-      startText.slice(0, 500);
+    lastQueueMessage = startText.slice(0, 500);
 
     if (attempt >= maxQueueRetries) {
       break;
     }
 
     const delaySeconds =
-      retryDelaysSeconds[
-        Math.min(
-          attempt,
-          retryDelaysSeconds.length - 1,
-        )
-      ];
+      retryDelaysSeconds[Math.min(attempt, retryDelaysSeconds.length - 1)];
 
     console.warn(
       `Wan2.2 ZeroGPU queue full. Retry ${
@@ -6143,13 +6086,7 @@ async function generateVideoWithHuggingFace({
       }/${maxQueueRetries} in ${delaySeconds}s.`,
     );
 
-    await new Promise(
-      (resolve) =>
-        setTimeout(
-          resolve,
-          delaySeconds * 1000,
-        ),
-    );
+    await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
   }
 
   if (!started?.event_id) {
@@ -6176,14 +6113,8 @@ async function generateVideoWithHuggingFace({
     },
   );
 
-  if (
-    !pollResponse.ok ||
-    !pollResponse.body
-  ) {
-    const text =
-      await pollResponse.text().catch(
-        () => "",
-      );
+  if (!pollResponse.ok || !pollResponse.body) {
+    const text = await pollResponse.text().catch(() => "");
 
     throw new Error(
       `Hugging Face Wan2.2 polling failed (${pollResponse.status}): ${text.slice(
@@ -6193,64 +6124,39 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const reader =
-    pollResponse.body.getReader();
+  const reader = pollResponse.body.getReader();
 
-  const decoder =
-    new TextDecoder();
+  const decoder = new TextDecoder();
 
   let buffer = "";
   let resultData = null;
   let streamError = null;
 
   while (true) {
-    const {
-      value,
-      done,
-    } = await reader.read();
+    const { value, done } = await reader.read();
 
-    buffer += decoder.decode(
-      value || new Uint8Array(),
-      {
-        stream: !done,
-      },
-    );
+    buffer += decoder.decode(value || new Uint8Array(), {
+      stream: !done,
+    });
 
-    const events =
-      buffer.split(/\n\n/);
+    const events = buffer.split(/\n\n/);
 
-    buffer =
-      events.pop() || "";
+    buffer = events.pop() || "";
 
     for (const event of events) {
-      const eventType =
-        (
-          event.match(
-            /^event:\s*(.+)$/m,
-          )?.[1] || ""
-        ).trim();
+      const eventType = (event.match(/^event:\s*(.+)$/m)?.[1] || "").trim();
 
-      const dataLine =
-        event.match(
-          /^data:\s*(.+)$/m,
-        )?.[1];
+      const dataLine = event.match(/^data:\s*(.+)$/m)?.[1];
 
       if (!dataLine) continue;
 
       if (eventType === "error") {
-        streamError =
-          parseGradioStreamError(
-            dataLine,
-            "Hugging Face Wan2.2",
-          );
+        streamError = parseGradioStreamError(dataLine, "Hugging Face Wan2.2");
       }
 
-      if (
-        eventType === "complete"
-      ) {
+      if (eventType === "complete") {
         try {
-          resultData =
-            JSON.parse(dataLine);
+          resultData = JSON.parse(dataLine);
         } catch {
           throw new Error(
             `Hugging Face Wan2.2 returned invalid result data: ${dataLine.slice(
@@ -6262,28 +6168,17 @@ async function generateVideoWithHuggingFace({
       }
     }
 
-    if (
-      resultData !== null ||
-      streamError ||
-      done
-    ) {
+    if (resultData !== null || streamError || done) {
       break;
     }
   }
 
   if (streamError) {
-    throw new Error(
-      `Hugging Face Wan2.2 generation failed: ${streamError}`,
-    );
+    throw new Error(`Hugging Face Wan2.2 generation failed: ${streamError}`);
   }
 
-  if (
-    !Array.isArray(resultData) ||
-    !resultData[0]
-  ) {
-    throw new Error(
-      "Hugging Face Wan2.2 finished without a video file.",
-    );
+  if (!Array.isArray(resultData) || !resultData[0]) {
+    throw new Error("Hugging Face Wan2.2 finished without a video file.");
   }
 
   /*
@@ -6292,23 +6187,15 @@ async function generateVideoWithHuggingFace({
    * ---------------------------------------------------------
    */
 
-  const output =
-    resultData[0];
+  const output = resultData[0];
 
-  const outputPath =
-    typeof output === "string"
-      ? output
-      : output?.path;
+  const outputPath = typeof output === "string" ? output : output?.path;
 
   const outputUrl =
     output?.url ||
-    (
-      outputPath
-        ? `${spaceBase}/gradio_api/file=${encodeURIComponent(
-            outputPath,
-          )}`
-        : null
-    );
+    (outputPath
+      ? `${spaceBase}/gradio_api/file=${encodeURIComponent(outputPath)}`
+      : null);
 
   if (!outputUrl) {
     throw new Error(
@@ -6316,20 +6203,13 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const fileResponse =
-    await fetch(outputUrl, {
-      headers,
-      signal:
-        AbortSignal.timeout(
-          timeoutMs,
-        ),
-    });
+  const fileResponse = await fetch(outputUrl, {
+    headers,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
 
   if (!fileResponse.ok) {
-    const text =
-      await fileResponse
-        .text()
-        .catch(() => "");
+    const text = await fileResponse.text().catch(() => "");
 
     throw new Error(
       `Hugging Face Wan2.2 video download failed (${fileResponse.status}): ${text.slice(
@@ -6339,16 +6219,11 @@ async function generateVideoWithHuggingFace({
     );
   }
 
-  const videoBuffer =
-  Buffer.from(
-    await fileResponse.arrayBuffer(),
-  );
+  const videoBuffer = Buffer.from(await fileResponse.arrayBuffer());
 
-if (!videoBuffer.length) {
-  throw new Error(
-    "Hugging Face Wan2.2 returned an empty video.",
-  );
-}
+  if (!videoBuffer.length) {
+    throw new Error("Hugging Face Wan2.2 returned an empty video.");
+  }
 
   /*
    * ---------------------------------------------------------
@@ -6358,25 +6233,16 @@ if (!videoBuffer.length) {
 
   return {
     buffer,
-    mimeType:
-      fileResponse.headers.get(
-        "content-type",
-      ) || "video/mp4",
+    mimeType: fileResponse.headers.get("content-type") || "video/mp4",
 
-    model:
-      `huggingface-zerogpu:${
-        hasImage
-          ? "Wan2.2-14B-I2V-Fast"
-          : "Wan2.2-14B-T2V-Fast"
-      }`,
+    model: `huggingface-zerogpu:${
+      hasImage ? "Wan2.2-14B-I2V-Fast" : "Wan2.2-14B-T2V-Fast"
+    }`,
 
     generatedFps: 24,
-    generatedDurationSeconds:
-      actualDuration,
-    generatedFrameCount:
-      numFrames,
-    requestedFps:
-      Number(fps || 24),
+    generatedDurationSeconds: actualDuration,
+    generatedFrameCount: numFrames,
+    requestedFps: Number(fps || 24),
 
     requestedAspectRatio: ratio,
     generatedWidth: width,
