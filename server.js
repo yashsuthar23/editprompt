@@ -2436,6 +2436,23 @@ app.get("/api/download/:productId", requireLogin, (req, res) => {
     return res.status(403).send("You do not own this product.");
   }
 
+  if (product.text != null) {
+    const safeName =
+      String(product.name || "prompt-pack")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "") || "prompt-pack";
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeName}.txt"`,
+    );
+    return res.send(product.text);
+  }
+
+  if (!product.file) {
+    return res.status(404).send("Download file missing.");
+  }
+
   const filePath = path.join(__dirname, "downloads", product.file);
 
   if (!fs.existsSync(filePath)) {
