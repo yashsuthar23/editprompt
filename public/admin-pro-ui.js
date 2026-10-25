@@ -57,8 +57,17 @@
   panel.className = "adm-hide";
   panel.innerHTML =
     '<div class="panel"><h3>Conversion funnel</h3><p class="muted">Where visitors drop off, from signup to payment.</p><div id="proFunnel"></div></div>' +
-    '<div class="panel"><h3>Add new Prompt Pack</h3><p class="muted">Just enter the name and price. AI writes the tag, description, categories, the full prompt file and the cover images, then publishes the pack on the store and gives it its own product page. Takes about 1-3 minutes.</p>' +
-    '<div class="adm-tools"><input id="npName" class="adm-input grow" maxlength="80" placeholder="Pack name, e.g. Gaming Montage Prompt Pack" /><input id="npPrice" class="adm-input" type="number" min="1" placeholder="Price (₹)" style="width:130px" /><button id="npAdd" class="btn small" type="button">Generate &amp; Add Pack</button></div>' +
+    '<div class="panel"><h3>Add new Prompt Pack</h3>' +
+    '<p class="muted">Tag, description aani prompts potey lakho (manual), athva .txt file upload karo. Joye to "Generate with AI" thi AI pase tag/description lakhavi shako.</p>' +
+    '<div class="adm-tools"><input id="npName" class="adm-input grow" maxlength="80" placeholder="Pack name, e.g. Gaming AI Prompt Pack" />' +
+    '<input id="npPrice" class="adm-input" type="number" min="1" placeholder="Price (₹)" style="width:130px" /></div>' +
+    '<div class="adm-tools"><input id="npTag" class="adm-input grow" maxlength="60" placeholder="Tag, e.g. Gaming montage prompts" />' +
+    '<input id="npCats" class="adm-input grow" maxlength="200" placeholder="Categories, comma thi alag karo (Gaming, Reels)" /></div>' +
+    '<textarea id="npDesc" class="adm-input" rows="3" maxlength="600" placeholder="Description" style="width:100%"></textarea>' +
+    '<textarea id="npText" class="adm-input" rows="6" placeholder="Prompts ahiya paste karo, athva niche thi .txt file upload karo" style="width:100%"></textarea>' +
+    '<div class="adm-tools"><input id="npFile" type="file" accept=".txt,text/plain" />' +
+    '<button id="npSave" class="btn small" type="button">Save pack (manual)</button>' +
+    '<button id="npAi" class="btn ghost small" type="button">Generate with AI</button></div>' +
     '<div class="adm-tools"><span id="npMsg" class="muted" style="margin:0"></span></div></div>' +
     '<div class="panel"><h3>Products &amp; pricing</h3><p class="muted">Price changes apply to checkout immediately and update the price text on the product page.</p><div id="proProducts"></div></div>' +
     '<div class="panel"><h3>Email broadcast</h3><p class="muted">Every email includes an unsubscribe link. Blocked and unsubscribed users are skipped automatically.</p>' +
@@ -515,33 +524,57 @@
         alert(er.message);
       });
   });
-  $("npAdd").addEventListener("click", function () {
-    var msg = $("npMsg"),
-      btn = $("npAdd");
-    if (!$("npName").value.trim() || !$("npPrice").value) {
+  $("npFile").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      $("npText").value = String(reader.result || "");
+      $("npMsg").textContent = "File loaded: " + f.name;
+    };
+    reader.readAsText(f);
+  });
+  function submitPack(mode) {
+    var msg = $("npMsg");
+    var name = $("npName").value.trim();
+    var price = $("npPrice").value;
+    var tag = $("npTag").value.trim();
+    var desc = $("npDesc").value.trim();
+    var text = $("npText").value.trim();
+    if (!name || !price) {
       msg.textContent = "Enter a name and price.";
       return;
     }
-    btn.disabled = true;
-    msg.textContent = "Starting AI…";
+    if (mode === "manual" && (!tag || !desc || !text)) {
+      msg.textContent = "Manual mate tag, description ane prompts bhari do, athva Generate with AI vapro.";
+      return;
+    }
+    var buttons = [$("npSave"), $("npAi")];
+    buttons.forEach(function (b) { b.disabled = true; });
+    msg.textContent = mode === "ai" ? "Starting AI…" : "Saving pack…";
     api("/api/admin/packs", {
-      name: $("npName").value,
-      price: $("npPrice").value,
+      mode: mode,
+      name: name,
+      price: price,
+      tag: tag,
+      description: desc,
+      categories: $("npCats").value,
+      promptText: $("npText").value,
     })
       .then(function () {
         msg.textContent =
-          "Started. Watch the progress in the table below — it goes live on the store automatically.";
-        $("npName").value = "";
-        $("npPrice").value = "";
+          mode === "ai"
+            ? "Started. Niche table ma progress juo — AI pachi store par live thase."
+            : "Pack saved ane store par live che.";
+        ["npName", "npPrice", "npTag", "npCats", "npDesc", "npText"].forEach(function (id) { $(id).value = ""; });
+        $("npFile").value = "";
         loadProducts();
       })
-      .catch(function (er) {
-        msg.textContent = "Error: " + er.message;
-      })
-      .then(function () {
-        btn.disabled = false;
-      });
-  });
+      .catch(function (er) { msg.textContent = "Error: " + er.message; })
+      .then(function () { buttons.forEach(function (b) { b.disabled = false; }); });
+  }
+  $("npSave").addEventListener("click", function () { submitPack("manual"); });
+  $("npAi").addEventListener("click", function () { submitPack("ai"); });
   var segNames = {
     all: "All users",
     buyers: "Buyers",
