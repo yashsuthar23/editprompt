@@ -3536,7 +3536,7 @@ async function uploadVideoSourceImage(file) {
   mediaState.uploadedImageFile = data.file;
   mediaState.uploadedImageUrl = data.url;
   mediaState.sourceImageFile = data.file;
-  if (status) status.textContent = `Starting image: ${file.name} · Prompt likhva ni jarur nathi, seedho video banavi shako.`;
+  if (status) status.textContent = `Starting image: ${file.name} · Changes joiye to niche Changes box ma lakho, nahi to seedho video banavo.`;
   if (clear) clear.classList.remove("hide");
   if (typeof ivUpdateLabel === "function") ivUpdateLabel();
 }
@@ -3880,7 +3880,7 @@ if ($("mediaRegenerateBtn")) {
 }
 
 $("mediaCopyPromptBtn")?.addEventListener("click", async () => {
-  const prompt = mediaCurrentPrompt();
+  const prompt = ivState.lastPrompt || mediaCurrentPrompt();
   if (!prompt || isPlaceholderPrompt(prompt)) return toast("No prompt to copy");
   try { await navigator.clipboard.writeText(prompt); toast("Prompt copied"); }
   catch { toast("Could not copy prompt"); }
@@ -3965,6 +3965,7 @@ const ivState = {
   progress: 0,
   file: null,
   lastMeta: null,
+  lastPrompt: "",
   running: false,
 };
 
@@ -3973,6 +3974,17 @@ const IV_IMAGE_ONLY_PROMPT =
   "Keep the subject, face, composition, colours and visual style exactly as in the image. " +
   "Add natural, smooth motion: subtle subject movement and gentle environmental motion such as wind, light and floating particles. " +
   "Stable, professional camera. No new objects, no text, no distortion or morphing.";
+
+function ivBuildImagePrompt(changes) {
+  const text = String(changes || "").trim();
+  if (!text) return IV_IMAGE_ONLY_PROMPT;
+  return (
+    "Animate the provided image into a realistic, high quality cinematic video. " +
+    "Keep the subject, face, composition and visual style of the image, except for the changes requested below. " +
+    "Requested changes: " + text + ". " +
+    "Smooth, natural motion and a stable, professional camera. No text, no distortion or morphing."
+  );
+}
 
 function ivUpdateLabel() {
   const button = $("ivGenerateBtn");
@@ -4128,30 +4140,27 @@ async function ivGenerate() {
   const button = $("ivGenerateBtn");
   const imageFile = mediaState.uploadedImageFile || null;
 
-  // Image only (no prompt, no subject typed): animate the uploaded image directly.
-  const imageOnly =
-    Boolean(imageFile) &&
-    isPlaceholderPrompt(mediaCurrentPrompt()) &&
-    !($("subject")?.value || "").trim();
+  // Changes written in the Image to Video section itself (not the Advanced generator).
+  const changes = ($("ivChangesInput")?.value || "").trim();
 
   ivState.running = true;
   if (button) button.disabled = true;
 
   let prompt;
 
-  if (imageOnly) {
-    prompt = IV_IMAGE_ONLY_PROMPT;
+  if (imageFile) {
+    // Image to Video: the image plus the optional Changes box. The Advanced
+    // AI Video Prompt Generator fields are NOT used here.
+    prompt = ivBuildImagePrompt(changes);
+  } else if (changes) {
+    prompt = changes;
   } else {
     if (button && isPlaceholderPrompt(mediaCurrentPrompt())) button.textContent = "Creating prompt…";
 
     try {
       await ensurePromptForMedia();
     } finally {
-      if (button) {
-        button.textContent = mediaState.uploadedImageFile
-          ? "⚡ Generate Video from Image"
-          : "⚡ Generate Video";
-      }
+      if (button) button.textContent = "⚡ Generate Video";
     }
 
     if (isPlaceholderPrompt(mediaCurrentPrompt())) {
@@ -4163,6 +4172,8 @@ async function ivGenerate() {
     syncVideoControlsToPrompt();
     prompt = mediaCurrentPrompt();
   }
+
+  ivState.lastPrompt = prompt;
 
   ivState.cancelled = false;
   ivState.jobId = null;
@@ -4238,7 +4249,7 @@ $("ivRetryBtn")?.addEventListener("click", async () => {
 });
 
 $("ivCopyPromptBtn")?.addEventListener("click", async () => {
-  const prompt = mediaCurrentPrompt();
+  const prompt = ivState.lastPrompt || mediaCurrentPrompt();
   if (!prompt || isPlaceholderPrompt(prompt)) return toast("No prompt to copy");
   try { await navigator.clipboard.writeText(prompt); toast("Prompt copied"); }
   catch { toast("Could not copy prompt"); }

@@ -2732,3 +2732,10 @@ body[data-ep-theme="light"] .categorygrid button.active { color: var(--text) !im
 .store-search span{font-size:13px;opacity:.7}
 .store-empty{padding:30px 8px;text-align:center;opacity:.8;font-size:15px}
 .store-empty[hidden]{display:none}
+
+
+/* Image to Video: Changes box */
+.iv-changes { display:block; margin-top:14px; }
+.iv-changes-title { display:block; font-weight:600; margin-bottom:6px; }
+.iv-changes-title em { font-weight:400; opacity:.7; font-style:normal; }
+.iv-changes textarea { width:100%; resize:vertical; min-height:76px; font:inherit; box-sizing:border-box; }
