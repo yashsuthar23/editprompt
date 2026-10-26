@@ -12,10 +12,7 @@
       content="Browse all EditPrompt.in premium AI video prompt packs."
     />
     <meta name="robots" content="index,follow" />
-    <link
-      rel="canonical"
-      href="https://editprompt.in/packs.html"
-    />
+    <link rel="canonical" href="https://editprompt.in/packs.html" />
     <title>All Prompt Packs — EditPrompt.in</title>
 
     <link rel="stylesheet" href="/styles.css?v=4" />
@@ -102,9 +99,7 @@
       </nav>
 
       <div class="right account">
-        <button id="loginBtn" class="btn ghost" type="button">
-          Login
-        </button>
+        <button id="loginBtn" class="btn ghost" type="button">Login</button>
 
         <button id="logoutBtn" class="btn ghost hide" type="button">
           Logout
@@ -149,57 +144,32 @@
           role="tablist"
           aria-label="Filter packs"
         >
-          <button type="button" class="on" data-filter="all">
-            All
-          </button>
+          <button type="button" class="on" data-filter="all">All</button>
 
-          <button type="button" data-filter="Cinematic">
-            🎬 Cinematic
-          </button>
+          <button type="button" data-filter="Cinematic">🎬 Cinematic</button>
 
-          <button type="button" data-filter="Wedding">
-            💍 Wedding
-          </button>
+          <button type="button" data-filter="Wedding">💍 Wedding</button>
 
-          <button type="button" data-filter="Commercial">
-            🛍️ Product Ads
-          </button>
+          <button type="button" data-filter="Commercial">🛍️ Product Ads</button>
 
-          <button type="button" data-filter="Fashion">
-            👗 Fashion
-          </button>
+          <button type="button" data-filter="Fashion">👗 Fashion</button>
 
-          <button type="button" data-filter="Travel">
-            ✈️ Travel
-          </button>
+          <button type="button" data-filter="Travel">✈️ Travel</button>
 
-          <button type="button" data-filter="Automotive">
-            🚗 Automotive
-          </button>
+          <button type="button" data-filter="Automotive">🚗 Automotive</button>
 
-          <button type="button" data-filter="RealEstate">
-            🏙️ Real Estate
-          </button>
+          <button type="button" data-filter="RealEstate">🏙️ Real Estate</button>
 
-          <button type="button" data-filter="Social">
-            📱 Social Reels
-          </button>
+          <button type="button" data-filter="Social">📱 Social Reels</button>
 
-          <button type="button" data-filter="Food">
-            🍔 Food & Beverage
-          </button>
+          <button type="button" data-filter="Food">🍔 Food & Beverage</button>
 
-          <button type="button" data-filter="New">
-            ✨ New Packs
-          </button>
+          <button type="button" data-filter="New">✨ New Packs</button>
         </div>
       </section>
 
       <section aria-label="All prompt packs">
-        <div
-          class="three store-grid packs-grid"
-          id="packsGrid"
-        ></div>
+        <div class="three store-grid packs-grid" id="packsGrid"></div>
 
         <p id="packsEmpty" class="store-empty" hidden>
           No packs found. Try another search.
@@ -207,9 +177,7 @@
       </section>
 
       <div class="packs-more">
-        <a class="btn ghost" href="/">
-          ← Back to Home
-        </a>
+        <a class="btn ghost" href="/"> ← Back to Home </a>
       </div>
     </main>
 
@@ -220,28 +188,19 @@
         <div id="loginStep1">
           <h2>Login / Create Account</h2>
 
-          <p>
-            We'll email you a 6-digit code — no password needed.
-          </p>
+          <p>We'll email you a 6-digit code — no password needed.</p>
 
           <input id="name" placeholder="Your name" />
 
-          <input
-            id="email"
-            placeholder="Email address"
-          />
+          <input id="email" placeholder="Email address" />
 
-          <button id="sendOtpBtn" class="buy full">
-            Send Code
-          </button>
+          <button id="sendOtpBtn" class="buy full">Send Code</button>
         </div>
 
         <div id="loginStep2" class="hide">
           <h2>Enter Code</h2>
 
-          <p id="otpHint">
-            Check your email for the 6-digit code.
-          </p>
+          <p id="otpHint">Check your email for the 6-digit code.</p>
 
           <input
             id="otp"
@@ -250,14 +209,9 @@
             inputmode="numeric"
           />
 
-          <button id="verifyOtpBtn" class="buy full">
-            Verify & Login
-          </button>
+          <button id="verifyOtpBtn" class="buy full">Verify & Login</button>
 
-          <button
-            id="resendOtpBtn"
-            class="secondary full small"
-          >
+          <button id="resendOtpBtn" class="secondary full small">
             Resend code
           </button>
         </div>
@@ -394,18 +348,15 @@
         var all = builtins.slice();
 
         function esc(x) {
-          return String(x == null ? "" : x).replace(
-            /[&<>"']/g,
-            function (c) {
-              return {
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;",
-              }[c];
-            }
-          );
+          return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c];
+          });
         }
 
         function addCard(p, isNew) {
@@ -414,15 +365,12 @@
           card.className = "product";
           card.dataset.catFilter = p.cat || "New";
 
-          var href =
-            p.href ||
-            "/pack.html?id=" +
-              encodeURIComponent(p.id);
+          var href = p.href || "/pack.html?id=" + encodeURIComponent(p.id);
 
           var coverStyle = p.cover
             ? "style=\"background-image:url('" +
               esc(p.cover) +
-              "');background-size:cover;background-position:center;background-repeat:no-repeat;display:block;aspect-ratio:16/9;\""
+              "');background-size:100% 100%;background-position:center;background-repeat:no-repeat;display:block;aspect-ratio:16/9;\""
             : 'style="display:block;aspect-ratio:16/9;"';
 
           /*
@@ -439,48 +387,36 @@
             esc(p.name) +
             '" ' +
             coverStyle +
-            '></a>' +
-
+            "></a>" +
             '<div class="tag">' +
             esc(p.tag || "NEW") +
             "</div>" +
-
             "<h3>" +
             esc(p.name) +
             "</h3>" +
-
             "<p>" +
             esc(
               p.desc ||
                 p.tagline ||
                 p.description ||
-                "Production-ready AI video prompts."
+                "Production-ready AI video prompts.",
             ) +
             "</p>" +
-
             '<div class="pack-specs">' +
             "<span>" +
-            esc(
-              p.count ||
-                p.promptCount ||
-                "PROMPTS"
-            ) +
+            esc(p.count || p.promptCount || "PROMPTS") +
             "</span>" +
             "<span>PDF + ZIP</span>" +
             "<span>Instant access</span>" +
             "</div>" +
-
             '<div class="price">₹' +
             esc(p.price) +
             "</div>" +
-
             '<a class="btn primary full" href="' +
             href +
             '">' +
             "Buy Now" +
-            (p.price
-              ? " — ₹" + esc(p.price)
-              : "") +
+            (p.price ? " — ₹" + esc(p.price) : "") +
             "</a>";
 
           grid.appendChild(card);
@@ -490,10 +426,7 @@
           grid.innerHTML = "";
 
           all.forEach(function (p, i) {
-            addCard(
-              p,
-              i >= builtins.length
-            );
+            addCard(p, i >= builtins.length);
           });
 
           apply();
@@ -502,117 +435,77 @@
         function apply() {
           var b = tabs.querySelector("button.on");
 
-          var f = b
-            ? b.dataset.filter
-            : "all";
+          var f = b ? b.dataset.filter : "all";
 
-          var q = (search.value || "")
-            .toLowerCase()
-            .trim();
+          var q = (search.value || "").toLowerCase().trim();
 
-          var terms = q
-            ? q.split(/\s+/)
-            : [];
+          var terms = q ? q.split(/\s+/) : [];
 
-          var cards =
-            grid.querySelectorAll(".product");
+          var cards = grid.querySelectorAll(".product");
 
           var shown = 0;
 
-          Array.prototype.forEach.call(
-            cards,
-            function (c) {
-              var hay =
-                c.textContent.toLowerCase() +
-                " " +
-                (c.dataset.catFilter || "")
-                  .toLowerCase();
+          Array.prototype.forEach.call(cards, function (c) {
+            var hay =
+              c.textContent.toLowerCase() +
+              " " +
+              (c.dataset.catFilter || "").toLowerCase();
 
-              var ok =
-                (f === "all" ||
-                  c.dataset.catFilter === f) &&
-                terms.every(function (t) {
-                  return hay.indexOf(t) !== -1;
-                });
+            var ok =
+              (f === "all" || c.dataset.catFilter === f) &&
+              terms.every(function (t) {
+                return hay.indexOf(t) !== -1;
+              });
 
-              c.classList.toggle(
-                "is-hidden",
-                !ok
-              );
+            c.classList.toggle("is-hidden", !ok);
 
-              if (ok) shown++;
-            }
-          );
+            if (ok) shown++;
+          });
 
-          count.textContent =
-            "📚 " +
-            all.length +
-            " premium packs";
+          count.textContent = "📚 " + all.length + " premium packs";
 
           info.textContent =
             q || f !== "all"
-              ? "Showing " +
-                shown +
-                " of " +
-                all.length +
-                " packs"
+              ? "Showing " + shown + " of " + all.length + " packs"
               : "";
 
           empty.hidden = shown !== 0;
         }
 
-        tabs.addEventListener(
-          "click",
-          function (e) {
-            var b =
-              e.target.closest("button");
+        tabs.addEventListener("click", function (e) {
+          var b = e.target.closest("button");
 
-            if (!b) return;
+          if (!b) return;
 
-            Array.prototype.forEach.call(
-              tabs.querySelectorAll(
-                "button"
-              ),
-              function (x) {
-                x.classList.toggle(
-                  "on",
-                  x === b
-                );
-              }
-            );
+          Array.prototype.forEach.call(
+            tabs.querySelectorAll("button"),
+            function (x) {
+              x.classList.toggle("on", x === b);
+            },
+          );
 
-            apply();
-          }
-        );
+          apply();
+        });
 
-        search.addEventListener(
-          "input",
-          apply
-        );
+        search.addEventListener("input", apply);
 
         fetch("/api/packs")
           .then(function (r) {
-            return r.ok
-              ? r.json()
-              : { packs: [] };
+            return r.ok ? r.json() : { packs: [] };
           })
           .then(function (d) {
-            (d.packs || []).forEach(
-              function (p) {
-                all.push({
-                  id: p.id,
-                  name: p.name,
-                  price: p.price,
-                  tag: p.tag || "NEW",
-                  cat: "New",
-                  desc:
-                    p.tagline ||
-                    p.description,
-                  count: p.promptCount,
-                  cover: p.cover,
-                });
-              }
-            );
+            (d.packs || []).forEach(function (p) {
+              all.push({
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                tag: p.tag || "NEW",
+                cat: "New",
+                desc: p.tagline || p.description,
+                count: p.promptCount,
+                cover: p.cover,
+              });
+            });
 
             render();
           })
