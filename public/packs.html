@@ -101,7 +101,8 @@
   function addCard(p,isNew){
     var card=document.createElement('div'); card.className='product'; card.dataset.catFilter=p.cat||'New';
     var href=p.href||('/pack.html?id='+encodeURIComponent(p.id));
-    card.innerHTML='<a class="thumb '+(isNew?'custom-pack-thumb':'')+'" href="'+href+'" aria-label="'+esc(p.name)+'" '+(isNew?'style="background-image:url(\''+esc(p.cover||'')+'\');background-size:cover;background-position:center;display:block"':'data-preview-image="'+esc(p.cover||'')+'"')+'><span class="cover-click-hint" aria-hidden="true">View pack</span></a>'+
+    var coverStyle=p.cover ? 'style="background-image:url(\'' + esc(p.cover) + '\');background-size:cover;background-position:center;background-repeat:no-repeat;display:block;aspect-ratio:16/9;"' : 'style="display:block;aspect-ratio:16/9;"';
+    card.innerHTML='<a class="thumb '+(isNew?'custom-pack-thumb':'')+'" href="'+href+'" aria-label="'+esc(p.name)+'" '+coverStyle+'><span class="cover-click-hint" aria-hidden="true">View pack</span></a>'+
       '<div class="tag">'+esc(p.tag||'NEW')+'</div><h3>'+esc(p.name)+'</h3><p>'+esc(p.desc||p.tagline||p.description||'Production-ready AI video prompts.')+'</p>'+
       '<div class="pack-specs"><span>'+esc(p.count||p.promptCount||'PROMPTS')+'</span><span>PDF + ZIP</span><span>Instant access</span></div>'+
       '<div class="price">₹'+esc(p.price)+'</div><a class="btn primary full" href="'+href+'">Buy Now'+(p.price?' — ₹'+esc(p.price):'')+'</a>';
