@@ -3370,21 +3370,6 @@
                                 </div>
                             </div>
 
-                            <div id="imageToVideoSection" class="mediacontrols hide">
-                                <div class="media-controls-head">
-                                    <div>
-                                        <div class="mediasteplabel">Image → Video</div>
-                                        <div class="media-controls-hint">Video ke liye starting image upload karein. Optional hai, bina image ke bhi video banega.</div>
-                                    </div>
-                                    <span class="media-controls-badge">IMAGE → VIDEO</span>
-                                </div>
-                                <div class="media-source-row">
-                                    <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
-                                    <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
-                                </div>
-                                <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
-                            </div>
-
                             <button
                                 id="mediaGenerateBtn"
                                 class="btn primary full"
@@ -3518,6 +3503,46 @@
 
                 </div>
 
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             IMAGE → VIDEO (separate section)
+        ================================================== -->
+
+        <section
+            id="imageVideo"
+            class="section">
+
+            <div class="head">
+
+                <div class="section-intro">
+
+                    <div class="eyebrow">
+                        IMAGE → VIDEO
+                    </div>
+
+                    <h2>
+                        Starting Image for Video
+                    </h2>
+
+                    <p>
+                        Video ke liye starting image upload karein.
+                        Optional hai, bina image ke bhi video banega.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div id="imageToVideoSection" class="panel mediacontrols">
+                <div class="media-source-row">
+                    <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
+                    <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
+                </div>
+                <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
             </div>
 
         </section>

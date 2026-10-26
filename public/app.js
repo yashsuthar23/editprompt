@@ -3788,7 +3788,6 @@ function syncVideoControlsToPrompt() {
 function updateVideoControls() {
   const isVideo = mediaState.type === "video";
   $("videoControls")?.classList.toggle("hide", !isVideo);
-  $("imageToVideoSection")?.classList.toggle("hide", !isVideo);
   document.body.classList.toggle("video-generation-active", isVideo);
 
   const provider = $("mediaProviderStatus");
