@@ -25,7 +25,7 @@
         src="https://checkout.razorpay.com/v1/checkout.js"
         defer>
     </script>
-<link rel="stylesheet" href="/light-fixes.css?v=6">
+<link rel="stylesheet" href="/light-fixes.css?v=7">
     <link rel="stylesheet" href="/mobile-nav.css">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
 </head>
@@ -3364,18 +3364,25 @@
                                         </select>
                                     </label>
                                 </div>
-                                <div class="media-image-source">
-                                    <div class="media-source-title">Image → Video</div>
-                                    <div class="media-source-row">
-                                        <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
-                                        <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
-                                    </div>
-                                    <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
-                                </div>
                                 <div class="media-provider-row">
                                     <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
                                     <button id="mediaProviderCheckBtn" class="btn small" type="button">↻ Check</button>
                                 </div>
+                            </div>
+
+                            <div id="imageToVideoSection" class="mediacontrols hide">
+                                <div class="media-controls-head">
+                                    <div>
+                                        <div class="mediasteplabel">Image → Video</div>
+                                        <div class="media-controls-hint">Video ke liye starting image upload karein. Optional hai, bina image ke bhi video banega.</div>
+                                    </div>
+                                    <span class="media-controls-badge">IMAGE → VIDEO</span>
+                                </div>
+                                <div class="media-source-row">
+                                    <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
+                                    <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
+                                </div>
+                                <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
                             </div>
 
                             <button

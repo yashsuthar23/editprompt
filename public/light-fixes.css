@@ -350,3 +350,51 @@ html body[data-ep-theme="light"] .panel label {
 html body[data-ep-theme="light"] input[type="checkbox"] {
   accent-color: var(--accent);
 }
+/* ---------- Media studio: type cards, controls and image-to-video (light) ---------- */
+html body[data-ep-theme="light"] .mediatype {
+  background: var(--panel, #ffffff);
+  color: var(--text, #1a2233);
+  border-color: var(--border, #d8deea);
+  box-shadow: 0 1px 2px rgba(26,34,51,.05);
+}
+html body[data-ep-theme="light"] .mediatype:hover {
+  border-color: var(--border-light, #c0c9da);
+}
+html body[data-ep-theme="light"] .mediatype.active {
+  background: #fdecee;
+  border-color: var(--red, #e52329);
+  color: var(--text, #1a2233);
+}
+html body[data-ep-theme="light"] .mediatype span:not(.mediatypeicon) {
+  color: var(--text, #1a2233);
+}
+html body[data-ep-theme="light"] .mediatype small {
+  color: var(--muted, #596579);
+}
+html body[data-ep-theme="light"] .mediacontrols,
+html body[data-ep-theme="light"] #imageToVideoSection {
+  background: var(--panel, #ffffff);
+  border-color: var(--border, #d8deea);
+}
+html body[data-ep-theme="light"] .mediacontrols label,
+html body[data-ep-theme="light"] .media-controls-hint,
+html body[data-ep-theme="light"] .media-source-row input[type="file"] {
+  color: var(--muted, #596579);
+}
+html body[data-ep-theme="light"] .media-controls-head .mediasteplabel,
+html body[data-ep-theme="light"] .media-source-title {
+  color: var(--text, #1a2233);
+}
+html body[data-ep-theme="light"] .media-controls-badge {
+  color: var(--muted, #596579);
+  border-color: var(--border, #d8deea);
+}
+html body[data-ep-theme="light"] .mediacontrols select {
+  background: var(--input, #ffffff);
+  color: var(--text, #1a2233);
+  border-color: var(--border, #d8deea);
+}
+html body[data-ep-theme="light"] #mediaProviderStatus,
+html body[data-ep-theme="light"] #videoImageUploadStatus {
+  color: var(--muted, #596579);
+}
