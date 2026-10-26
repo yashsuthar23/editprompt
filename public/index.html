@@ -3320,56 +3320,6 @@
 
                             </div>
 
-                            <div id="videoControls" class="mediacontrols hide">
-                                <div class="media-controls-head">
-                                    <div>
-                                        <div class="mediasteplabel">Video Controls</div>
-                                        <div class="media-controls-hint">Camera movement, motion intensity and frame rate for the final video.</div>
-                                    </div>
-                                    <span class="media-controls-badge">VIDEO</span>
-                                </div>
-                                <div class="formgrid">
-                                    <label>Camera Motion
-                                        <select id="videoCameraMotion">
-                                            <option>Natural</option>
-                                            <option>Static</option>
-                                            <option>Slow Push In</option>
-                                            <option>Pull Out</option>
-                                            <option>Pan Left</option>
-                                            <option>Pan Right</option>
-                                            <option>Orbit</option>
-                                            <option>Handheld</option>
-                                        </select>
-                                    </label>
-                                    <label>Motion Strength
-                                        <select id="videoMotionStrength">
-                                            <option>Low</option>
-                                            <option selected>Medium</option>
-                                            <option>High</option>
-                                        </select>
-                                    </label>
-                                    <label>Duration
-                                        <select id="videoDuration">
-                                            <option value="5 seconds" selected>5 seconds</option>
-                                            <option value="6 seconds">6 seconds</option>
-                                            <option value="8 seconds">8 seconds</option>
-                                            <option value="10 seconds">10 seconds</option>
-                                        </select>
-                                    </label>
-                                    <label>FPS
-                                        <select id="videoFps">
-                                            <option value="24" selected>24 fps</option>
-                                            <option value="30">30 fps</option>
-                                            <option value="60">60 fps</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div class="media-provider-row">
-                                    <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
-                                    <button id="mediaProviderCheckBtn" class="btn small" type="button">↻ Check</button>
-                                </div>
-                            </div>
-
                             <button
                                 id="mediaGenerateBtn"
                                 class="btn primary full"
@@ -3525,24 +3475,122 @@
                     </div>
 
                     <h2>
-                        Starting Image for Video
+                        Image to Video Generator
                     </h2>
 
                     <p>
-                        Video ke liye starting image upload karein.
-                        Optional hai, bina image ke bhi video banega.
+                        Sirf image upload karo ane Generate Video dabavo,
+                        prompt lakhva ni jarur nathi. Image par thi
+                        direct video banse. Prompt lakho to te pan
+                        use thase.
                     </p>
 
                 </div>
 
             </div>
 
-            <div id="imageToVideoSection" class="panel mediacontrols">
-                <div class="media-source-row">
-                    <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
-                    <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
+            <div class="panel">
+
+                <div id="imageToVideoSection" class="mediacontrols">
+                    <div class="media-source-row">
+                        <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
+                        <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
+                    </div>
+                    <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
                 </div>
-                <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
+
+                            <div id="videoControls" class="mediacontrols">
+                                <div class="media-controls-head">
+                                    <div>
+                                        <div class="mediasteplabel">Video Controls</div>
+                                        <div class="media-controls-hint">Camera movement, motion intensity and frame rate for the final video.</div>
+                                    </div>
+                                    <span class="media-controls-badge">VIDEO</span>
+                                </div>
+                                <div class="formgrid">
+                                    <label>Camera Motion
+                                        <select id="videoCameraMotion">
+                                            <option>Natural</option>
+                                            <option>Static</option>
+                                            <option>Slow Push In</option>
+                                            <option>Pull Out</option>
+                                            <option>Pan Left</option>
+                                            <option>Pan Right</option>
+                                            <option>Orbit</option>
+                                            <option>Handheld</option>
+                                        </select>
+                                    </label>
+                                    <label>Motion Strength
+                                        <select id="videoMotionStrength">
+                                            <option>Low</option>
+                                            <option selected>Medium</option>
+                                            <option>High</option>
+                                        </select>
+                                    </label>
+                                    <label>Duration
+                                        <select id="videoDuration">
+                                            <option value="5 seconds" selected>5 seconds</option>
+                                            <option value="6 seconds">6 seconds</option>
+                                            <option value="8 seconds">8 seconds</option>
+                                            <option value="10 seconds">10 seconds</option>
+                                        </select>
+                                    </label>
+                                    <label>FPS
+                                        <select id="videoFps">
+                                            <option value="24" selected>24 fps</option>
+                                            <option value="30">30 fps</option>
+                                            <option value="60">60 fps</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="media-provider-row">
+                                    <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
+                                    <button id="mediaProviderCheckBtn" class="btn small" type="button">↻ Check</button>
+                                </div>
+                            </div>
+
+                <button
+                    id="ivGenerateBtn"
+                    class="btn primary full"
+                    style="margin-top:14px"
+                    type="button">
+
+                    ⚡ Generate Video
+
+                </button>
+
+                <!-- PROGRESS -->
+
+                <div id="ivProgress" class="mediastep hide" style="margin-top:14px">
+                    <div class="medialoader">
+                        <div class="medialoaderbar">
+                            <span id="ivProgressFill"></span>
+                        </div>
+                        <div class="medialoadertext" id="ivProgressText">Starting…</div>
+                    </div>
+                    <button id="ivCancelBtn" class="btn ghost small" type="button">Cancel</button>
+                </div>
+
+                <!-- RETRY (shown only after a failed job) -->
+
+                <div id="ivRetryRow" class="hide" style="margin-top:12px">
+                    <button id="ivRetryBtn" class="btn ghost small" type="button">↻ Retry Video</button>
+                </div>
+
+                <!-- RESULT -->
+
+                <div id="ivResult" class="mediastep hide" style="margin-top:16px">
+                    <div class="mediasteplabel">Video Preview</div>
+                    <div class="mediapreview" id="ivPreview"></div>
+                    <div id="ivMeta" class="media-result-meta"></div>
+                    <div class="mediaactions">
+                        <a id="ivDownloadBtn" class="btn primary small" href="#" download>⬇ Download Video</a>
+                        <button id="ivRegenerateBtn" class="btn ghost small" type="button">↻ Regenerate</button>
+                        <button id="ivCopyPromptBtn" class="btn ghost small" type="button">📋 Copy Prompt</button>
+                        <button id="ivShareBtn" class="btn ghost small" type="button">↗ Share</button>
+                    </div>
+                </div>
+
             </div>
 
         </section>

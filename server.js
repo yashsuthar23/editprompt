@@ -7477,6 +7477,14 @@ const DEFAULT_MEDIA_PROMPTS = [
   "A close-up of steaming masala chai being poured into a glass cup on a rainy window sill, cosy warm lighting, shallow depth of field",
 ];
 
+// Used when a user uploads only a starting image and writes no prompt:
+// animate THAT image instead of inventing a random scene.
+const IMAGE_ONLY_VIDEO_PROMPT =
+  "Animate the provided image into a realistic, high quality cinematic video. " +
+  "Keep the subject, face, composition, colours and visual style exactly as in the image. " +
+  "Add natural, smooth motion: subtle subject movement and gentle environmental motion such as wind, light and floating particles. " +
+  "Stable, professional camera. No new objects, no text, no distortion or morphing.";
+
 function mediaPromptOrDefault(raw) {
   const text = String(raw || "").trim();
 
@@ -7655,7 +7663,11 @@ app.post(
     }
 
     // An empty or very short prompt never blocks generation.
-    const prompt = mediaPromptOrDefault(req.body?.prompt);
+    const imageOnly =
+      Boolean(req.body?.imageFile) && !String(req.body?.prompt || "").trim();
+    const prompt = imageOnly
+      ? IMAGE_ONLY_VIDEO_PROMPT
+      : mediaPromptOrDefault(req.body?.prompt);
 
     if (prompt.length > 8000) {
       return res.status(400).json({ error: "Prompt is too long." });

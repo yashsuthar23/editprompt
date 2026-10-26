@@ -3536,8 +3536,9 @@ async function uploadVideoSourceImage(file) {
   mediaState.uploadedImageFile = data.file;
   mediaState.uploadedImageUrl = data.url;
   mediaState.sourceImageFile = data.file;
-  if (status) status.textContent = `Starting image: ${file.name}`;
+  if (status) status.textContent = `Starting image: ${file.name} · Prompt likhva ni jarur nathi, seedho video banavi shako.`;
   if (clear) clear.classList.remove("hide");
+  if (typeof ivUpdateLabel === "function") ivUpdateLabel();
 }
 
 const videoImageUpload = $("videoImageUpload");
@@ -3561,6 +3562,7 @@ $("videoImageClearBtn")?.addEventListener("click", () => {
   const status = $("videoImageUploadStatus");
   if (status) status.textContent = "Optional: upload a starting image, then generate the video.";
   $("videoImageClearBtn")?.classList.add("hide");
+  if (typeof ivUpdateLabel === "function") ivUpdateLabel();
 });
 
 /* ---------- AUTO PROMPT ----------
@@ -3787,7 +3789,6 @@ function syncVideoControlsToPrompt() {
 
 function updateVideoControls() {
   const isVideo = mediaState.type === "video";
-  $("videoControls")?.classList.toggle("hide", !isVideo);
   document.body.classList.toggle("video-generation-active", isVideo);
 
   const provider = $("mediaProviderStatus");
@@ -3949,6 +3950,335 @@ if ($("mediaCancelBtn")) {
     toast("Cancelled");
   };
 }
+
+
+/* =========================================================
+   IMAGE -> VIDEO SECTION
+   Own upload, controls, progress, preview and download.
+========================================================= */
+
+const ivState = {
+  jobId: null,
+  cancelled: false,
+  polling: false,
+  timer: null,
+  progress: 0,
+  file: null,
+  lastMeta: null,
+  running: false,
+};
+
+const IV_IMAGE_ONLY_PROMPT =
+  "Animate the provided image into a realistic, high quality cinematic video. " +
+  "Keep the subject, face, composition, colours and visual style exactly as in the image. " +
+  "Add natural, smooth motion: subtle subject movement and gentle environmental motion such as wind, light and floating particles. " +
+  "Stable, professional camera. No new objects, no text, no distortion or morphing.";
+
+function ivUpdateLabel() {
+  const button = $("ivGenerateBtn");
+  if (!button || ivState.running) return;
+  button.textContent = mediaState.uploadedImageFile
+    ? "⚡ Generate Video from Image"
+    : "⚡ Generate Video";
+}
+
+function ivShow(step) {
+  $("ivProgress")?.classList.toggle("hide", step !== "loading");
+  $("ivResult")?.classList.toggle("hide", step !== "result");
+  if (step !== "idle") $("ivRetryRow")?.classList.add("hide");
+  const button = $("ivGenerateBtn");
+  if (button) button.disabled = step === "loading";
+  if (step !== "loading") ivUpdateLabel();
+}
+
+function ivSetProgress(percent, text) {
+  const fill = $("ivProgressFill");
+  const label = $("ivProgressText");
+  if (fill) fill.style.width = `${Math.min(99, Math.max(2, percent))}%`;
+  if (label && text) label.textContent = text;
+}
+
+function ivStartProgress(estimatedSeconds, label) {
+  ivState.progress = 0;
+  clearInterval(ivState.timer);
+  const step = 95 / Math.max(6, estimatedSeconds);
+  ivSetProgress(3, label);
+  ivState.timer = setInterval(() => {
+    ivState.progress = Math.min(95, ivState.progress + step);
+    ivSetProgress(ivState.progress);
+  }, 1000);
+}
+
+function ivStopProgress() {
+  clearInterval(ivState.timer);
+  ivState.timer = null;
+}
+
+function ivFriendlyError(message) {
+  const raw = String(message || "Video generation failed");
+  if (raw.includes("Hugging Face free video credits are exhausted")) {
+    return "⚠️ Hugging Face free video credits are exhausted. No free remote video credits are currently available.";
+  }
+  if (raw.includes("Pollinations balance is 0")) {
+    return "⚠️ Pollinations has 0 balance. Configure a funded video provider.";
+  }
+  if (raw.includes("No video provider is currently available")) {
+    return "⚠️ No video provider is currently available. Configure a supported video provider.";
+  }
+  return raw;
+}
+
+function ivFail(message) {
+  ivStopProgress();
+  ivState.polling = false;
+  ivState.running = false;
+  toast(ivFriendlyError(message));
+  ivShow("idle");
+  if (ivState.jobId) $("ivRetryRow")?.classList.remove("hide");
+}
+
+function ivShowResult(data) {
+  ivStopProgress();
+  ivState.running = false;
+  ivState.file = data.file;
+  ivState.lastMeta = data;
+
+  const holder = $("ivPreview");
+  if (holder) {
+    holder.innerHTML = "";
+    const name = String(data.file || data.url || "").split("?")[0].toLowerCase();
+    if (name.endsWith(".gif")) {
+      const image = document.createElement("img");
+      image.src = data.url;
+      image.alt = "AI generated animated video";
+      image.decoding = "async";
+      holder.appendChild(image);
+    } else {
+      const video = document.createElement("video");
+      video.src = data.url;
+      video.controls = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.loop = true;
+      video.preload = "metadata";
+      holder.appendChild(video);
+    }
+  }
+
+  const meta = $("ivMeta");
+  if (meta) {
+    meta.textContent = `Model: ${data.model || "unknown"} · ${data.generatedDurationSeconds ?? data.durationSeconds ?? "—"}s · ${data.generatedFps ?? data.fps ?? "—"} fps · ${data.aspectRatio || "—"}`;
+  }
+
+  const download = $("ivDownloadBtn");
+  if (download) download.href = data.downloadUrl || data.url || "#";
+
+  ivShow("result");
+  $("ivResult")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function ivPoll(jobId) {
+  ivState.polling = true;
+  const startedAt = Date.now();
+
+  while (ivState.polling && !ivState.cancelled) {
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+    if (ivState.cancelled) return;
+
+    try {
+      const data = await apiRequest(`/api/media/video/${jobId}`);
+
+      if (data.status === "done") {
+        ivState.polling = false;
+        ivSetProgress(100, "Done");
+        ivShowResult(data);
+
+        const requested = Number(data.requestedDurationSeconds || 0);
+        const generated = Number(data.generatedDurationSeconds || 0);
+        if (data.provider === "local" && requested > generated + 0.01) {
+          toast(`Local preview generated ${generated.toFixed(2)}s of ${requested}s 🎬`);
+        } else {
+          toast("Video generated 🎬");
+        }
+        return;
+      }
+
+      const elapsed = Math.round((Date.now() - startedAt) / 1000);
+      ivSetProgress(ivState.progress, `Rendering video… ${elapsed}s`);
+    } catch (error) {
+      console.error("Video poll error:", error);
+      if (!ivState.cancelled) ivFail(error.message);
+      return;
+    }
+  }
+}
+
+async function ivGenerate() {
+  if (ivState.running) return;
+
+  if (!currentUser) {
+    toast("Log in to generate video");
+    return openLoginModal();
+  }
+
+  if (config.mediaEnabled === false) {
+    return toast("Media generation is not configured on this server");
+  }
+
+  const button = $("ivGenerateBtn");
+  const imageFile = mediaState.uploadedImageFile || null;
+
+  // Image only (no prompt, no subject typed): animate the uploaded image directly.
+  const imageOnly =
+    Boolean(imageFile) &&
+    isPlaceholderPrompt(mediaCurrentPrompt()) &&
+    !($("subject")?.value || "").trim();
+
+  ivState.running = true;
+  if (button) button.disabled = true;
+
+  let prompt;
+
+  if (imageOnly) {
+    prompt = IV_IMAGE_ONLY_PROMPT;
+  } else {
+    if (button && isPlaceholderPrompt(mediaCurrentPrompt())) button.textContent = "Creating prompt…";
+
+    try {
+      await ensurePromptForMedia();
+    } finally {
+      if (button) {
+        button.textContent = mediaState.uploadedImageFile
+          ? "⚡ Generate Video from Image"
+          : "⚡ Generate Video";
+      }
+    }
+
+    if (isPlaceholderPrompt(mediaCurrentPrompt())) {
+      ivState.running = false;
+      if (button) button.disabled = false;
+      return toast("Could not create a prompt. Please try again.");
+    }
+
+    syncVideoControlsToPrompt();
+    prompt = mediaCurrentPrompt();
+  }
+
+  ivState.cancelled = false;
+  ivState.jobId = null;
+  ivShow("loading");
+  ivStartProgress(
+    imageFile ? 140 : 110,
+    imageFile ? "Animating your image…" : "Starting video generation…",
+  );
+
+  try {
+    const data = await apiRequest("/api/media/video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        ratio: $("ratio")?.value || "",
+        duration: $("videoDuration")?.value || $("duration")?.value || "5 seconds",
+        fps: $("videoFps")?.value || "24",
+        cameraMotion: $("videoCameraMotion")?.value || "Natural",
+        motionStrength: $("videoMotionStrength")?.value || "Medium",
+        imageFile,
+      }),
+    });
+
+    if (ivState.cancelled) return;
+
+    ivState.jobId = data.jobId;
+    ivSetProgress(6, "Rendering video… this may take a few minutes");
+    await ivPoll(data.jobId);
+  } catch (error) {
+    console.error("Video generation error:", error);
+    if (!ivState.cancelled) ivFail(error.message);
+  }
+}
+
+$("ivGenerateBtn")?.addEventListener("click", ivGenerate);
+$("ivRegenerateBtn")?.addEventListener("click", ivGenerate);
+
+$("ivCancelBtn")?.addEventListener("click", async () => {
+  ivState.cancelled = true;
+  ivState.polling = false;
+  ivState.running = false;
+  const jobId = ivState.jobId;
+  ivStopProgress();
+  ivShow("idle");
+  if (jobId) {
+    try { await apiRequest(`/api/media/video/${jobId}/cancel`, { method: "POST" }); } catch {}
+  }
+  toast("Cancelled");
+});
+
+$("ivRetryBtn")?.addEventListener("click", async () => {
+  const retry = $("ivRetryBtn");
+  if (!ivState.jobId) return;
+  retry.disabled = true;
+  try {
+    const data = await apiRequest(`/api/media/video/${ivState.jobId}/retry`, { method: "POST" });
+    ivState.jobId = data.jobId;
+    ivState.cancelled = false;
+    ivState.polling = false;
+    ivState.running = true;
+    ivShow("loading");
+    ivStartProgress(110, "Retrying video…");
+    await ivPoll(data.jobId);
+  } catch (error) {
+    toast(error.message || "Retry failed");
+    ivState.running = false;
+    ivShow("idle");
+    $("ivRetryRow")?.classList.remove("hide");
+  } finally {
+    retry.disabled = false;
+  }
+});
+
+$("ivCopyPromptBtn")?.addEventListener("click", async () => {
+  const prompt = mediaCurrentPrompt();
+  if (!prompt || isPlaceholderPrompt(prompt)) return toast("No prompt to copy");
+  try { await navigator.clipboard.writeText(prompt); toast("Prompt copied"); }
+  catch { toast("Could not copy prompt"); }
+});
+
+$("ivShareBtn")?.addEventListener("click", async () => {
+  let file = String(ivState.file || "").trim();
+  if (!file && ivState.lastMeta?.url) {
+    try {
+      const pathname = new URL(ivState.lastMeta.url, location.origin).pathname;
+      const match = pathname.match(/\/api\/media\/file\/([^/]+)$/);
+      if (match) file = decodeURIComponent(match[1]);
+    } catch {}
+  }
+  if (!file) return toast("Media file required. Generate the video again first.");
+
+  const button = $("ivShareBtn");
+  if (button) button.disabled = true;
+
+  try {
+    const data = await apiRequest("/api/media/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file, kind: "video" }),
+    });
+    const absolute = new URL(data.url, location.origin).href;
+
+    if (navigator.share) {
+      await navigator.share({ title: "EditPrompt generated media", url: absolute });
+      toast("Share link ready");
+    } else {
+      await navigator.clipboard.writeText(absolute);
+      toast("Public share link copied");
+    }
+  } catch (error) {
+    if (error?.name !== "AbortError") toast(error.message || "Could not create share link");
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
 
 
 /* =========================
