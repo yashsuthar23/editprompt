@@ -1,125 +1,625 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0c0c">
-<meta name="description" content="Browse all EditPrompt.in premium AI video prompt packs.">
-<meta name="robots" content="index,follow">
-<link rel="canonical" href="https://editprompt.in/packs.html">
-<title>All Prompt Packs — EditPrompt.in</title>
-<link rel="stylesheet" href="/styles.css?v=4">
-<link rel="stylesheet" href="/light-fixes.css?v=7">
-<link rel="stylesheet" href="/mobile-nav.css">
-<link rel="stylesheet" href="/animated-borders.css?v=1">
-<style>
-.packs-page{min-height:100vh}
-.packs-hero{padding:72px 24px 28px;max-width:1180px;margin:0 auto}
-.packs-hero .lead{max-width:760px}
-.packs-toolbar{max-width:1180px;margin:0 auto;padding:0 24px 20px}
-.packs-grid{max-width:1180px;margin:0 auto;padding:0 24px 70px}
-.packs-grid .product.is-hidden{display:none!important}
-.packs-more{display:flex;justify-content:center;margin:-35px auto 60px;padding:0 24px}
-.packs-count{font-size:13px;opacity:.72;margin-left:4px}
-@media(max-width:600px){.packs-hero{padding:48px 16px 24px}.packs-toolbar,.packs-grid{padding-left:16px;padding-right:16px}}
-</style>
-</head>
-<body>
-<header class="nav">
-  <a class="brand" href="/" aria-label="EditPrompt home"><div class="logo" aria-hidden="true">EP</div><div><b>EditPrompt</b><small>AI tools for video creators</small></div></a>
-  <nav aria-label="Main navigation">
-    <a href="/">AI Generator</a>
-    <a href="/#tools">Tools</a>
-    <a href="/#categories">Categories</a>
-    <a href="/packs.html" aria-current="page">Store</a>
-    <a href="/software.html">Software</a>
-    <a href="/library.html">My Library</a>
-    <a href="/studio-tools.html">Creator Studio</a>
-  </nav>
-  <div class="right account"><button id="loginBtn" class="btn ghost" type="button">Login</button><button id="logoutBtn" class="btn ghost hide" type="button">Logout</button></div>
-</header>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0c0c0c" />
+    <meta
+      name="description"
+      content="Browse all EditPrompt.in premium AI video prompt packs."
+    />
+    <meta name="robots" content="index,follow" />
+    <link
+      rel="canonical"
+      href="https://editprompt.in/packs.html"
+    />
+    <title>All Prompt Packs — EditPrompt.in</title>
 
-<main class="packs-page">
-  <section class="packs-hero">
-    <div class="eyebrow">PREMIUM STORE</div>
-    <h1>All Prompt Packs</h1>
-    <p class="lead">Browse the complete EditPrompt catalogue — cinematic video prompts, ads, weddings, social reels, creator niches and more.</p>
-    <div class="store-meta"><span>⚡ Instant digital access</span><span>🔒 Secure checkout</span><span id="packsCount">📚 Loading packs…</span></div>
-  </section>
+    <link rel="stylesheet" href="/styles.css?v=4" />
+    <link rel="stylesheet" href="/light-fixes.css?v=7" />
+    <link rel="stylesheet" href="/mobile-nav.css" />
+    <link rel="stylesheet" href="/animated-borders.css?v=1" />
 
-  <section class="packs-toolbar">
-    <div class="store-search">
-      <input id="packsSearch" type="search" placeholder="🔍 Search all prompt packs" aria-label="Search all prompt packs" autocomplete="off">
-      <span id="packsResultInfo" aria-live="polite"></span>
+    <style>
+      .packs-page {
+        min-height: 100vh;
+      }
+
+      .packs-hero {
+        padding: 72px 24px 28px;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+
+      .packs-hero .lead {
+        max-width: 760px;
+      }
+
+      .packs-toolbar {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px 20px;
+      }
+
+      .packs-grid {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 24px 70px;
+      }
+
+      .packs-grid .product.is-hidden {
+        display: none !important;
+      }
+
+      .packs-more {
+        display: flex;
+        justify-content: center;
+        margin: -35px auto 60px;
+        padding: 0 24px;
+      }
+
+      .packs-count {
+        font-size: 13px;
+        opacity: 0.72;
+        margin-left: 4px;
+      }
+
+      @media (max-width: 600px) {
+        .packs-hero {
+          padding: 48px 16px 24px;
+        }
+
+        .packs-toolbar,
+        .packs-grid {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="nav">
+      <a class="brand" href="/" aria-label="EditPrompt home">
+        <div class="logo" aria-hidden="true">EP</div>
+        <div>
+          <b>EditPrompt</b>
+          <small>AI tools for video creators</small>
+        </div>
+      </a>
+
+      <nav aria-label="Main navigation">
+        <a href="/">AI Generator</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#categories">Categories</a>
+        <a href="/packs.html" aria-current="page">Store</a>
+        <a href="/software.html">Software</a>
+        <a href="/library.html">My Library</a>
+        <a href="/studio-tools.html">Creator Studio</a>
+      </nav>
+
+      <div class="right account">
+        <button id="loginBtn" class="btn ghost" type="button">
+          Login
+        </button>
+
+        <button id="logoutBtn" class="btn ghost hide" type="button">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="packs-page">
+      <section class="packs-hero">
+        <div class="eyebrow">PREMIUM STORE</div>
+
+        <h1>All Prompt Packs</h1>
+
+        <p class="lead">
+          Browse the complete EditPrompt catalogue — cinematic video prompts,
+          ads, weddings, social reels, creator niches and more.
+        </p>
+
+        <div class="store-meta">
+          <span>⚡ Instant digital access</span>
+          <span>🔒 Secure checkout</span>
+          <span id="packsCount">📚 Loading packs…</span>
+        </div>
+      </section>
+
+      <section class="packs-toolbar">
+        <div class="store-search">
+          <input
+            id="packsSearch"
+            type="search"
+            placeholder="🔍 Search all prompt packs"
+            aria-label="Search all prompt packs"
+            autocomplete="off"
+          />
+
+          <span id="packsResultInfo" aria-live="polite"></span>
+        </div>
+
+        <div
+          class="store-tabs"
+          id="packsTabs"
+          role="tablist"
+          aria-label="Filter packs"
+        >
+          <button type="button" class="on" data-filter="all">
+            All
+          </button>
+
+          <button type="button" data-filter="Cinematic">
+            🎬 Cinematic
+          </button>
+
+          <button type="button" data-filter="Wedding">
+            💍 Wedding
+          </button>
+
+          <button type="button" data-filter="Commercial">
+            🛍️ Product Ads
+          </button>
+
+          <button type="button" data-filter="Fashion">
+            👗 Fashion
+          </button>
+
+          <button type="button" data-filter="Travel">
+            ✈️ Travel
+          </button>
+
+          <button type="button" data-filter="Automotive">
+            🚗 Automotive
+          </button>
+
+          <button type="button" data-filter="RealEstate">
+            🏙️ Real Estate
+          </button>
+
+          <button type="button" data-filter="Social">
+            📱 Social Reels
+          </button>
+
+          <button type="button" data-filter="Food">
+            🍔 Food & Beverage
+          </button>
+
+          <button type="button" data-filter="New">
+            ✨ New Packs
+          </button>
+        </div>
+      </section>
+
+      <section aria-label="All prompt packs">
+        <div
+          class="three store-grid packs-grid"
+          id="packsGrid"
+        ></div>
+
+        <p id="packsEmpty" class="store-empty" hidden>
+          No packs found. Try another search.
+        </p>
+      </section>
+
+      <div class="packs-more">
+        <a class="btn ghost" href="/">
+          ← Back to Home
+        </a>
+      </div>
+    </main>
+
+    <div id="loginModal" class="modal">
+      <div class="modalbox">
+        <button id="closeLogin" class="x">×</button>
+
+        <div id="loginStep1">
+          <h2>Login / Create Account</h2>
+
+          <p>
+            We'll email you a 6-digit code — no password needed.
+          </p>
+
+          <input id="name" placeholder="Your name" />
+
+          <input
+            id="email"
+            placeholder="Email address"
+          />
+
+          <button id="sendOtpBtn" class="buy full">
+            Send Code
+          </button>
+        </div>
+
+        <div id="loginStep2" class="hide">
+          <h2>Enter Code</h2>
+
+          <p id="otpHint">
+            Check your email for the 6-digit code.
+          </p>
+
+          <input
+            id="otp"
+            placeholder="6-digit code"
+            maxlength="6"
+            inputmode="numeric"
+          />
+
+          <button id="verifyOtpBtn" class="buy full">
+            Verify & Login
+          </button>
+
+          <button
+            id="resendOtpBtn"
+            class="secondary full small"
+          >
+            Resend code
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="store-tabs" id="packsTabs" role="tablist" aria-label="Filter packs">
-      <button type="button" class="on" data-filter="all">All</button>
-      <button type="button" data-filter="Cinematic">🎬 Cinematic</button>
-      <button type="button" data-filter="Wedding">💍 Wedding</button>
-      <button type="button" data-filter="Commercial">🛍️ Product Ads</button>
-      <button type="button" data-filter="Fashion">👗 Fashion</button>
-      <button type="button" data-filter="Travel">✈️ Travel</button>
-      <button type="button" data-filter="Automotive">🚗 Automotive</button>
-      <button type="button" data-filter="RealEstate">🏙️ Real Estate</button>
-      <button type="button" data-filter="Social">📱 Social Reels</button>
-      <button type="button" data-filter="Food">🍔 Food & Beverage</button>
-      <button type="button" data-filter="New">✨ New Packs</button>
-    </div>
-  </section>
 
-  <section aria-label="All prompt packs">
-    <div class="three store-grid packs-grid" id="packsGrid"></div>
-    <p id="packsEmpty" class="store-empty" hidden>No packs found. Try another search.</p>
-  </section>
+    <footer>
+      <div>
+        <b>EditPrompt.in</b>
+        <span>AI tools & creative assets for video editors.</span>
+      </div>
 
-  <div class="packs-more"><a class="btn ghost" href="/">← Back to Home</a></div>
-</main>
+      <div>© 2026 EditPrompt</div>
+    </footer>
 
-<div id="loginModal" class="modal"><div class="modalbox"><button id="closeLogin" class="x">×</button><div id="loginStep1"><h2>Login / Create Account</h2><p>We'll email you a 6-digit code — no password needed.</p><input id="name" placeholder="Your name"><input id="email" placeholder="Email address"><button id="sendOtpBtn" class="buy full">Send Code</button></div><div id="loginStep2" class="hide"><h2>Enter Code</h2><p id="otpHint">Check your email for the 6-digit code.</p><input id="otp" placeholder="6-digit code" maxlength="6" inputmode="numeric"><button id="verifyOtpBtn" class="buy full">Verify & Login</button><button id="resendOtpBtn" class="secondary full small">Resend code</button></div></div></div>
-<footer><div><b>EditPrompt.in</b><span>AI tools & creative assets for video editors.</span></div><div>© 2026 EditPrompt</div></footer><div id="toast"></div>
+    <div id="toast"></div>
 
-<script src="/app.js" defer></script>
-<script src="/theme.js"></script>
-<script src="/site-status.js" defer></script>
-<script src="/animated-borders.js?v=1" defer></script>
-<script>
-(function(){
-  var builtins = [
-    {id:'cinematic',name:'Cinematic AI Prompt Pack',tag:'BEST SELLER',cat:'Cinematic',desc:'100+ prompts for ads, reels and cinematic scenes.',count:'120+ PROMPTS',price:399,cover:'/store-previews/covers/cinematic.jpg',href:'/cinematic-pack.html'},
-    {id:'wedding',name:'Wedding Video Prompt Pack',tag:'WEDDING',cat:'Wedding',desc:'Pre-wedding, haldi, sangeet, baby shower and family sequences.',count:'100+ PROMPTS',price:299,cover:'/store-previews/covers/wedding.jpg'},
-    {id:'ads',name:'Product Ad Prompt Pack',tag:'COMMERCIAL',cat:'Commercial',desc:'Finance, tech, luxury product and social ad prompts.',count:'110+ PROMPTS',price:499,cover:'/store-previews/covers/ads.jpg'},
-    {id:'fashion',name:'Fashion & Editorial Prompt Pack',tag:'EDITORIAL',cat:'Fashion',desc:'Runway, luxury editorial, street style and beauty campaign prompts.',count:'90+ PROMPTS',price:349,cover:'/store-previews/covers/fashion.jpg'},
-    {id:'travel',name:'Travel & Destination Prompt Pack',tag:'TRAVEL',cat:'Travel',desc:'Luxury travel, cinematic landscapes, city reveals and adventure sequences.',count:'85+ PROMPTS',price:299,cover:'/store-previews/covers/travel.jpg'},
-    {id:'automotive',name:'Automotive Cinematic Prompt Pack',tag:'AUTOMOTIVE',cat:'Automotive',desc:'Car reveals, tracking shots, showroom films and performance visuals.',count:'95+ PROMPTS',price:449,cover:'/store-previews/covers/automotive.jpg'},
-    {id:'realestate',name:'Real Estate & Architecture Prompt Pack',tag:'PROPERTY',cat:'RealEstate',desc:'Property walkthroughs, luxury interiors, exterior reveals and lifestyle shots.',count:'80+ PROMPTS',price:349,cover:'/store-previews/covers/realestate.jpg'},
-    {id:'social',name:'Social Media Reels Prompt Pack',tag:'CREATOR',cat:'Social',desc:'Hooks, vertical transitions, creator shots and scroll-stopping short-form scenes.',count:'100+ PROMPTS',price:249,cover:'/store-previews/covers/social.jpg'},
-    {id:'food',name:'Food & Beverage Commercial Prompt Pack',tag:'FOOD ADS',cat:'Food',desc:'Macro food shots, restaurant campaigns, beverage pours and menu visuals.',count:'85+ PROMPTS',price:299,cover:'/store-previews/covers/food.jpg'}
-  ];
-  var grid=document.getElementById('packsGrid'), search=document.getElementById('packsSearch'), info=document.getElementById('packsResultInfo'), count=document.getElementById('packsCount'), empty=document.getElementById('packsEmpty'), tabs=document.getElementById('packsTabs');
-  var all=builtins.slice();
-  function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function addCard(p,isNew){
-    var card=document.createElement('div'); card.className='product'; card.dataset.catFilter=p.cat||'New';
-    var href=p.href||('/pack.html?id='+encodeURIComponent(p.id));
-    var coverStyle=p.cover ? 'style="background-image:url(\'' + esc(p.cover) + '\');background-size:cover;background-position:center;background-repeat:no-repeat;display:block;aspect-ratio:16/9;"' : 'style="display:block;aspect-ratio:16/9;"';
-    card.innerHTML='<a class="thumb '+(isNew?'custom-pack-thumb':'')+'" href="'+href+'" aria-label="'+esc(p.name)+'" '+coverStyle+'><span class="cover-click-hint" aria-hidden="true">View pack</span></a>'+
-      '<div class="tag">'+esc(p.tag||'NEW')+'</div><h3>'+esc(p.name)+'</h3><p>'+esc(p.desc||p.tagline||p.description||'Production-ready AI video prompts.')+'</p>'+
-      '<div class="pack-specs"><span>'+esc(p.count||p.promptCount||'PROMPTS')+'</span><span>PDF + ZIP</span><span>Instant access</span></div>'+
-      '<div class="price">₹'+esc(p.price)+'</div><a class="btn primary full" href="'+href+'">Buy Now'+(p.price?' — ₹'+esc(p.price):'')+'</a>';
-    grid.appendChild(card);
-  }
-  function render(){
-    grid.innerHTML=''; all.forEach(function(p,i){addCard(p,i>=builtins.length);}); apply();
-  }
-  function apply(){
-    var b=tabs.querySelector('button.on'), f=b?b.dataset.filter:'all', q=(search.value||'').toLowerCase().trim(), terms=q?q.split(/\s+/):[], cards=grid.querySelectorAll('.product'), shown=0;
-    Array.prototype.forEach.call(cards,function(c){var hay=c.textContent.toLowerCase()+' '+(c.dataset.catFilter||'').toLowerCase();var ok=(f==='all'||c.dataset.catFilter===f)&&terms.every(function(t){return hay.indexOf(t)!==-1;});c.classList.toggle('is-hidden',!ok);if(ok)shown++;});
-    count.textContent='📚 '+all.length+' premium packs'; info.textContent=(q||f!=='all')?'Showing '+shown+' of '+all.length+' packs':''; empty.hidden=shown!==0;
-  }
-  tabs.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;Array.prototype.forEach.call(tabs.querySelectorAll('button'),function(x){x.classList.toggle('on',x===b)});apply();});
-  search.addEventListener('input',apply);
-  fetch('/api/packs').then(function(r){return r.ok?r.json():{packs:[]};}).then(function(d){(d.packs||[]).forEach(function(p){all.push({id:p.id,name:p.name,price:p.price,tag:p.tag||'NEW',cat:'New',desc:p.tagline||p.description,count:p.promptCount,cover:p.cover});});render();}).catch(function(){render();});
-})();
-</script>
-</body>
+    <script src="/app.js" defer></script>
+    <script src="/theme.js"></script>
+    <script src="/site-status.js" defer></script>
+    <script src="/animated-borders.js?v=1" defer></script>
+
+    <script>
+      (function () {
+        var builtins = [
+          {
+            id: "cinematic",
+            name: "Cinematic AI Prompt Pack",
+            tag: "BEST SELLER",
+            cat: "Cinematic",
+            desc: "100+ prompts for ads, reels and cinematic scenes.",
+            count: "120+ PROMPTS",
+            price: 399,
+            cover: "/store-previews/covers/cinematic.jpg",
+            href: "/cinematic-pack.html",
+          },
+
+          {
+            id: "wedding",
+            name: "Wedding Video Prompt Pack",
+            tag: "WEDDING",
+            cat: "Wedding",
+            desc: "Pre-wedding, haldi, sangeet, baby shower and family sequences.",
+            count: "100+ PROMPTS",
+            price: 299,
+            cover: "/store-previews/covers/wedding.jpg",
+          },
+
+          {
+            id: "ads",
+            name: "Product Ad Prompt Pack",
+            tag: "COMMERCIAL",
+            cat: "Commercial",
+            desc: "Finance, tech, luxury product and social ad prompts.",
+            count: "110+ PROMPTS",
+            price: 499,
+            cover: "/store-previews/covers/ads.jpg",
+          },
+
+          {
+            id: "fashion",
+            name: "Fashion & Editorial Prompt Pack",
+            tag: "EDITORIAL",
+            cat: "Fashion",
+            desc: "Runway, luxury editorial, street style and beauty campaign prompts.",
+            count: "90+ PROMPTS",
+            price: 349,
+            cover: "/store-previews/covers/fashion.jpg",
+          },
+
+          {
+            id: "travel",
+            name: "Travel & Destination Prompt Pack",
+            tag: "TRAVEL",
+            cat: "Travel",
+            desc: "Luxury travel, cinematic landscapes, city reveals and adventure sequences.",
+            count: "85+ PROMPTS",
+            price: 299,
+            cover: "/store-previews/covers/travel.jpg",
+          },
+
+          {
+            id: "automotive",
+            name: "Automotive Cinematic Prompt Pack",
+            tag: "AUTOMOTIVE",
+            cat: "Automotive",
+            desc: "Car reveals, tracking shots, showroom films and performance visuals.",
+            count: "95+ PROMPTS",
+            price: 449,
+            cover: "/store-previews/covers/automotive.jpg",
+          },
+
+          {
+            id: "realestate",
+            name: "Real Estate & Architecture Prompt Pack",
+            tag: "PROPERTY",
+            cat: "RealEstate",
+            desc: "Property walkthroughs, luxury interiors, exterior reveals and lifestyle shots.",
+            count: "80+ PROMPTS",
+            price: 349,
+            cover: "/store-previews/covers/realestate.jpg",
+          },
+
+          {
+            id: "social",
+            name: "Social Media Reels Prompt Pack",
+            tag: "CREATOR",
+            cat: "Social",
+            desc: "Hooks, vertical transitions, creator shots and scroll-stopping short-form scenes.",
+            count: "100+ PROMPTS",
+            price: 249,
+            cover: "/store-previews/covers/social.jpg",
+          },
+
+          {
+            id: "food",
+            name: "Food & Beverage Commercial Prompt Pack",
+            tag: "FOOD ADS",
+            cat: "Food",
+            desc: "Macro food shots, restaurant campaigns, beverage pours and menu visuals.",
+            count: "85+ PROMPTS",
+            price: 299,
+            cover: "/store-previews/covers/food.jpg",
+          },
+        ];
+
+        var grid = document.getElementById("packsGrid");
+        var search = document.getElementById("packsSearch");
+        var info = document.getElementById("packsResultInfo");
+        var count = document.getElementById("packsCount");
+        var empty = document.getElementById("packsEmpty");
+        var tabs = document.getElementById("packsTabs");
+
+        var all = builtins.slice();
+
+        function esc(x) {
+          return String(x == null ? "" : x).replace(
+            /[&<>"']/g,
+            function (c) {
+              return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              }[c];
+            }
+          );
+        }
+
+        function addCard(p, isNew) {
+          var card = document.createElement("div");
+
+          card.className = "product";
+          card.dataset.catFilter = p.cat || "New";
+
+          var href =
+            p.href ||
+            "/pack.html?id=" +
+              encodeURIComponent(p.id);
+
+          var coverStyle = p.cover
+            ? "style=\"background-image:url('" +
+              esc(p.cover) +
+              "');background-size:cover;background-position:center;background-repeat:no-repeat;display:block;aspect-ratio:16/9;\""
+            : 'style="display:block;aspect-ratio:16/9;"';
+
+          /*
+           * View pack overlay removed.
+           * Image remains clickable through the <a> element.
+           */
+
+          card.innerHTML =
+            '<a class="thumb ' +
+            (isNew ? "custom-pack-thumb" : "") +
+            '" href="' +
+            href +
+            '" aria-label="' +
+            esc(p.name) +
+            '" ' +
+            coverStyle +
+            '></a>' +
+
+            '<div class="tag">' +
+            esc(p.tag || "NEW") +
+            "</div>" +
+
+            "<h3>" +
+            esc(p.name) +
+            "</h3>" +
+
+            "<p>" +
+            esc(
+              p.desc ||
+                p.tagline ||
+                p.description ||
+                "Production-ready AI video prompts."
+            ) +
+            "</p>" +
+
+            '<div class="pack-specs">' +
+            "<span>" +
+            esc(
+              p.count ||
+                p.promptCount ||
+                "PROMPTS"
+            ) +
+            "</span>" +
+            "<span>PDF + ZIP</span>" +
+            "<span>Instant access</span>" +
+            "</div>" +
+
+            '<div class="price">₹' +
+            esc(p.price) +
+            "</div>" +
+
+            '<a class="btn primary full" href="' +
+            href +
+            '">' +
+            "Buy Now" +
+            (p.price
+              ? " — ₹" + esc(p.price)
+              : "") +
+            "</a>";
+
+          grid.appendChild(card);
+        }
+
+        function render() {
+          grid.innerHTML = "";
+
+          all.forEach(function (p, i) {
+            addCard(
+              p,
+              i >= builtins.length
+            );
+          });
+
+          apply();
+        }
+
+        function apply() {
+          var b = tabs.querySelector("button.on");
+
+          var f = b
+            ? b.dataset.filter
+            : "all";
+
+          var q = (search.value || "")
+            .toLowerCase()
+            .trim();
+
+          var terms = q
+            ? q.split(/\s+/)
+            : [];
+
+          var cards =
+            grid.querySelectorAll(".product");
+
+          var shown = 0;
+
+          Array.prototype.forEach.call(
+            cards,
+            function (c) {
+              var hay =
+                c.textContent.toLowerCase() +
+                " " +
+                (c.dataset.catFilter || "")
+                  .toLowerCase();
+
+              var ok =
+                (f === "all" ||
+                  c.dataset.catFilter === f) &&
+                terms.every(function (t) {
+                  return hay.indexOf(t) !== -1;
+                });
+
+              c.classList.toggle(
+                "is-hidden",
+                !ok
+              );
+
+              if (ok) shown++;
+            }
+          );
+
+          count.textContent =
+            "📚 " +
+            all.length +
+            " premium packs";
+
+          info.textContent =
+            q || f !== "all"
+              ? "Showing " +
+                shown +
+                " of " +
+                all.length +
+                " packs"
+              : "";
+
+          empty.hidden = shown !== 0;
+        }
+
+        tabs.addEventListener(
+          "click",
+          function (e) {
+            var b =
+              e.target.closest("button");
+
+            if (!b) return;
+
+            Array.prototype.forEach.call(
+              tabs.querySelectorAll(
+                "button"
+              ),
+              function (x) {
+                x.classList.toggle(
+                  "on",
+                  x === b
+                );
+              }
+            );
+
+            apply();
+          }
+        );
+
+        search.addEventListener(
+          "input",
+          apply
+        );
+
+        fetch("/api/packs")
+          .then(function (r) {
+            return r.ok
+              ? r.json()
+              : { packs: [] };
+          })
+          .then(function (d) {
+            (d.packs || []).forEach(
+              function (p) {
+                all.push({
+                  id: p.id,
+                  name: p.name,
+                  price: p.price,
+                  tag: p.tag || "NEW",
+                  cat: "New",
+                  desc:
+                    p.tagline ||
+                    p.description,
+                  count: p.promptCount,
+                  cover: p.cover,
+                });
+              }
+            );
+
+            render();
+          })
+          .catch(function () {
+            render();
+          });
+      })();
+    </script>
+  </body>
 </html>
