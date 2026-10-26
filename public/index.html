@@ -4141,6 +4141,10 @@
 
             </div>
 
+            <div class="store-more-wrap">
+                <a class="btn ghost store-more-btn" href="/packs.html">Show More <span aria-hidden="true">→</span></a>
+            </div>
+
         </section>
 
 
@@ -4525,32 +4529,11 @@
     </script>
 
     <script>
-    /* store: packs added from Admin > Pro Tools > Add new Prompt Pack */
+    /* store: homepage intentionally shows only the 9 featured packs.
+       The complete catalogue (including Admin/seed packs) is available at /packs.html. */
     (function(){
-        var grid=document.querySelector('#store .store-grid'),tabs=document.querySelector('#store .store-tabs');
-        if(!grid) return;
-        function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-        fetch('/api/packs').then(function(r){return r.json();}).then(function(d){
-            var packs=d.packs||[]; if(!packs.length) return;
-            packs.forEach(function(p){
-                var card=document.createElement('div');
-                card.className='product'; card.dataset.catFilter='New'; card.dataset.custom='1';
-                card.innerHTML=
-                    '<a class="thumb custom-pack-thumb" href="/pack.html?id='+encodeURIComponent(p.id)+'" aria-label="'+esc(p.name)+'" style="background-image:url(\''+esc(p.cover)+'\');background-size:cover;background-position:center;display:block"></a>'+
-                    '<div class="tag">'+esc(p.tag)+'</div>'+
-                    '<h3>'+esc(p.name)+'</h3>'+
-                    '<p>'+esc(p.tagline||p.description)+'</p>'+
-                    '<div class="pack-specs">'+(p.promptCount?'<span>'+esc(p.promptCount).toUpperCase()+'</span>':'')+'<span>PDF + ZIP</span><span>Instant access</span></div>'+
-                    '<div class="price">₹'+esc(p.price)+'</div>'+
-                    '<a class="btn primary full" href="/pack.html?id='+encodeURIComponent(p.id)+'">Buy Now</a>';
-                grid.appendChild(card);
-            });
-            if(tabs){
-                var b=document.createElement('button'); b.type='button'; b.dataset.filter='New'; b.textContent='✨ New Packs';
-                tabs.appendChild(b);
-            }
-            if(window.storeFilterRefresh) window.storeFilterRefresh();
-        }).catch(function(){});
+        var link=document.querySelector('.store-more-btn');
+        if(link) link.setAttribute('aria-label','Show all prompt packs');
     })();
     </script>
 
