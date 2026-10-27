@@ -7795,7 +7795,6 @@ async function runVideoGenerationJob(job) {
           result.generatedDurationSeconds || job.durationSeconds;
       } catch (error) {
         errors.push(`fal.ai: ${friendlyVideoProviderError("fal", error)}`);
-        console.error(errors.at(-1));
       }
     }
 
@@ -7818,7 +7817,6 @@ async function runVideoGenerationJob(job) {
           result.generatedDurationSeconds || job.durationSeconds;
       } catch (error) {
         errors.push(`Replicate: ${friendlyVideoProviderError("replicate", error)}`);
-        console.error(errors.at(-1));
       }
     }
 
@@ -7843,7 +7841,6 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face: ${friendlyVideoProviderError("huggingface", error)}`,
         );
-        console.error(errors.at(-1));
       }
     }
 
@@ -7873,7 +7870,6 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face MiniMax: ${friendlyVideoProviderError("huggingface", error)}`,
         );
-        console.error(errors.at(-1));
       }
     }
 
@@ -7896,7 +7892,6 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face Wan2.2 Remix: ${friendlyVideoProviderError("huggingface", error)}`,
         );
-        console.error(errors.at(-1));
       }
     }
 
@@ -7924,7 +7919,6 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Pollinations: ${friendlyVideoProviderError("pollinations", error)}`,
         );
-        console.error(errors.at(-1));
       }
     }
 
@@ -7951,7 +7945,6 @@ async function runVideoGenerationJob(job) {
         return;
       } catch (error) {
         errors.push(`Gemini: ${friendlyVideoProviderError("gemini", error)}`);
-        console.error(errors.at(-1));
       }
     }
 
@@ -7960,7 +7953,7 @@ async function runVideoGenerationJob(job) {
 
     if (!result) {
       const joined = errors.join(" | ");
-      if (joined) console.error("All configured video providers failed:", joined);
+      if (joined) console.warn("All configured video providers failed:", joined);
       const hasZeroGpuQuotaError = errors.some((item) => {
         const text = String(item).toLowerCase();
         return (
