@@ -1,4 +1,4 @@
-[
+﻿[
     {
         "id": "seed_fitness",
         "name": "Fitness & Gym Motivation Prompt Pack",
@@ -77,7 +77,7 @@
             "Android waking up on a lab table, close-up of eyes lighting up, shallow depth of field, cold clinical light, slow rack focus."
         ],
         "text": "EDITPROMPT - Sci-Fi & Futuristic Worlds Prompt Pack\n10 ready-to-use prompts in 3 categories.\n\nHOW TO USE\nPaste any prompt into your AI image or video tool. Change the subject, place or colours to match your project. Keep the camera, light and mood words for the same look.\n\n== 1. Future Cities ==\nPROMPT 01\nNeon cyberpunk alley in heavy rain, holographic signs in several languages, steam from vents, slow dolly forward, blue and magenta glow.\n\nPROMPT 02\nElevated maglev train gliding through a glass megacity at dawn, drone side-tracking shot, soft haze, clean futuristic design.\n\nPROMPT 03\nRooftop garden above a dense smog layer, a lone figure looking at distant towers, wide shot, hopeful warm sunrise.\n\n== 2. Space and Ships ==\nPROMPT 04\nCargo ship drifting past a ringed gas giant, slow cinematic pan, tiny lights along the hull, deep black space, strong scale.\n\nPROMPT 05\nAstronaut walking across a red desert planet, dust devil in the distance, handheld camera feel, harsh low sun.\n\nPROMPT 06\nInside a spaceship cockpit during a jump, streaking stars through the window, pilot lit by blue dashboard glow, tense mood.\n\n== 3. Tech and Characters ==\nPROMPT 07\nAndroid waking up on a lab table, close-up of eyes lighting up, shallow depth of field, cold clinical light, slow rack focus.\n\nPROMPT 08\nHacker in a dark room surrounded by floating holographic screens, reflections on glasses, slow orbit, green and cyan palette.\n\nPROMPT 09\nRobot street vendor serving noodles to commuters, steam and neon, warm lived-in detail, medium shot.\n\nPROMPT 10\nUnderground bunker reveal with massive door opening, volumetric light spilling out, dramatic low angle, sci-fi thriller tone.\n",
-        "cover": "/store-previews/covers/scifi.jpg"
+        "cover": "/store-previews/covers/sci-fi.jpg"
     },
     {
         "id": "seed_fantasy",
@@ -398,5 +398,6 @@
         ],
         "text": "EDITPROMPT - Motivational Quotes & Reels Prompt Pack\n10 ready-to-use prompts in 3 categories.\n\nHOW TO USE\nPaste any prompt into your AI image or video tool. Change the subject, place or colours to match your project. Keep the camera, light and mood words for the same look.\n\n== 1. Quote Backgrounds ==\nPROMPT 01\nLone figure on a mountain peak above clouds at sunrise, wide vertical frame, empty sky for text, hopeful mood.\n\nPROMPT 02\nDark road stretching into a bright horizon, minimal composition, strong centre perspective, space at the top for a quote.\n\nPROMPT 03\nSunrise breaking through storm clouds over the sea, dramatic light rays, calm lower third for text.\n\n== 2. Hustle and Growth ==\nPROMPT 04\nEarly morning city street with a person jogging, empty roads, cool blue light turning warm, discipline theme.\n\nPROMPT 05\nDesk lit by a single lamp at midnight with a notebook and coffee, slow push-in, determination mood.\n\nPROMPT 06\nSeedling breaking through concrete, macro shot, soft sunrise, resilience metaphor.\n\n== 3. Calm and Reflection ==\nPROMPT 07\nPerson watching rain from a window with a warm drink, soft focus, quiet reflective tone.\n\nPROMPT 08\nPaper boat floating on a calm lake at dusk, tiny ripples, peaceful loop, subtle colour grade.\n\nPROMPT 09\nFootsteps leaving marks on a sandy beach, waves erasing them, slow overhead drone, letting-go theme.\n\nPROMPT 10\nOpen door with warm light spilling into a dark room, minimal and symbolic, vertical 9:16.\n",
         "cover": "/store-previews/covers/quotes.jpg"
+        
     }
 ]

@@ -872,16 +872,18 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
         // IMPORTANT:
         // Seed packs use their real JPG cover.
         // Other custom packs keep the generated cover.
-        cover: String(
-          r.id || "",
-        ).startsWith("seed_")
-          ? "/store-previews/covers/" +
-            String(r.id).slice(5) +
-            ".jpg"
-          : coverFor(
-              r.name,
-              info.tag,
-            ),
+        
+cover: String(info.cover || "").startsWith("/store-previews/covers/")
+  ? info.cover
+  : String(r.id || "").startsWith("seed_")
+    ? "/store-previews/covers/" +
+      String(r.id).slice(5) +
+      ".jpg"
+    : coverFor(
+        r.name,
+        info.tag,
+      ),
+
 
         cover2: coverInside(
           r.name,
