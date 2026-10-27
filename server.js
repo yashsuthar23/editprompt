@@ -7774,27 +7774,55 @@ async function runVideoGenerationJob(job) {
     let model;
     const errors = [];
 
-    if (!freeOnlyMediaMode() && hasUsableGeminiVideoKey()) {
+    // Use configured paid providers first. They support both text-to-video and
+    // image-to-video and prevent an exhausted ZeroGPU quota from blocking jobs.
+    if (paidVideoEnabled() && hasUsableFalKey()) {
       try {
-        const started = await startVideoJob({
-          prompt: job.prompt,
-          aspectRatio: job.aspectRatio,
-          durationSeconds: job.durationSeconds,
-          image: job.image,
-        });
-        job.provider = "gemini";
-        job.operationName = started.operationName;
-        job.model = started.model;
+        job.provider = "fal";
         job.status = "processing";
         job.updatedAt = Date.now();
         persistVideoJob(job);
-        return;
+        result = await generateVideoWithFal({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+          image: job.image,
+          aspectRatio: job.aspectRatio,
+          fps: job.fps,
+        });
+        model = result.model;
+        job.generatedFps = result.generatedFps || job.fps;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || job.durationSeconds;
       } catch (error) {
-        errors.push(`Gemini: ${friendlyVideoProviderError("gemini", error)}`);
+        errors.push(`fal.ai: ${friendlyVideoProviderError("fal", error)}`);
+        console.error(errors.at(-1));
       }
     }
 
-    if (hasUsableHFToken()) {
+    if (!result && paidVideoEnabled() && hasUsableReplicateKey()) {
+      try {
+        job.provider = "replicate";
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        result = await generateVideoWithReplicate({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+          image: job.image,
+          aspectRatio: job.aspectRatio,
+          fps: job.fps,
+        });
+        model = result.model;
+        job.generatedFps = result.generatedFps || job.fps;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || job.durationSeconds;
+      } catch (error) {
+        errors.push(`Replicate: ${friendlyVideoProviderError("replicate", error)}`);
+        console.error(errors.at(-1));
+      }
+    }
+
+    if (!result && hasUsableHFToken()) {
       try {
         job.provider = "huggingface";
         job.status = "processing";
@@ -7815,6 +7843,7 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face: ${friendlyVideoProviderError("huggingface", error)}`,
         );
+        console.error(errors.at(-1));
       }
     }
 
@@ -7844,12 +7873,11 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face MiniMax: ${friendlyVideoProviderError("huggingface", error)}`,
         );
+        console.error(errors.at(-1));
       }
     }
 
-    // Free fallback: for text-to-video only, try the verified Wan2.2 Remix
-    // ZeroGPU Space after MiniMax. It is not used for image-to-video because
-    // that Space exposes a text-to-video API only.
+    // Free fallback: text-to-video only.
     if (!result && !job.image && hasUsableHFToken()) {
       try {
         job.provider = "huggingface-wan-remix";
@@ -7868,6 +7896,62 @@ async function runVideoGenerationJob(job) {
         errors.push(
           `Hugging Face Wan2.2 Remix: ${friendlyVideoProviderError("huggingface", error)}`,
         );
+        console.error(errors.at(-1));
+      }
+    }
+
+    // Pollinations is a configured paid fallback. Its current helper supports
+    // text-to-video only, so do not silently discard an uploaded source image.
+    if (
+      !result &&
+      !job.image &&
+      paidVideoEnabled() &&
+      hasUsablePollinationsKey()
+    ) {
+      try {
+        job.provider = "pollinations";
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        result = await generateVideoWithPollinations({
+          prompt: job.prompt,
+          durationSeconds: job.durationSeconds,
+        });
+        model = result.model;
+        job.generatedDurationSeconds =
+          result.generatedDurationSeconds || job.durationSeconds;
+      } catch (error) {
+        errors.push(
+          `Pollinations: ${friendlyVideoProviderError("pollinations", error)}`,
+        );
+        console.error(errors.at(-1));
+      }
+    }
+
+    // Gemini/Veo uses an asynchronous operation API, so it is tried last and
+    // handed back to the existing status-polling endpoint when it starts.
+    if (
+      !result &&
+      !freeOnlyMediaMode() &&
+      hasUsableGeminiVideoKey()
+    ) {
+      try {
+        const started = await startVideoJob({
+          prompt: job.prompt,
+          aspectRatio: job.aspectRatio,
+          durationSeconds: job.durationSeconds,
+          image: job.image,
+        });
+        job.provider = "gemini";
+        job.operationName = started.operationName;
+        job.model = started.model;
+        job.status = "processing";
+        job.updatedAt = Date.now();
+        persistVideoJob(job);
+        return;
+      } catch (error) {
+        errors.push(`Gemini: ${friendlyVideoProviderError("gemini", error)}`);
+        console.error(errors.at(-1));
       }
     }
 
@@ -7876,6 +7960,7 @@ async function runVideoGenerationJob(job) {
 
     if (!result) {
       const joined = errors.join(" | ");
+      if (joined) console.error("All configured video providers failed:", joined);
       const hasZeroGpuQuotaError = errors.some((item) => {
         const text = String(item).toLowerCase();
         return (
