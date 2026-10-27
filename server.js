@@ -1245,6 +1245,9 @@ const GEMINI_MAX_ATTEMPTS_PER_MODEL = 3;
 const GEMINI_RETRYABLE_ERROR =
   /high demand|overloaded|unavailable|try again|RESOURCE_EXHAUSTED|network error|aborted|timeout|\b(429|500|502|503|504)\b/i;
 
+// Quota errors are per model and per day; they are not fixed by retrying.
+const GEMINI_QUOTA_ERROR = /quota|RESOURCE_EXHAUSTED|\b429\b/i;
+
 function hasUsableGeminiKey() {
   return (process.env.GEMINI_API_KEY || "").trim().length > 20;
 }
@@ -1331,6 +1334,13 @@ async function callGemini(options = {}) {
       } catch (err) {
         lastErr = err;
         const message = String(err?.message || "");
+
+        // Daily/per-model quota exhausted: retrying the same model is pointless,
+        // but the fallback model has its own quota, so move on to it.
+        if (GEMINI_QUOTA_ERROR.test(message)) {
+          console.warn(`Gemini quota exhausted on model ${model}, trying next model.`);
+          break;
+        }
 
         if (!GEMINI_RETRYABLE_ERROR.test(message)) throw err;
 
