@@ -3282,14 +3282,6 @@ function mediaShowResult({ kind, file, url, downloadUrl, batch = null }) {
     mediaState.sourceImageFile = file;
   }
 
-  const meta = $("mediaResultMeta");
-  if (meta) {
-    const m = mediaState.lastVideoMeta;
-    meta.textContent = kind === "video" && m
-      ? `Model: ${m.model || "unknown"} · ${m.generatedDurationSeconds ?? m.durationSeconds ?? "—"}s · ${m.generatedFps ?? m.fps ?? "—"} fps · ${m.aspectRatio || "—"}`
-      : kind === "image" ? "Saved automatically to My Library" : "";
-  }
-
   mediaRenderPreview({ kind, url, file });
 
   const download = $("mediaDownloadBtn");
@@ -3704,47 +3696,6 @@ async function ensurePromptForMedia() {
 
 /* ---------- CONTROLS ---------- */
 
-async function loadMediaProviderStatus() {
-  const el = $("mediaProviderStatus");
-  if (!el) return;
-  el.textContent = "Checking media providers…";
-  try {
-    const data = await apiRequest("/api/media/providers/health");
-    const parts = [];
-    if (data.huggingface?.configured) parts.push("🟢 Hugging Face ZeroGPU (free)");
-    if (data.pollinations?.configured) parts.push("🟠 Pollinations balance");
-    if (data.gemini?.enabled) parts.push("🔵 Gemini/Veo paid");
-    else if (data.gemini?.configured) parts.push("⚪ Gemini configured / paid mode off");
-
-    if (!parts.length) {
-      el.textContent = "⚠️ No usable video provider configured";
-      return;
-    }
-
-    const recommended = data.recommended ? ` · Recommended: ${data.recommended}` : "";
-    el.textContent = `${parts.join(" · ")}${recommended}`;
-    el.title = [
-      `Hugging Face: ${data.huggingface?.note || "—"}`,
-      `Pollinations: ${data.pollinations?.note || "—"}`,
-      `Gemini: ${data.gemini?.note || "—"}`,
-    ].join("\n");
-  } catch {
-    el.textContent = "Provider status unavailable";
-  }
-}
-
-const mediaProviderCheckBtn = $("mediaProviderCheckBtn");
-if (mediaProviderCheckBtn) {
-  mediaProviderCheckBtn.onclick = async () => {
-    mediaProviderCheckBtn.disabled = true;
-    await loadMediaProviderStatus();
-    mediaProviderCheckBtn.disabled = false;
-    toast("Provider status refreshed");
-  };
-}
-
-loadMediaProviderStatus();
-
 if ($("generateMediaBtn")) {
   $("generateMediaBtn").onclick = () => {
     if (!currentUser) {
@@ -4098,11 +4049,6 @@ function ivShowResult(data) {
       video.addEventListener("loadedmetadata", ivLayout);
       holder.appendChild(video);
     }
-  }
-
-  const meta = $("ivMeta");
-  if (meta) {
-    meta.textContent = `Model: ${data.model || "unknown"} · ${data.generatedDurationSeconds ?? data.durationSeconds ?? "—"}s · ${data.generatedFps ?? data.fps ?? "—"} fps · ${data.aspectRatio || "—"}`;
   }
 
   const download = $("ivDownloadBtn");
