@@ -571,7 +571,8 @@ $("otp").addEventListener("input", () => {
 
 /* Keep the visible price text in sync with the price set in Admin > Pro Tools */
 fetch("/api/product-prices").then(function (r) { return r.json(); }).then(function (m) {
-  var price = m[PRODUCT_ID];
+  var entry = m[PRODUCT_ID];
+  var price = entry && typeof entry === "object" ? entry.price : entry;
   if (!price || price === 399) return;
   document.querySelectorAll(".price-row strong,.checkout .price,[data-buy],.faq p").forEach(function (el) {
     if (!el.children.length) el.textContent = el.textContent.replace(/₹\s?399/g, "₹" + price);
