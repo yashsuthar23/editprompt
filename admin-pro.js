@@ -271,7 +271,7 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
 
         if (fs.existsSync(seedFile)) {
           const seeds = JSON.parse(
-            fs.readFileSync(seedFile, "utf8"),
+            fs.readFileSync(seedFile, "utf8").replace(/^\uFEFF/, ""),
           );
 
           const exists = db2.prepare(
