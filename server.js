@@ -6716,8 +6716,21 @@ async function generateVideoWithMiniMax({
   // Discover the Space's current endpoint name and parameter list, so that
   // UI changes on the Space (extra inputs like "lora", renamed endpoint)
   // do not break the request. Falls back to the latest known layout.
-  let apiName = "generate_video";
+  let apiName = "output_video";
   let data = null;
+  // Latest known layout of the Space (api "/output_video", inputs in_0..in_8):
+  // prompt, first_frame, last_frame, canvas, duration, steps, seed, upsample, lora
+  const positional = [
+    prompt,
+    firstImage,
+    null,
+    canvas,
+    duration,
+    steps,
+    seed,
+    false,
+    "",
+  ];
   try {
     const infoRes = await fetch(`${spaceBase}/gradio_api/info`, {
       headers,
@@ -6726,11 +6739,13 @@ async function generateVideoWithMiniMax({
     if (infoRes.ok) {
       const info = await infoRes.json();
       const endpoints = info?.named_endpoints || {};
-      const key = Object.keys(endpoints).find((k) => /generate/i.test(k));
+      const keys = Object.keys(endpoints);
+      const key =
+        keys.find((k) => /output_video|generate/i.test(k)) || keys[0];
       const params = key ? endpoints[key]?.parameters : null;
-      if (key && Array.isArray(params)) {
+      if (key && Array.isArray(params) && params.length) {
         apiName = key.replace(/^\//, "");
-        data = params.map((param) => {
+        data = params.map((param, index) => {
           const name = String(param.parameter_name || param.label || "")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "_");
@@ -6742,16 +6757,20 @@ async function generateVideoWithMiniMax({
           if (name.includes("step")) return steps;
           if (name.includes("seed")) return seed;
           if (name.includes("upsample")) return false;
-          return param.parameter_has_default ? param.parameter_default : null;
+          if (name.includes("lora"))
+            return param.parameter_has_default ? param.parameter_default : "";
+          // Generic names (in_0, in_1, ...): use the known positional order.
+          if (index < 8) return positional[index];
+          return param.parameter_has_default
+            ? param.parameter_default
+            : (positional[index] ?? null);
         });
       }
     }
   } catch (infoError) {
     console.warn("MiniMax API discovery failed:", infoError.message);
   }
-  if (!data) {
-    data = [prompt, firstImage, null, canvas, duration, steps, seed, false, ""];
-  }
+  if (!data) data = positional;
   const payload = { data };
 
   const start = await fetch(`${spaceBase}/gradio_api/call/${apiName}`, {
@@ -6761,10 +6780,25 @@ async function generateVideoWithMiniMax({
     signal: AbortSignal.timeout(timeoutMs),
   });
   const startText = await start.text();
-  if (!start.ok)
+  if (!start.ok) {
+    console.error(
+      "MiniMax request failed:",
+      JSON.stringify({
+        space: spaceBase,
+        endpoint: apiName,
+        status: start.status,
+        inputs: data.length,
+        canvas,
+        duration,
+        steps,
+        hasImage: Boolean(firstImage),
+        body: startText.slice(0, 500),
+      }),
+    );
     throw new Error(
       `MiniMax request failed (${start.status}): ${startText.slice(0, 500)}`,
     );
+  }
 
   let started;
   try {
