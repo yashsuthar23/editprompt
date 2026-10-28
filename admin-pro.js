@@ -1137,6 +1137,46 @@ cover: String(info.cover || "").startsWith("/store-previews/covers/")
       },
     );
 
+    app2.get(
+      "/api/admin/products",
+      requireAdmin2,
+      (req, res) => {
+        const sales = {};
+        for (const r of db2
+          .prepare(
+            "SELECT product_id, COUNT(*) AS n FROM purchases GROUP BY product_id",
+          )
+          .all())
+          sales[r.product_id] = r.n;
+
+        const out = Object.entries(products2).map(([id, p]) => ({
+          id,
+          name: p.name,
+          price: p.price / 100,
+          sales: sales[id] || 0,
+          custom: false,
+        }));
+
+        for (const r of db2
+          .prepare(
+            "SELECT id, name, price, status, progress, error FROM prompt_packs ORDER BY created_at DESC",
+          )
+          .all())
+          out.push({
+            id: r.id,
+            name: r.name,
+            price: r.price / 100,
+            sales: sales[r.id] || 0,
+            custom: true,
+            status: r.status,
+            progress: r.progress,
+            error: r.error,
+          });
+
+        res.json({ products: out });
+      },
+    );
+
     app2.post(
       "/api/admin/products",
       requireAdmin2,
@@ -1145,11 +1185,52 @@ cover: String(info.cover || "").startsWith("/store-previews/covers/")
           req.body?.id || "",
         );
 
-        if (!products2[id])
-          return res.status(404).json({
-            error:
-              "Product not found.",
-          });
+        if (!products2[id]) {
+          const pk = db2
+            .prepare("SELECT * FROM prompt_packs WHERE id=?")
+            .get(id);
+
+          if (!pk)
+            return res.status(404).json({
+              error: "Product not found.",
+            });
+
+          const pname = String(
+            req.body?.name || pk.name,
+          )
+            .trim()
+            .slice(0, 80);
+
+          const pprice = Math.round(
+            Number(req.body?.price) * 100,
+          );
+
+          if (!pname)
+            return res.status(400).json({
+              error: "Product name is required.",
+            });
+
+          if (!Number.isFinite(pprice) || pprice < 100)
+            return res.status(400).json({
+              error: "Product price is invalid.",
+            });
+
+          db2
+            .prepare(
+              "UPDATE prompt_packs SET name=?, price=? WHERE id=?",
+            )
+            .run(pname, pprice, id);
+
+          syncStore(id);
+
+          logAdmin2(
+            "product_update",
+            id,
+            `${pname} ₹${pprice / 100}`,
+          );
+
+          return res.json({ ok: true });
+        }
 
         const name = String(
           req.body?.name ||
