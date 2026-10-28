@@ -5724,22 +5724,37 @@ async function generateVideoWithHuggingFace({
 
   const hasImage = Boolean(image?.data);
 
-  const defaultSpace = hasImage
-    ? "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space"
-    : "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
+  // Keep the two Wan Spaces separate: their Gradio endpoints accept
+  // different input schemas. The legacy shared variable is supported safely
+  // for T2V; if it points to the known I2V "faster" Space, do not use it for T2V.
+  const defaultI2VSpace =
+    "https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space";
+  const defaultT2VSpace =
+    "https://zerogpu-aoti-wan2-2-fp8da-aoti.hf.space";
 
-  const configuredSpace = String(
+  const legacyConfiguredSpace = String(
     process.env.HF_ZEROGPU_SPACE_URL || "",
   ).trim();
-
-  const legacyOpenKing = configuredSpace
+  const legacyOpenKing = legacyConfiguredSpace
     .toLowerCase()
     .includes("openking-wan2-video-generation");
+  const legacyLooksLikeI2V = legacyConfiguredSpace
+    .toLowerCase()
+    .includes("wan2-2-fp8da-aoti-faster");
+
+  const configuredI2VSpace = String(
+    process.env.HF_ZEROGPU_I2V_SPACE_URL ||
+      (legacyLooksLikeI2V ? legacyConfiguredSpace : ""),
+  ).trim();
+  const configuredT2VSpace = String(
+    process.env.HF_ZEROGPU_T2V_SPACE_URL ||
+      (legacyConfiguredSpace && !legacyLooksLikeI2V ? legacyConfiguredSpace : ""),
+  ).trim();
 
   const spaceBase = (
-    legacyOpenKing || !configuredSpace
-      ? defaultSpace
-      : configuredSpace
+    hasImage
+      ? configuredI2VSpace || defaultI2VSpace
+      : configuredT2VSpace || defaultT2VSpace
   ).replace(/\/+$/, "");
 
   const token = String(process.env.HF_TOKEN || "").trim();
