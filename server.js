@@ -6094,6 +6094,17 @@ async function generateVideoWithHuggingFace({
   ) {
     let startResponse;
 
+    console.log(
+      "Starting Hugging Face Wan2.2 request:",
+      JSON.stringify({
+        space: spaceBase,
+        mode: hasImage ? "image-to-video" : "text-to-video",
+        steps,
+        durationSeconds: actualDuration,
+        attempt: attempt + 1,
+      }),
+    );
+
     try {
       startResponse = await fetch(
         `${spaceBase}/gradio_api/call/generate_video`,
@@ -6268,11 +6279,24 @@ async function generateVideoWithHuggingFace({
       if (!dataLine) continue;
 
       if (eventType === "error") {
-        streamError =
-          parseGradioStreamError(
-            dataLine,
-            "Hugging Face Wan2.2",
-          );
+        // Keep the provider's SSE error visible in Render logs. Do not log
+        // request headers, HF tokens, image bytes, or user credentials.
+        console.error(
+          "Hugging Face Wan2.2 SSE error:",
+          JSON.stringify({
+            space: spaceBase,
+            event: eventType,
+            data: String(dataLine || "").slice(0, 1500),
+          }),
+        );
+        streamError = parseGradioStreamError(
+          dataLine,
+          "Hugging Face Wan2.2",
+        );
+        if (!streamError || /empty error event/i.test(streamError)) {
+          streamError =
+            "Hugging Face Space sent an empty SSE error. Check Space runtime logs and ZeroGPU quota/availability.";
+        }
       }
 
       if (
