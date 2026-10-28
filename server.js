@@ -503,7 +503,7 @@ const products = {
   wedding: {
     name: "Wedding Video Prompt Pack",
     price: 29900,
-    file: "wedding-pack.txt",
+    file: "EditPrompt_Wedding_Video_Prompt_Pack.zip",
   },
 
   ads: {

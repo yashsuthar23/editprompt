@@ -1,3 +1,126 @@
-EditPrompt.in — Wedding Video Prompt Pack
-Sample production placeholder.
-Replace this text file with your real premium PDF/ZIP before launch.
+EDITPROMPT.IN — WEDDING VIDEO PROMPT PACK
+Premium Edition | AI Video Generation Prompts
+
+HOW TO USE
+1. Upload your own couple / venue / decor reference image when your video tool supports image-to-video.
+2. Paste one prompt at a time. Replace bracketed details such as [couple], [venue], [color palette], and [season].
+3. For image-to-video, add: “Preserve the subjects’ identity, clothing, facial features, and composition; animate only natural motion.”
+4. Keep clips short (5–8 seconds) and generate several shots for editing into a complete wedding film.
+5. AI may alter faces, hands, jewelry, lettering, and cultural details. Review each clip before delivery.
+
+PROMPT COLLECTION
+
+01 — CINEMATIC WEDDING ESTABLISHING SHOT
+A premium cinematic establishing shot of an elegant wedding venue at golden hour, warm sunlight across floral installations, soft movement in sheer fabrics, guests arriving naturally in the distance, graceful dolly-in, realistic lens depth, refined editorial color grading, romantic atmosphere, photorealistic, 9:16 vertical.
+
+02 — BRIDE ENTERING THE VENUE
+A bride in [outfit description] enters a beautifully decorated wedding venue, fabric and veil moving gently with her steps, warm practical lights glowing in the background, camera tracks backward smoothly at walking pace, natural body movement, emotional but understated, realistic skin texture, preserve the bride’s identity and outfit, 9:16.
+
+03 — GROOM ARRIVAL
+The groom in [outfit description] walks toward the wedding celebration with calm confidence, friends and family softly animated behind him, tasteful festive lights, low-angle tracking shot that eases into a medium shot, realistic movement and cloth physics, cinematic wedding-film look, 9:16.
+
+04 — COUPLE FIRST LOOK
+A couple sees each other in a quiet garden before the ceremony, their expressions soften into genuine smiles, a light breeze moves hair and clothing, slow camera push-in, shallow depth of field, delicate natural light, intimate documentary realism, preserve facial identity, no exaggerated gestures.
+
+05 — HANDS AND RINGS DETAIL
+Close-up of two hands exchanging wedding rings, intricate jewelry catching soft highlights, fingers move slowly and naturally, creamy bokeh from candles behind them, macro lens look, controlled camera slide, accurate hands and ring geometry, no extra fingers, elegant premium film style.
+
+06 — WALK THROUGH FLORAL ARCH
+The couple walks slowly beneath a lush floral arch of [flower types] and [color palette], petals and leaves shift subtly in the breeze, camera glides backward smoothly, guests softly out of focus, warm cinematic light, graceful natural pacing.
+
+07 — VEIL IN THE BREEZE
+An elegant close-up of the bride’s veil floating gently in a soft breeze, sunlight passing through the translucent fabric, the bride remains poised and still, slow-motion feel, subtle side dolly, realistic fabric simulation, preserve face and styling.
+
+08 — LEHENGA / DRESS DETAIL REVEAL
+A tasteful low-to-high camera move reveals the detailed embroidery, beadwork, and flowing fabric of [wedding outfit], warm directional light glints across the craftsmanship, the subject makes a small natural turn, luxury fashion editorial, accurate garment design.
+
+09 — INDIAN WEDDING MANDAP
+A beautifully decorated Indian wedding mandap with [flower palette], glowing diyas and soft warm lights, delicate smoke drifting upward, guests moving subtly in the background, slow cinematic push-in, realistic flame behavior, respectful authentic atmosphere, no text overlays.
+
+10 — JAIMALA MOMENT
+The couple exchanges flower garlands during a joyful wedding ceremony, petals fall naturally, family members react softly in the background, camera makes a gentle arc around the couple, realistic expressions and hand movement, preserve clothing, faces, and garland details.
+
+11 — PHERAS / CEREMONY WIDE SHOT
+A respectful wide cinematic view of a wedding ceremony around a sacred fire, warm firelight flickers across the couple and family, smoke rises naturally, the camera slowly moves sideways, balanced exposure, realistic movement, avoid changing ritual objects or clothing.
+
+12 — FAMILY BLESSINGS
+Elders gently bless the newly married couple, subtle hand movements and sincere smiles, soft golden indoor lighting, documentary-style medium shot, slow camera push-in, authentic emotion without exaggerated expressions, preserve each person’s appearance.
+
+13 — HAPPY TEARS CLOSE-UP
+A close-up of a family member watching the ceremony with joyful tears, tiny natural facial movements, warm blurred lights behind them, stable camera with a very subtle push-in, honest documentary wedding cinematography, no face distortion.
+
+14 — CONFETTI CELEBRATION
+The newlyweds celebrate as biodegradable petals and confetti drift around them, joyful guests softly moving in the background, smooth half-orbit camera movement, crisp subject focus, realistic particles and fabric movement, lively but elegant, no sudden cuts.
+
+15 — SPARKLER EXIT
+The couple walks hand in hand through a corridor of guests holding sparklers at dusk, warm sparks shimmer and smoke drifts naturally, camera tracks backward smoothly, realistic exposure and skin tones, romantic cinematic finale, keep sparklers away from faces and clothing.
+
+16 — SUNSET SILHOUETTE
+The couple stands together on a terrace at sunset, their silhouettes framed by a glowing amber sky, gentle breeze moves clothing, slow lateral camera slide, subtle lens flare, calm romantic mood, natural proportions and restrained motion.
+
+17 — RAINDROP ROMANCE
+The couple shares a quiet romantic moment beneath a clear umbrella during gentle rain, realistic droplets slide across the umbrella, wet pavement reflects warm venue lights, slow push-in, soft cinematic contrast, believable rain and reflections.
+
+18 — DESTINATION WEDDING COAST
+A couple walks along a [destination] shoreline after the ceremony, small waves roll toward the sand, breeze moves their outfits, wide establishing shot that gently tracks sideways, natural late-afternoon light, premium travel-wedding film aesthetic.
+
+19 — PALACE WEDDING REVEAL
+A majestic heritage palace wedding venue illuminated by warm architectural lights, the couple appears in the foreground as the camera slowly cranes upward to reveal arches and courtyards, subtle guests in the distance, rich but realistic colors, elegant grandeur.
+
+20 — INTIMATE HOME WEDDING
+A small family wedding in a warmly decorated home, marigold strings sway gently, family members prepare flowers and smile naturally, handheld documentary feel kept very stable, intimate natural lighting, authentic details, no artificial crowd motion.
+
+21 — BRIDAL PORTRAIT MOTION
+A refined bridal portrait with the bride looking slightly toward the camera, a gentle breeze moves a few strands of hair and the edge of her dupatta, jewelry catches soft highlights, very slow push-in, natural blinking, realistic skin, preserve identity and makeup.
+
+22 — GROOM PORTRAIT MOTION
+A cinematic portrait of the groom in [outfit], he adjusts his cuff once and looks toward the ceremony, soft warm rim light, blurred floral background, slow camera slide, understated confident expression, preserve facial features and clothing.
+
+23 — COUPLE SPIN ON THE DANCE FLOOR
+The couple performs one gentle, natural turn on a softly lit dance floor, clothing follows the movement realistically, guests and bokeh lights in the background, smooth circular camera move, joyful romantic tone, stable anatomy and natural foot placement.
+
+24 — FIRST DANCE
+The newlyweds share a slow first dance beneath warm hanging lights, subtle coordinated movement and natural smiles, camera makes a slow orbit from medium-wide to medium framing, realistic fabric motion, shallow depth of field, elegant cinematic color grade.
+
+25 — WEDDING TABLESCAPE
+A luxury wedding tablescape with [flowers], candles, fine tableware, place settings, and delicate linen, candle flames flicker, flowers move slightly in a breeze, slow slider move across the table, crisp details, warm highlights, no changing object layout.
+
+26 — FLORAL DECOR MACRO
+Macro cinematic shot gliding past fresh [flower types], water droplets on petals, soft light filtering through leaves, gentle background bokeh, controlled slider movement, realistic botanical detail, premium wedding editorial aesthetic.
+
+27 — WEDDING CAKE REVEAL
+A beautifully decorated wedding cake displayed under warm reception lighting, tiny candle flames flicker and reflections shimmer on the table, slow smooth push-in, crisp icing details, elegant background bokeh, preserve cake shape and decorations.
+
+28 — RECEPTION GRAND ENTRANCE
+The newlyweds enter a glowing reception hall as guests applaud softly, chandeliers sparkle overhead, camera tracks backward in a smooth centered movement, realistic crowd motion, celebratory luxury atmosphere, preserve the couple’s appearance and outfits.
+
+29 — CINEMATIC WEDDING HIGHLIGHT MONTAGE SHOT
+A single continuous shot beginning on the couple’s joined hands and smoothly rising to reveal their smiling faces, warm venue lights behind them, subtle natural motion, romantic shallow depth of field, polished wedding-film grade, no transition or scene cut.
+
+30 — FINAL WEDDING FILM HERO SHOT
+The newlyweds stand together in front of [venue] at blue hour, decorative lights glowing softly behind them, gentle breeze moves fabric, camera slowly pulls back to reveal the venue, elegant emotional ending, realistic proportions, premium cinematic composition, vertical 9:16.
+
+BONUS — NEGATIVE PROMPT
+Avoid: face morphing, identity changes, distorted hands, extra fingers, extra limbs, warped jewelry, changing outfit patterns, melting flowers, flickering objects, unnatural eye movement, rubbery skin, jitter, sudden zooms, camera shake, random text, watermarks, logos, scene cuts, oversaturated highlights, unrealistic fire or smoke.
+
+SUGGESTED SHOT SEQUENCE FOR A 30–45 SECOND REEL
+1. Venue establishing shot (01)
+2. Bride or groom arrival (02 or 03)
+3. Outfit detail (08)
+4. First look (04)
+5. Ceremony wide shot (09 or 11)
+6. Ring / garland detail (05 or 10)
+7. Family emotion (12 or 13)
+8. Celebration or first dance (14 or 24)
+9. Sunset or sparkler exit (15 or 16)
+10. Final hero shot (30)
+
+DELIVERY CHECKLIST
+- Confirm the couple’s identity and outfit remain consistent in every clip.
+- Check hands, rings, faces, cultural attire, and ceremony details frame by frame.
+- Avoid generating readable text inside the video; add names and dates in your editor.
+- Use licensed music and obtain permission for identifiable guests before publishing.
+- Export each approved clip in the aspect ratio required by the destination platform.
+
+© EditPrompt.in — Wedding Video Prompt Pack
+For licensed purchaser use. Do not redistribute or resell the pack as a standalone product.
