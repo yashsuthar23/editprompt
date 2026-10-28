@@ -5767,6 +5767,24 @@ async function generateVideoWithHuggingFace({
     process.env.HF_ZEROGPU_TIMEOUT_MS || 300000,
   );
 
+  // Fail fast when the Space itself is down ("Your space is in error",
+  // sleeping, paused) instead of waiting through queue retries.
+  try {
+    const healthRes = await fetch(`${spaceBase}/gradio_api/info`, {
+      headers,
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!healthRes.ok) {
+      throw new Error(`status ${healthRes.status}`);
+    }
+  } catch (healthError) {
+    throw new Error(
+      `Hugging Face Space is not running (${String(
+        healthError?.message || healthError,
+      ).slice(0, 120)}): ${spaceBase}`,
+    );
+  }
+
   /*
    * ---------------------------------------------------------
    * VIDEO PROMPT QUALITY
