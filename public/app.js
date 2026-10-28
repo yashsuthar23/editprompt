@@ -3515,12 +3515,27 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
 /* ---------- VIDEO IMAGE UPLOAD ---------- */
 
+let ivThumbUrl = null;
+function ivSetThumb(file) {
+  const img = $("ivThumb");
+  if (ivThumbUrl) { URL.revokeObjectURL(ivThumbUrl); ivThumbUrl = null; }
+  if (file && img) {
+    ivThumbUrl = URL.createObjectURL(file);
+    img.src = ivThumbUrl;
+  } else if (img) {
+    img.removeAttribute("src");
+  }
+  $("ivDropPreview")?.classList.toggle("hide", !file);
+  $("ivDropEmpty")?.classList.toggle("hide", Boolean(file));
+}
+
 async function uploadVideoSourceImage(file) {
   if (!file) return;
   if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) throw new Error("Please select a PNG, JPG, JPEG or WebP image.");
   if (file.size > 8 * 1024 * 1024) throw new Error("Image is too large. Maximum size is 8 MB.");
   const status = $("videoImageUploadStatus");
   const clear = $("videoImageClearBtn");
+  ivSetThumb(file);
   if (status) status.textContent = "Uploading image…";
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -3549,6 +3564,9 @@ if (videoImageUpload) {
       toast("Starting image ready");
     } catch (error) {
       videoImageUpload.value = "";
+      ivSetThumb(null);
+      const st = $("videoImageUploadStatus");
+      if (st) st.textContent = "Optional: upload a starting image, then generate the video.";
       toast(error.message || "Could not upload image");
     }
   });
@@ -3559,6 +3577,7 @@ $("videoImageClearBtn")?.addEventListener("click", () => {
   mediaState.uploadedImageUrl = null;
   mediaState.sourceImageFile = null;
   if (videoImageUpload) videoImageUpload.value = "";
+  ivSetThumb(null);
   const status = $("videoImageUploadStatus");
   if (status) status.textContent = "Optional: upload a starting image, then generate the video.";
   $("videoImageClearBtn")?.classList.add("hide");
@@ -3997,6 +4016,7 @@ function ivUpdateLabel() {
 function ivShow(step) {
   $("ivProgress")?.classList.toggle("hide", step !== "loading");
   $("ivResult")?.classList.toggle("hide", step !== "result");
+  $("ivEmpty")?.classList.toggle("hide", step !== "idle");
   if (step !== "idle") $("ivRetryRow")?.classList.add("hide");
   const button = $("ivGenerateBtn");
   if (button) button.disabled = step === "loading";
@@ -4064,6 +4084,7 @@ function ivShowResult(data) {
       image.src = data.url;
       image.alt = "AI generated animated video";
       image.decoding = "async";
+      image.addEventListener("load", ivLayout);
       holder.appendChild(image);
     } else {
       const video = document.createElement("video");
@@ -4071,8 +4092,10 @@ function ivShowResult(data) {
       video.controls = true;
       video.playsInline = true;
       video.autoplay = true;
+      video.muted = true;
       video.loop = true;
       video.preload = "metadata";
+      video.addEventListener("loadedmetadata", ivLayout);
       holder.appendChild(video);
     }
   }
@@ -4086,8 +4109,131 @@ function ivShowResult(data) {
   if (download) download.href = data.downloadUrl || data.url || "#";
 
   ivShow("result");
+  ivLayout();
   $("ivResult")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
+
+/* ---------- RESULT VIEWER: size / frame / fit / fullscreen ---------- */
+
+const ivView = { size: "l", ratio: "auto", fit: "contain" };
+const IV_SCALE = { s: 0.45, m: 0.72, l: 1 };
+const IV_RATIOS = { "9:16": 9 / 16, "4:5": 4 / 5, "1:1": 1, "16:9": 16 / 9 };
+
+function ivNaturalRatio() {
+  const media = $("ivPreview")?.querySelector("video, img");
+  const w = media?.videoWidth || media?.naturalWidth || 0;
+  const h = media?.videoHeight || media?.naturalHeight || 0;
+  return w && h ? w / h : 9 / 16;
+}
+
+function ivLayout() {
+  const stage = $("ivStage");
+  const frame = $("ivPreview");
+  if (!stage || !frame || $("ivResult")?.classList.contains("hide")) return;
+
+  const full = document.fullscreenElement === stage || document.webkitFullscreenElement === stage;
+  const cs = getComputedStyle(stage);
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+
+  const scale = full ? 1 : IV_SCALE[ivView.size] || 1;
+  const boxW = Math.max(120, stage.clientWidth - padX) * scale;
+  const boxH = (full ? stage.clientHeight - padY : Math.min(720, window.innerHeight * 0.78)) * scale;
+  const ratio = ivView.ratio === "auto" ? ivNaturalRatio() : IV_RATIOS[ivView.ratio] || 9 / 16;
+
+  let w;
+  let h;
+  if (boxW / boxH > ratio) { h = boxH; w = h * ratio; }
+  else { w = boxW; h = w / ratio; }
+
+  frame.style.width = `${Math.round(w)}px`;
+  frame.style.height = `${Math.round(h)}px`;
+  frame.dataset.fit = ivView.fit;
+}
+
+$("ivToolbar")?.addEventListener("click", (event) => {
+  const button = event.target.closest(".iv-seg button");
+  if (!button) return;
+  const group = button.closest(".iv-seg");
+  const key = group?.dataset.iv;
+  if (!key || !(key in ivView)) return;
+  ivView[key] = button.dataset.v;
+  group.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === button));
+  ivLayout();
+});
+
+window.addEventListener("resize", ivLayout);
+document.addEventListener("fullscreenchange", ivLayout);
+document.addEventListener("webkitfullscreenchange", ivLayout);
+
+$("ivFullscreenBtn")?.addEventListener("click", () => {
+  const stage = $("ivStage");
+  const media = $("ivPreview")?.querySelector("video");
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  } else if (stage?.requestFullscreen) {
+    stage.requestFullscreen().catch(() => toast("Fullscreen not available"));
+  } else if (stage?.webkitRequestFullscreen) {
+    stage.webkitRequestFullscreen();
+  } else if (media?.webkitEnterFullscreen) {
+    media.webkitEnterFullscreen();
+  } else {
+    toast("Fullscreen not supported on this browser");
+  }
+});
+
+/* Download: fetch the file and save it as a real file (falls back to the plain link). */
+$("ivDownloadBtn")?.addEventListener("click", async (event) => {
+  const link = event.currentTarget;
+  const meta = ivState.lastMeta || {};
+  const url = meta.url || meta.downloadUrl;
+  if (!url) return;
+  event.preventDefault();
+  if (link.dataset.busy) return;
+  link.dataset.busy = "1";
+  const label = link.textContent;
+  link.textContent = "Downloading…";
+  try {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
+    const blob = await response.blob();
+    const ext = (String(meta.file || url).split("?")[0].split(".").pop() || "mp4").toLowerCase();
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `editprompt-video-${stamp}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("Video downloaded ⬇");
+  } catch (error) {
+    console.error("Download error:", error);
+    window.location.href = meta.downloadUrl || url;
+  } finally {
+    link.textContent = label;
+    delete link.dataset.busy;
+  }
+});
+
+/* Drag & drop onto the upload box */
+(() => {
+  const drop = $("ivDrop");
+  const input = $("videoImageUpload");
+  if (!drop || !input) return;
+  ["dragenter", "dragover"].forEach((name) =>
+    drop.addEventListener(name, (e) => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((name) =>
+    drop.addEventListener(name, (e) => { e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", (e) => {
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+})();
 
 async function ivPoll(jobId) {
   ivState.polling = true;

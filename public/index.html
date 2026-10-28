@@ -18,14 +18,14 @@
 
     <title>EditPrompt.in — AI Video Prompt Generator & Creator Platform</title>
 
-    <link rel="stylesheet" href="/styles.css?v=4">
+    <link rel="stylesheet" href="/styles.css?v=5">
 
     <!-- Razorpay Checkout -->
     <script
         src="https://checkout.razorpay.com/v1/checkout.js"
         defer>
     </script>
-<link rel="stylesheet" href="/light-fixes.css?v=7">
+<link rel="stylesheet" href="/light-fixes.css?v=8">
     <link rel="stylesheet" href="/mobile-nav.css">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
 </head>
@@ -3481,7 +3481,7 @@
                     <p>
                         Image upload karo ane Generate Video dabavo,
                         image par thi direct video banse. Video ma koi
-                        change joiye to niche "Changes" box ma ahi j
+                        change joiye to "Changes" box ma ahi j
                         lakho.
                     </p>
 
@@ -3489,115 +3489,171 @@
 
             </div>
 
-            <div class="panel">
+            <div class="iv-layout">
 
-                <div id="imageToVideoSection" class="mediacontrols">
-                    <div class="media-source-row">
-                        <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
-                        <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
-                    </div>
-                    <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
-                    <label class="iv-changes" for="ivChangesInput">
-                        <span class="iv-changes-title">Changes / Instructions <em>(optional)</em></span>
-                        <textarea
-                            id="ivChangesInput"
-                            rows="3"
-                            maxlength="1000"
-                            placeholder="Image thi video banavta shu change joiye te ahi lakho. Example: slow zoom in, vaal hawa ma ude, background ma halka clouds, smile kare..."></textarea>
-                        <span class="mini">Khali rakho to image par thi automatic natural video banse.</span>
-                    </label>
-                </div>
+                <!-- LEFT: inputs -->
+                <div class="panel iv-card">
 
-                            <div id="videoControls" class="mediacontrols">
-                                <div class="media-controls-head">
-                                    <div>
-                                        <div class="mediasteplabel">Video Controls</div>
-                                        <div class="media-controls-hint">Camera movement, motion intensity and frame rate for the final video.</div>
-                                    </div>
-                                    <span class="media-controls-badge">VIDEO</span>
-                                </div>
-                                <div class="formgrid">
-                                    <label>Camera Motion
-                                        <select id="videoCameraMotion">
-                                            <option>Natural</option>
-                                            <option>Static</option>
-                                            <option>Slow Push In</option>
-                                            <option>Pull Out</option>
-                                            <option>Pan Left</option>
-                                            <option>Pan Right</option>
-                                            <option>Orbit</option>
-                                            <option>Handheld</option>
-                                        </select>
-                                    </label>
-                                    <label>Motion Strength
-                                        <select id="videoMotionStrength">
-                                            <option>Low</option>
-                                            <option selected>Medium</option>
-                                            <option>High</option>
-                                        </select>
-                                    </label>
-                                    <label>Duration
-                                        <select id="videoDuration">
-                                            <option value="5 seconds" selected>5 seconds</option>
-                                            <option value="6 seconds">6 seconds</option>
-                                            <option value="8 seconds">8 seconds</option>
-                                            <option value="10 seconds">10 seconds</option>
-                                        </select>
-                                    </label>
-                                    <label>FPS
-                                        <select id="videoFps">
-                                            <option value="24" selected>24 fps</option>
-                                            <option value="30">30 fps</option>
-                                            <option value="60">60 fps</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div class="media-provider-row">
-                                    <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
-                                    <button id="mediaProviderCheckBtn" class="btn small" type="button">↻ Check</button>
-                                </div>
+                    <div id="imageToVideoSection" class="iv-block">
+                        <div class="iv-step"><span class="iv-num">1</span> Starting image</div>
+
+                        <label class="iv-drop" id="ivDrop" for="videoImageUpload">
+                            <input id="videoImageUpload" type="file" accept="image/png,image/jpeg,image/webp" />
+                            <div class="iv-drop-empty" id="ivDropEmpty">
+                                <span class="iv-drop-icon">🖼</span>
+                                <strong>Image upload karo</strong>
+                                <span>Click karo athva ahi drag &amp; drop karo<br>PNG, JPG, WebP · max 8 MB</span>
                             </div>
+                            <div class="iv-drop-preview hide" id="ivDropPreview">
+                                <img id="ivThumb" alt="Selected image" />
+                                <span class="iv-drop-change">↻ Change image</span>
+                            </div>
+                        </label>
 
-                <button
-                    id="ivGenerateBtn"
-                    class="btn primary full"
-                    style="margin-top:14px"
-                    type="button">
-
-                    ⚡ Generate Video
-
-                </button>
-
-                <!-- PROGRESS -->
-
-                <div id="ivProgress" class="mediastep hide" style="margin-top:14px">
-                    <div class="medialoader">
-                        <div class="medialoaderbar">
-                            <span id="ivProgressFill"></span>
+                        <div class="iv-drop-foot">
+                            <div id="videoImageUploadStatus" class="mini">Optional: upload a starting image, then generate the video.</div>
+                            <button id="videoImageClearBtn" class="btn ghost small hide" type="button">Clear Image</button>
                         </div>
-                        <div class="medialoadertext" id="ivProgressText">Starting…</div>
                     </div>
-                    <button id="ivCancelBtn" class="btn ghost small" type="button">Cancel</button>
+
+                    <div class="iv-block">
+                        <div class="iv-step"><span class="iv-num">2</span> Changes <em>(optional)</em></div>
+                        <label class="iv-changes" for="ivChangesInput">
+                            <textarea
+                                id="ivChangesInput"
+                                rows="3"
+                                maxlength="1000"
+                                placeholder="Image thi video banavta shu change joiye te ahi lakho. Example: slow zoom in, vaal hawa ma ude, background ma halka clouds, smile kare..."></textarea>
+                            <span class="mini">Khali rakho to image par thi automatic natural video banse.</span>
+                        </label>
+                    </div>
+
+                    <div class="iv-block">
+                        <div class="iv-step"><span class="iv-num">3</span> Video controls</div>
+                        <div id="videoControls" class="mediacontrols iv-controls">
+                            <div class="formgrid">
+                                <label>Camera Motion
+                                    <select id="videoCameraMotion">
+                                        <option>Natural</option>
+                                        <option>Static</option>
+                                        <option>Slow Push In</option>
+                                        <option>Pull Out</option>
+                                        <option>Pan Left</option>
+                                        <option>Pan Right</option>
+                                        <option>Orbit</option>
+                                        <option>Handheld</option>
+                                    </select>
+                                </label>
+                                <label>Motion Strength
+                                    <select id="videoMotionStrength">
+                                        <option>Low</option>
+                                        <option selected>Medium</option>
+                                        <option>High</option>
+                                    </select>
+                                </label>
+                                <label>Duration
+                                    <select id="videoDuration">
+                                        <option value="5 seconds" selected>5 seconds</option>
+                                        <option value="6 seconds">6 seconds</option>
+                                        <option value="8 seconds">8 seconds</option>
+                                        <option value="10 seconds">10 seconds</option>
+                                    </select>
+                                </label>
+                                <label>FPS
+                                    <select id="videoFps">
+                                        <option value="24" selected>24 fps</option>
+                                        <option value="30">30 fps</option>
+                                        <option value="60">60 fps</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="media-provider-row">
+                                <div id="mediaProviderStatus" class="mini">Checking media providers…</div>
+                                <button id="mediaProviderCheckBtn" class="btn small ghost" type="button">↻ Check</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        id="ivGenerateBtn"
+                        class="btn primary full iv-generate"
+                        type="button">
+
+                        ⚡ Generate Video
+
+                    </button>
+
                 </div>
 
-                <!-- RETRY (shown only after a failed job) -->
+                <!-- RIGHT: output -->
+                <div class="panel iv-card iv-out">
 
-                <div id="ivRetryRow" class="hide" style="margin-top:12px">
-                    <button id="ivRetryBtn" class="btn ghost small" type="button">↻ Retry Video</button>
-                </div>
-
-                <!-- RESULT -->
-
-                <div id="ivResult" class="mediastep hide" style="margin-top:16px">
-                    <div class="mediasteplabel">Video Preview</div>
-                    <div class="mediapreview" id="ivPreview"></div>
-                    <div id="ivMeta" class="media-result-meta"></div>
-                    <div class="mediaactions">
-                        <a id="ivDownloadBtn" class="btn primary small" href="#" download>⬇ Download Video</a>
-                        <button id="ivRegenerateBtn" class="btn ghost small" type="button">↻ Regenerate</button>
-                        <button id="ivCopyPromptBtn" class="btn ghost small" type="button">📋 Copy Prompt</button>
-                        <button id="ivShareBtn" class="btn ghost small" type="button">↗ Share</button>
+                    <div class="iv-out-head">
+                        <div class="mediasteplabel">Video Preview</div>
                     </div>
+
+                    <!-- EMPTY -->
+                    <div id="ivEmpty" class="iv-empty">
+                        <div class="iv-empty-frame"><span>🎬</span></div>
+                        <strong>Tamaro video ahi dekhase</strong>
+                        <span>Image upload karo, Generate Video dabavo. Video ban gaya pachi tame alag alag size ma joi shako ane download kari shako.</span>
+                    </div>
+
+                    <!-- PROGRESS -->
+                    <div id="ivProgress" class="mediastep iv-loading hide">
+                        <div class="medialoader">
+                            <div class="medialoaderbar">
+                                <span id="ivProgressFill"></span>
+                            </div>
+                            <div class="medialoadertext" id="ivProgressText">Starting…</div>
+                        </div>
+                        <button id="ivCancelBtn" class="btn ghost small" type="button">Cancel</button>
+                    </div>
+
+                    <!-- RETRY (shown only after a failed job) -->
+                    <div id="ivRetryRow" class="hide" style="margin-top:12px">
+                        <button id="ivRetryBtn" class="btn ghost small" type="button">↻ Retry Video</button>
+                    </div>
+
+                    <!-- RESULT -->
+                    <div id="ivResult" class="hide">
+
+                        <div class="iv-toolbar" id="ivToolbar">
+                            <div class="iv-seg" data-iv="size" role="group" aria-label="Size">
+                                <span class="iv-seg-label">Size</span>
+                                <button type="button" data-v="s">S</button>
+                                <button type="button" data-v="m">M</button>
+                                <button type="button" data-v="l" class="on">L</button>
+                            </div>
+                            <div class="iv-seg" data-iv="ratio" role="group" aria-label="Frame shape">
+                                <span class="iv-seg-label">Frame</span>
+                                <button type="button" data-v="auto" class="on">Original</button>
+                                <button type="button" data-v="9:16">9:16</button>
+                                <button type="button" data-v="4:5">4:5</button>
+                                <button type="button" data-v="1:1">1:1</button>
+                                <button type="button" data-v="16:9">16:9</button>
+                            </div>
+                            <div class="iv-seg" data-iv="fit" role="group" aria-label="Fit">
+                                <button type="button" data-v="contain" class="on">Fit</button>
+                                <button type="button" data-v="cover">Fill</button>
+                            </div>
+                            <button id="ivFullscreenBtn" class="btn ghost small" type="button">⛶ Fullscreen</button>
+                        </div>
+
+                        <div class="iv-stage" id="ivStage">
+                            <div class="iv-frame" id="ivPreview" data-fit="contain"></div>
+                        </div>
+
+                        <div id="ivMeta" class="media-result-meta"></div>
+
+                        <div class="mediaactions">
+                            <a id="ivDownloadBtn" class="btn primary small" href="#" download>⬇ Download Video</a>
+                            <button id="ivRegenerateBtn" class="btn ghost small" type="button">↻ Regenerate</button>
+                            <button id="ivCopyPromptBtn" class="btn ghost small" type="button">📋 Copy Prompt</button>
+                            <button id="ivShareBtn" class="btn ghost small" type="button">↗ Share</button>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>

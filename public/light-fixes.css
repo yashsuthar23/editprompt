@@ -398,3 +398,18 @@ html body[data-ep-theme="light"] #mediaProviderStatus,
 html body[data-ep-theme="light"] #videoImageUploadStatus {
   color: var(--muted, #596579);
 }
+
+/* Image → Video studio (light theme) */
+html body[data-ep-theme="light"] .iv-drop { background: #f6f8fc !important; border-color: #c5cddb !important; }
+html body[data-ep-theme="light"] .iv-drop:hover,
+html body[data-ep-theme="light"] .iv-drop.drag { border-color: var(--red) !important; background: #fff1f1 !important; }
+html body[data-ep-theme="light"] .iv-drop-empty strong,
+html body[data-ep-theme="light"] .iv-empty strong { color: var(--text) !important; }
+html body[data-ep-theme="light"] .iv-step { color: #5b4a2c !important; }
+html body[data-ep-theme="light"] .iv-empty { border-color: #c5cddb !important; }
+html body[data-ep-theme="light"] .iv-empty-frame { background: #eef2f8 !important; border-color: #d3dae6 !important; }
+html body[data-ep-theme="light"] .iv-seg { background: #f1f4f9 !important; border-color: #d3dae6 !important; }
+html body[data-ep-theme="light"] .iv-seg button { color: #56607a !important; }
+html body[data-ep-theme="light"] .iv-seg button.on { background: var(--red) !important; color: #fff !important; }
+html body[data-ep-theme="light"] .iv-stage { background: repeating-conic-gradient(#e6ebf3 0% 25%, #f1f4f9 0% 50%) 0 0 / 22px 22px !important; border-color: #d3dae6 !important; }
+html body[data-ep-theme="light"] .iv-card .mini { background: transparent !important; border: 0 !important; color: #56607a !important; padding: 0 !important; }
