@@ -100,14 +100,109 @@ app.use((req, res, next) => {
   next();
 });
 
+// Persist login sessions in SQLite instead of express-session's default
+// MemoryStore, which loses all sessions when the Node process restarts.
+// The session table is stored in the same editprompt.db as the application data.
+const sessionDb = new DatabaseSync(path.join(__dirname, "editprompt.db"));
+sessionDb.exec(`
+  CREATE TABLE IF NOT EXISTS app_sessions (
+    sid TEXT PRIMARY KEY,
+    sess TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_app_sessions_expires_at
+    ON app_sessions(expires_at);
+`);
+
+class SQLiteSessionStore extends session.Store {
+  constructor(database) {
+    super();
+    this.getStatement = database.prepare(
+      "SELECT sess, expires_at FROM app_sessions WHERE sid = ?",
+    );
+    this.setStatement = database.prepare(`
+      INSERT INTO app_sessions (sid, sess, expires_at) VALUES (?, ?, ?)
+      ON CONFLICT(sid) DO UPDATE SET
+        sess = excluded.sess,
+        expires_at = excluded.expires_at
+    `);
+    this.destroyStatement = database.prepare(
+      "DELETE FROM app_sessions WHERE sid = ?",
+    );
+    this.touchStatement = database.prepare(
+      "UPDATE app_sessions SET expires_at = ? WHERE sid = ?",
+    );
+    this.cleanupStatement = database.prepare(
+      "DELETE FROM app_sessions WHERE expires_at <= ?",
+    );
+  }
+
+  get(sid, callback) {
+    try {
+      const row = this.getStatement.get(sid);
+      if (!row) return callback(null, null);
+      if (row.expires_at <= Date.now()) {
+        this.destroyStatement.run(sid);
+        return callback(null, null);
+      }
+      return callback(null, JSON.parse(row.sess));
+    } catch (error) {
+      return callback(error);
+    }
+  }
+
+  set(sid, sess, callback) {
+    try {
+      const cookie = sess?.cookie || {};
+      const expiresAt = cookie.expires
+        ? new Date(cookie.expires).getTime()
+        : Date.now() + Math.max(0, Number(cookie.maxAge) || 7 * 24 * 60 * 60 * 1000);
+      this.setStatement.run(sid, JSON.stringify(sess), expiresAt);
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }
+
+  destroy(sid, callback) {
+    try {
+      this.destroyStatement.run(sid);
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }
+
+  touch(sid, sess, callback) {
+    try {
+      const cookie = sess?.cookie || {};
+      const expiresAt = cookie.expires
+        ? new Date(cookie.expires).getTime()
+        : Date.now() + Math.max(0, Number(cookie.maxAge) || 7 * 24 * 60 * 60 * 1000);
+      this.touchStatement.run(expiresAt, sid);
+      if (callback) callback(null);
+    } catch (error) {
+      if (callback) callback(error);
+    }
+  }
+}
+
+const sessionStore = new SQLiteSessionStore(sessionDb);
+
+setInterval(() => {
+  try {
+    sessionStore.cleanupStatement.run(Date.now());
+  } catch (error) {
+    console.error("Expired session cleanup failed:", error.message);
+  }
+}, 60 * 60 * 1000).unref();
+
 app.use(
   session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-
     resave: false,
-
     saveUninitialized: false,
-
     cookie: {
       httpOnly: true,
       sameSite: "lax",
