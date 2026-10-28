@@ -6695,11 +6695,48 @@ async function generateVideoWithMiniMax({
     firstImage = { path: uploadedPath, meta: { _type: "gradio.FileData" } };
   }
 
-  const payload = {
-    data: [prompt, firstImage, null, canvas, duration, steps, seed, false],
-  };
+  // Discover the Space's current endpoint name and parameter list, so that
+  // UI changes on the Space (extra inputs like "lora", renamed endpoint)
+  // do not break the request. Falls back to the latest known layout.
+  let apiName = "generate_video";
+  let data = null;
+  try {
+    const infoRes = await fetch(`${spaceBase}/gradio_api/info`, {
+      headers,
+      signal: AbortSignal.timeout(30000),
+    });
+    if (infoRes.ok) {
+      const info = await infoRes.json();
+      const endpoints = info?.named_endpoints || {};
+      const key = Object.keys(endpoints).find((k) => /generate/i.test(k));
+      const params = key ? endpoints[key]?.parameters : null;
+      if (key && Array.isArray(params)) {
+        apiName = key.replace(/^\//, "");
+        data = params.map((param) => {
+          const name = String(param.parameter_name || param.label || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_");
+          if (name.includes("prompt")) return prompt;
+          if (name.includes("first")) return firstImage;
+          if (name.includes("last")) return null;
+          if (name.includes("canvas")) return canvas;
+          if (name.includes("duration")) return duration;
+          if (name.includes("step")) return steps;
+          if (name.includes("seed")) return seed;
+          if (name.includes("upsample")) return false;
+          return param.parameter_has_default ? param.parameter_default : null;
+        });
+      }
+    }
+  } catch (infoError) {
+    console.warn("MiniMax API discovery failed:", infoError.message);
+  }
+  if (!data) {
+    data = [prompt, firstImage, null, canvas, duration, steps, seed, false, ""];
+  }
+  const payload = { data };
 
-  const start = await fetch(`${spaceBase}/gradio_api/call/generate`, {
+  const start = await fetch(`${spaceBase}/gradio_api/call/${apiName}`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -6723,7 +6760,7 @@ async function generateVideoWithMiniMax({
     throw new Error("MiniMax did not return an event id.");
 
   const stream = await fetch(
-    `${spaceBase}/gradio_api/call/generate/${encodeURIComponent(started.event_id)}`,
+    `${spaceBase}/gradio_api/call/${apiName}/${encodeURIComponent(started.event_id)}`,
     {
       headers,
       signal: AbortSignal.timeout(timeoutMs),
