@@ -5868,7 +5868,7 @@ async function generateVideoWithHuggingFace({
   );
 
   const guidance2 = Number(
-    process.env.HF_ZEROGPU_GUIDANCE_2 || 3,
+    process.env.HF_ZEROGPU_GUIDANCE_2 || 1,
   );
 
   /*
@@ -8005,9 +8005,11 @@ async function runVideoGenerationJob(job) {
       if (joined) console.warn("All configured video providers failed:", joined);
       const hasZeroGpuQuotaError = errors.some((item) => {
         const text = String(item).toLowerCase();
-        return (
-          text.includes("zerogpu quota") || text.includes("free zerogpu quota")
-        );
+        const isQuota =
+          text.includes("zerogpu quota") || text.includes("free zerogpu quota");
+        const isGenericSseError =
+          text.includes("empty sse") || text.includes("availability");
+        return isQuota && !isGenericSseError;
       });
 
       if (hasZeroGpuQuotaError) {
