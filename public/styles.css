@@ -2739,3 +2739,4 @@ body[data-ep-theme="light"] .categorygrid button.active { color: var(--text) !im
 .iv-changes-title { display:block; font-weight:600; margin-bottom:6px; }
 .iv-changes-title em { font-weight:400; opacity:.7; font-style:normal; }
 .iv-changes textarea { width:100%; resize:vertical; min-height:76px; font:inherit; box-sizing:border-box; }
+.store-more-wrap { display: flex; justify-content: center; margin: 40px 0 10px; }
