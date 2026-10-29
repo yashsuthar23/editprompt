@@ -604,7 +604,7 @@ const products = {
   ads: {
     name: "Product Ad Prompt Pack",
     price: 49900,
-    file: "ads-pack.txt",
+    file: "EditPrompt_Product_Ad_Prompt_Pack.zip",
   },
 
   fashion: {
