@@ -11,94 +11,10 @@
     />
     <link rel="stylesheet" href="/product.css" />
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <style>
-      /* Stable, professional pack gallery — no motion, tilt, shimmer or floating cards. */
-      .pack-visual {
-        position: relative;
-        min-height: 520px;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: center;
-        gap: 22px;
-        padding: 20px 10px;
-      }
-      .pack-image-card {
-        position: relative;
-        width: 100%;
-        max-width: 380px;
-        justify-self: center;
-        aspect-ratio: 16/9;
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: #000;
-        box-shadow: 0 24px 55px rgba(0, 0, 0, 0.36);
-        transform: none !important;
-        transition: none !important;
-      }
-      .pack-image-card.second {
-        transform: none !important;
-        margin: 0 !important;
-      }
-      .pack-image-card img {
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: contain;
-        transform: none !important;
-        transition: none !important;
-      }
-      .pack-image-card .image-label {
-        position: absolute;
-        z-index: 2;
-        left: 14px;
-        top: 14px;
-        padding: 6px 9px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.68);
-        font-size: 10px;
-        letter-spacing: 0.14em;
-        color: #ddd;
-      }
-      .pack-page .pack-image-card:hover,
-      .pack-page .pack-image-card:hover img {
-        transform: none !important;
-        filter: none !important;
-      }
-      @media (max-width: 800px) {
-        .pack-visual {
-          min-height: 420px;
-          gap: 14px;
-        }
-        .pack-image-card {
-          max-width: 260px;
-        }
-      }
-      @media (max-width: 600px) {
-        .pack-visual {
-          min-height: 340px;
-          gap: 10px;
-          padding: 12px 0;
-        }
-        .pack-image-card {
-          max-width: none;
-          border-radius: 12px;
-        }
-        .pack-image-card .image-label {
-          left: 9px;
-          top: 9px;
-        }
-      }
-      .pack-image-card .image-label {
-        top: auto !important;
-        bottom: 12px !important;
-        left: 12px !important;
-      }
-    </style>
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/light-fixes.css?v=1" />
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
+    <link rel="stylesheet" href="/pack-cover.css?v=1" />
   </head>
   <body class="pack-page">
     <header>
@@ -140,15 +56,12 @@
           </div>
           <p class="micro" id="integrationStatus">Checking checkout…</p>
         </div>
-        <div class="visual pack-visual">
-          <div class="pack-image-card">
-            <span class="image-label">PACK PREVIEW</span
-            ><img id="image1" alt="Prompt pack preview" />
-          </div>
-          <div class="pack-image-card second">
-            <span class="image-label">INSIDE</span
-            ><img id="image2" alt="Prompt pack inside preview" />
-          </div>
+        <div class="visual pc-visual" id="packCover" aria-label="Prompt pack cover"></div>
+      </section>
+      <section class="section">
+        <div class="pc-gallery">
+          <figure><img id="image1" alt="Prompt pack preview" /><figcaption>PACK PREVIEW</figcaption></figure>
+          <figure><img id="image2" alt="Prompt pack inside preview" /><figcaption>INSIDE</figcaption></figure>
         </div>
       </section>
       <section class="proof">
@@ -263,6 +176,7 @@
       <div>© 2026 EditPrompt</div>
     </footer>
     <div id="toast"></div>
+    <script src="/pack-cover.js?v=1"></script>
     <script src="/pack-page.js"></script>
     <script src="/product.js"></script>
     <script src="/site-status.js" defer></script>

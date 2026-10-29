@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/styles.css" />
       <link rel="stylesheet" href="/light-fixes.css?v=1">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
+    <link rel="stylesheet" href="/pack-cover.css?v=1" />
 </head>
 <body class="ep-dark-only">
 <header>
@@ -28,11 +29,7 @@
 <div class="actions"><button class="buy" data-buy>Buy Now — ₹399</button><a class="secondary" href="#samples">View Samples</a></div>
 <p class="micro" id="integrationStatus">Checking checkout…</p>
 </div>
-<div class="visual">
-<div class="glow"></div><div class="book back"></div>
-<div class="book"><div class="book-top">EDITPROMPT.IN</div><div class="film-lines"></div><div class="book-copy"><span>PRO SERIES</span><h2>CINEMATIC<br>AI PROMPT<br>PACK</h2><p>120 Production-Ready Video Prompts</p></div><div class="book-bottom">FILM • ADS • REELS • AI VIDEO</div></div>
-<div class="float-card fc1"><b>120+</b><span>Ready Prompts</span></div><div class="float-card fc2"><b>12</b><span>Categories</span></div>
-</div>
+<div class="visual pc-visual" id="packCover" aria-label="Cinematic AI Prompt Pack cover"></div>
 </section>
 
 <section class="proof"><span>GOOGLE FLOW / VEO</span><span>RUNWAY</span><span>KLING</span><span>PIKA</span><span>AI VIDEO WORKFLOWS</span></section>
@@ -101,6 +98,8 @@
 </div></div>
 <footer><div><b>EditPrompt.in</b><span>AI tools & creative assets for video editors.</span></div><div>© 2026 EditPrompt</div></footer>
 <div id="toast"></div>
+<script src="/pack-cover.js?v=1"></script>
+<script>renderPackCover(document.getElementById("packCover"),{id:"cinematic",name:"Cinematic AI Prompt Pack",count:"120 Prompts",cats:"12 Categories"});</script>
 <script src="/product.js"></script>
 <script src="/site-status.js" defer></script>
   <script src="/theme.js"></script>
