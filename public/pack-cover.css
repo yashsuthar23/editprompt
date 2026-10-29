@@ -53,3 +53,6 @@
   .pc-frame,.pc-sheen,.pc-glow,.hero .actions .buy::after,.purchase .checkout .buy::after{animation:none!important}
   .pc-tilt{transition:none}
 }
+
+/* "Reduce animations" setting */
+body.ep-reduce-motion .pc-card,body.ep-reduce-motion .pc-badge,body.ep-reduce-motion .pc-series,body.ep-reduce-motion .pc-title,body.ep-reduce-motion .pc-sub{opacity:1!important}

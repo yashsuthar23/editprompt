@@ -530,6 +530,7 @@
 
         search.addEventListener("input", apply);
         if (sortSel) sortSel.addEventListener("change", render);
+        window.addEventListener("ep-saved-changed", render);
 
         fetch("/api/packs")
           .then(function (r) {

@@ -4515,6 +4515,7 @@
                 setSaved(l); paint(); refresh();
             });
             paint(); c.appendChild(b);
+            window.addEventListener('ep-saved-changed',function(){paint();refresh();});
         });
         var sel=document.createElement('select'); sel.id='storeSort'; sel.setAttribute('aria-label','Sort packs'); sel.className='store-sort';
         [['default','Sort: Featured'],['low','Price: Low to High'],['high','Price: High to Low'],['name','Name: A to Z']].forEach(function(o){
