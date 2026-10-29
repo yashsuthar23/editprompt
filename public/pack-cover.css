@@ -43,17 +43,11 @@
 .hero .actions .buy::after,.purchase .checkout .buy::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:pcBtn 3.8s 2s ease-in-out infinite;pointer-events:none}
 @keyframes pcBtn{0%,60%{left:-60%}100%{left:130%}}
 
-/* preview gallery below hero */
-.pc-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;max-width:900px;margin:0 auto 10px}
-.pc-gallery figure{margin:0;position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:#000;aspect-ratio:16/9}
-.pc-gallery img{width:100%;height:100%;object-fit:contain;display:block}
-.pc-gallery figcaption{position:absolute;left:12px;bottom:12px;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.16);font-size:10px;letter-spacing:.14em;color:#ddd}
 
 @media (max-width:900px){
   .pc-visual{min-height:440px;padding:16px 0 30px}
   .pc-stage{width:min(88%,340px)}
 }
-@media (max-width:600px){.pc-gallery{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){
   .pc-card,.pc-badge,.pc-series,.pc-title,.pc-sub{animation:none!important;opacity:1!important}
   .pc-frame,.pc-sheen,.pc-glow,.hero .actions .buy::after,.purchase .checkout .buy::after{animation:none!important}
