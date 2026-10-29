@@ -4129,3 +4129,5 @@ html body .iv-card .mini {
 .iv-card .iv-drop-foot {
   margin-top: 8px;
 }
+
+#status { display: none !important; }
