@@ -1,0 +1,25 @@
+/* Sticky mobile buy bar */
+.pe-bar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;align-items:center;gap:12px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(14,14,14,.94);backdrop-filter:blur(12px);border-top:1px solid #303030;transform:translateY(110%);transition:transform .35s ease}
+.pe-bar.show{transform:none}
+.pe-bar div{flex:1;min-width:0}
+.pe-bar b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#f5f2ec}
+.pe-bar small{color:#aaa39b;font-size:11px}
+.pe-bar button{flex:none;border:0;border-radius:10px;padding:12px 18px;background:#e52329;color:#fff;font-weight:800;cursor:pointer}
+@media (max-width:900px){.pe-bar{display:flex}body.pack-page,body.ep-dark-only{padding-bottom:70px}}
+
+/* Locked teaser card in samples */
+.pe-locked{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:10px;border:1px dashed #5a5047!important;background:linear-gradient(145deg,rgba(229,35,41,.08),rgba(255,255,255,.02))!important}
+.pe-locked .tag{color:var(--pc-accent,#e52329)}
+.pe-locked p{margin:0}
+.pe-locked a{color:#e9d8bb;font-weight:700;font-size:14px}
+
+/* Related packs */
+.pe-related{max-width:1180px;margin:0 auto;padding:30px 0 10px}
+.pe-rel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.pe-rel{display:block;border:1px solid #303030;border-radius:14px;padding:18px;background:#141414;transition:transform .25s,border-color .25s}
+.pe-rel:hover{transform:translateY(-4px);border-color:#5a5047}
+.pe-rel small{font-size:10px;letter-spacing:.16em;color:#a98c70;font-weight:800}
+.pe-rel h3{margin:8px 0 6px;font-size:18px;color:#f3e9d7}
+.pe-rel p{margin:0 0 12px;color:#aaa39b;font-size:13px;line-height:1.5}
+.pe-rel b{color:#fff}
+@media (max-width:800px){.pe-rel-grid{grid-template-columns:1fr}.pe-related{padding-left:4px;padding-right:4px}}

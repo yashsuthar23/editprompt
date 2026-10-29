@@ -155,6 +155,12 @@
 #creatorLibrary .lib-media-card .lib-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
 #creatorLibrary .lib-meta{font-size:11px;color:#999;margin-top:7px}
 #creatorLibrary .lib-prompt{white-space:pre-wrap;max-height:180px;overflow:auto;background:#0c0c0c;border:1px solid #2b2b2b;border-radius:10px;padding:12px;font-size:12px;line-height:1.5}
+.unlock-burst{width:64px;height:64px;margin-bottom:10px}
+.unlock-burst svg{width:100%;height:100%;fill:none;stroke:#67e58a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.unlock-burst circle{stroke-dasharray:151;stroke-dashoffset:151;animation:ubDraw .8s ease forwards}
+.unlock-burst path{stroke-dasharray:40;stroke-dashoffset:40;animation:ubDraw .5s .6s ease forwards}
+@keyframes ubDraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.unlock-burst circle,.unlock-burst path{animation:none;stroke-dashoffset:0}}
 </style>
 <script>
 /* Creator Library V7.5 */
@@ -376,7 +382,8 @@
 
         const banner = bought ? `
             <div class="card" style="grid-column:1/-1;border-color:rgba(34,197,94,.45)">
-                <div class="tag" style="color:#67e58a">PAYMENT SUCCESSFUL ✓</div>
+                <div class="unlock-burst" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24"/><path d="M14 27l8 8 16-17"/></svg></div>
+                <div class="tag" style="color:#67e58a">PAYMENT SUCCESSFUL ✓ • UNLOCKED</div>
                 <h3>Your prompts are ready</h3>
                 <p class="muted">
                     <b>${escapeHtml(bought.name)}</b> is added to your library.
