@@ -20,7 +20,10 @@
     .then(function (d) { show(d && d.user); })
     .catch(function () { show(null); });
 
-  login.addEventListener("click", function () { location.href = "/?login=1"; });
+  login.addEventListener("click", function (e) {
+    if (window.epOpenLogin) { e.preventDefault(); window.epOpenLogin(); }
+    else location.href = "/?login=1";
+  });
 
   logout.addEventListener("click", function () {
     logout.disabled = true;

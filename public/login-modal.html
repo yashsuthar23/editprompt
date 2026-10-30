@@ -1,0 +1,172 @@
+<div
+        id="loginModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="loginTitle">
+
+        <div class="modalbox">
+
+            <button
+                class="x"
+                id="closeLogin"
+                type="button"
+                aria-label="Close login">
+                ×
+            </button>
+
+
+            <!-- STEP 1 -->
+
+            <div id="loginStep1">
+
+                <h2 id="loginTitle">
+                    Login / Create Account
+                </h2>
+
+                <p class="muted">
+                    We'll email you a 6-digit code —
+                    no password needed.
+                </p>
+
+                <label
+                    for="name"
+                    class="hide">
+                    Name
+                </label>
+
+                <input
+                    id="name"
+                    autocomplete="name"
+                    maxlength="100"
+                    placeholder="Your name">
+
+                <label
+                    for="email"
+                    class="hide">
+                    Email
+                </label>
+
+                <input
+                    id="email"
+                    type="email"
+                    autocomplete="email"
+                    maxlength="254"
+                    placeholder="Email address">
+
+                <button
+                    id="sendOtpBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Send Code
+
+                </button>
+
+            </div>
+
+            <!-- ADMIN STEP (shown only when the admin email is entered) -->
+
+            <div
+                id="loginStepAdmin"
+                class="hide">
+
+                <h2>
+                    Admin Login
+                </h2>
+
+                <p class="muted">
+                    Enter the admin password.
+                </p>
+
+                <label
+                    for="adminPass"
+                    class="hide">
+                    Admin password
+                </label>
+
+                <input
+                    id="adminPass"
+                    type="password"
+                    autocomplete="current-password"
+                    maxlength="200"
+                    placeholder="Password">
+
+                <button
+                    id="adminLoginBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Login as Admin
+
+                </button>
+
+                <button
+                    id="adminCustomerBtn"
+                    class="btn ghost full small"
+                    type="button">
+
+                    Login as customer instead
+
+                </button>
+
+            </div>
+
+
+            <!-- STEP 2 -->
+
+            <div
+                id="loginStep2"
+                class="hide">
+
+                <h2>
+                    Enter Code
+                </h2>
+
+                <p
+                    class="muted"
+                    id="otpHint">
+
+                    Check your email for the
+                    6-digit code.
+
+                </p>
+
+                <label
+                    for="otp"
+                    class="hide">
+                    Verification code
+                </label>
+
+                <input
+                    id="otp"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    placeholder="6-digit code">
+
+                <button
+                    id="verifyOtpBtn"
+                    class="btn primary full"
+                    type="button">
+
+                    Verify &amp; Login
+
+                </button>
+
+                <button
+                    id="resendOtpBtn"
+                    class="btn ghost full small"
+                    type="button">
+
+                    Resend code
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>

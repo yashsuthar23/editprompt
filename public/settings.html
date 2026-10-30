@@ -100,7 +100,7 @@
     <a href="/studio-tools.html">Creator Studio</a>
   </nav>
   <div class="right account">
-    <a id="navLogin" class="btn ghost" href="/?login=1">Login</a>
+    <button id="loginBtn" class="btn ghost" type="button">Login</button>
     <button id="navLogout" class="btn ghost hide" type="button">Logout</button>
   </div>
 </header>
@@ -273,7 +273,7 @@
 
   /* Account */
   var user = null;
-  var navLogin = document.getElementById("navLogin"), navLogout = document.getElementById("navLogout");
+  var navLogin = document.getElementById("loginBtn"), navLogout = document.getElementById("navLogout");
   function setSignedIn(on) {
     navLogin.classList.toggle("hide", on);
     navLogout.classList.toggle("hide", !on);
@@ -385,5 +385,6 @@
   if (h && document.querySelector('[data-pane-id="' + h + '"]')) showPane(h);
 })();
 </script>
+<script src="/login-inline.js"></script>
 </body>
 </html>
