@@ -3,133 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
 <title>Settings — EditPrompt</title>
 <meta name="description" content="Manage your EditPrompt account, preferences and purchases.">
 <meta name="robots" content="noindex">
+<link rel="stylesheet" href="/styles.css?v=6">
+<link rel="stylesheet" href="/light-fixes.css?v=8">
+<link rel="stylesheet" href="/mobile-nav.css">
+<link rel="stylesheet" href="/animated-borders.css?v=1" />
+<link rel="stylesheet" href="/store-extras.css?v=1" />
 <style>
-  :root{
-    --bg:#f4f5fb; --card:#ffffff; --line:#e6e8f2; --text:#1b1d2a; --muted:#6b7089;
-    --brand:#4f46e5; --brand-soft:#eef0ff; --ok:#047857; --ok-soft:#d1fae5;
-    --side:#0f1123; --radius:14px;
-    --accent:#4f46e5;
-  }
-  :root[data-theme="dark"]{ --bg:#0f1117; --card:#171a24; --line:#262b3b; --text:#eceef7; --muted:#9097b0; --brand-soft:#1f2340; --ok-soft:#0f3b2c; }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0f1117; --card:#171a24; --line:#262b3b; --text:#eceef7; --muted:#9097b0; --brand-soft:#1f2340; --ok-soft:#0f3b2c; } }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
-  button,input{font:inherit}
-
-  /* Top bar */
-  .top{display:flex;align-items:center;gap:16px;height:64px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:18px;margin-right:auto}
-  .logo{width:34px;height:34px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800}
-  .top a.back{color:var(--muted);text-decoration:none;padding:8px 12px;border-radius:10px;border:1px solid var(--line)}
-  .top a.back:hover{color:var(--text)}
-  .me{display:flex;align-items:center;gap:10px;font-weight:600}
-  .avatar{width:34px;height:34px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:13px}
-
-  .layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;max-width:1240px;margin:0 auto;padding:24px}
-
-  /* Sidebar */
-  .side{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;align-self:start;position:sticky;top:88px}
-  .side h1{font-size:20px;margin:6px 8px 2px}
-  .side p.sub{margin:0 8px 12px;color:var(--muted);font-size:13px}
-  .side nav{display:grid;gap:4px}
-  .side button, .side a{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border:0;background:none;border-radius:10px;color:var(--text);cursor:pointer;text-decoration:none}
-  .side button:hover, .side a:hover{background:var(--brand-soft)}
-  .side button[aria-current="page"]{background:var(--brand-soft);color:var(--brand);font-weight:600}
-  .side svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
-
-  /* Panes */
-  .pane{display:none}
-  .pane.on{display:block}
-  .title{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
-  .title .ic{width:40px;height:40px;border-radius:12px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}
-  .title h2{margin:0;font-size:22px}
-  .title p{margin:2px 0 0;color:var(--muted)}
-
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:18px}
-  .card h3{margin:0;font-size:16px}
-  .card .hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
-  .card .hd p{margin:2px 0 0;color:var(--muted);font-size:13px}
-  .card .hd .ic{width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;flex:none}
-  .card .hd .ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
-
-  .profile{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-  .profile .big{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#8b5cf6);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:700}
-  .profile .info{flex:1;min-width:200px}
-  .profile .name{font-size:19px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand)}
-  .tag.ok{background:var(--ok-soft);color:var(--ok)}
-  .profile .meta{color:var(--muted);font-size:13px;margin-top:3px}
-
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media (max-width:980px){ .grid2{grid-template-columns:1fr} }
-
-  label{display:block;font-weight:600;font-size:13px;margin:12px 0 6px}
-  label:first-of-type{margin-top:0}
-  .field{position:relative}
-  input[type=text],input[type=email],input[type=password],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);outline:none}
-  input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
-  input[readonly]{color:var(--muted)}
-  .hint{color:var(--muted);font-size:12px;margin-top:6px}
-  .actions{display:flex;justify-content:flex-end;margin-top:16px;gap:10px;align-items:center}
-  .btn{padding:10px 16px;border-radius:10px;border:1px solid var(--brand);background:var(--brand);color:#fff;font-weight:600;cursor:pointer}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn.ghost{background:none;color:var(--brand)}
-  .msg{font-size:13px;margin-right:auto}
-  .msg.err{color:#dc2626}.msg.ok{color:var(--ok)}
-
-  .stat{display:flex;gap:16px;flex-wrap:wrap}
-  .stat .box{flex:1;min-width:160px;border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg)}
-  .stat .box small{color:var(--muted);font-size:12px}
-  .stat .box b{display:block;font-size:20px;margin-top:4px}
-
-  .row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
-  .row:first-child{border-top:0;padding-top:0}
-  .row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .seg button{border:0;background:none;padding:8px 14px;cursor:pointer;color:var(--muted)}
-  .seg button.on{background:var(--brand);color:#fff}
-  .dots{display:flex;gap:10px}
-  .dots button{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--sw)}
-  .dots button[aria-pressed="true"]{border-color:var(--text);box-shadow:0 0 0 2px var(--card) inset}
-  .switch{position:relative;width:42px;height:24px;flex:none}
-  .switch input{opacity:0;width:0;height:0}
-  .switch span{position:absolute;inset:0;background:var(--line);border-radius:99px;cursor:pointer;transition:.2s}
-  .switch span::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
-  .switch input:checked + span{background:var(--brand)}
-  .switch input:checked + span::after{transform:translateX(18px)}
-
-  .link-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--line);color:var(--text);text-decoration:none}
-  .link-row:first-child{border-top:0;padding-top:0}
-  .link-row:hover b{color:var(--brand)}
-  .link-row span{color:var(--muted);font-size:13px}
-
-  .signin{text-align:center;padding:50px 20px}
-  .signin a{color:var(--brand);font-weight:600}
-
+  /* Settings page: uses the site's shared colors (--panel, --border, --red, --muted) */
+  a{text-decoration:none!important}
+  .sx-nav-active{font-weight:700!important;color:#fff!important}
+  .sx-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;max-width:1240px;margin:0 auto;padding:24px}
+  .sx-side{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;align-self:start;position:sticky;top:96px}
+  .sx-side h1{font-size:20px;margin:6px 8px 2px}
+  .sx-side p.sub{margin:0 8px 12px;color:var(--muted);font-size:13px}
+  .sx-side nav{display:grid;gap:4px}
+  .sx-side nav a,.sx-side nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border:0;background:none;border-radius:10px;color:var(--text);cursor:pointer;font:inherit}
+  .sx-side nav a:hover,.sx-side nav button:hover{background:rgba(229,35,41,.08)}
+  .sx-side nav button[aria-current="page"]{background:rgba(229,35,41,.12);color:var(--red);font-weight:700}
+  .sx-side svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+  .sx-pane{display:none}
+  .sx-pane.on{display:block}
+  .sx-title{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
+  .sx-title h2{margin:0;font-size:22px}
+  .sx-title p{margin:2px 0 0;color:var(--muted)}
+  .sx-ic{width:38px;height:38px;border-radius:11px;background:rgba(229,35,41,.12);color:var(--red);display:grid;place-items:center;flex:none}
+  .sx-ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .sx-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px}
+  .sx-card h3{margin:0;font-size:16px}
+  .sx-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .sx-hd p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .sx-profile{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .sx-big{width:76px;height:76px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800}
+  .sx-info{flex:1;min-width:200px}
+  .sx-name{font-size:19px;font-weight:700}
+  .sx-meta{color:var(--muted);font-size:13px;margin-top:3px}
+  .sx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:980px){.sx-grid2{grid-template-columns:1fr}}
+  .sx-label{display:block;font-weight:600;font-size:13px;margin:12px 0 6px}
+  .sx-label:first-of-type{margin-top:0}
+  .sx-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--input);color:var(--text);outline:none;font:inherit}
+  .sx-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,35,41,.15)}
+  .sx-input[readonly]{color:var(--muted)}
+  .sx-hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .sx-actions{display:flex;justify-content:flex-end;margin-top:16px;gap:10px;align-items:center}
+  .sx-actions.left{justify-content:flex-start}
+  .sx-msg{font-size:13px;margin-right:auto}
+  .sx-msg.err{color:#f87171}.sx-msg.ok{color:#4ade80}
+  .sx-stat{display:flex;gap:16px;flex-wrap:wrap}
+  .sx-box{flex:1;min-width:160px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--input)}
+  .sx-box small{color:var(--muted);font-size:12px}
+  .sx-box b{display:block;font-size:20px;margin-top:4px}
+  .sx-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--border)}
+  .sx-row:first-child{border-top:0;padding-top:0}
+  .sx-row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  .sx-seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .sx-seg button{border:0;background:none;padding:8px 14px;cursor:pointer;color:var(--muted);font:inherit}
+  .sx-seg button.on{background:var(--red);color:#fff;font-weight:700}
+  .sx-dots{display:flex;gap:10px}
+  .sx-dots button{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--sw)}
+  .sx-dots button[aria-pressed="true"]{border-color:var(--text)}
+  .sx-switch{position:relative;width:42px;height:24px;flex:none}
+  .sx-switch input{opacity:0;width:0;height:0}
+  .sx-switch span{position:absolute;inset:0;background:var(--border);border-radius:99px;cursor:pointer;transition:.2s}
+  .sx-switch span::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .sx-switch input:checked + span{background:var(--red)}
+  .sx-switch input:checked + span::after{transform:translateX(18px)}
+  .sx-link{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;color:var(--text)}
+  .sx-signin{text-align:center;padding:50px 20px}
+  .sx-signin a{color:var(--red);font-weight:700}
   @media (max-width:820px){
-    .layout{grid-template-columns:1fr;padding:14px}
-    .side{position:static}
-    .side nav{grid-auto-flow:column;overflow-x:auto}
-    .side button,.side a{white-space:nowrap;width:auto}
+    .sx-layout{grid-template-columns:1fr;padding:14px}
+    .sx-side{position:static}
+    .sx-side nav{grid-auto-flow:column;overflow-x:auto}
+    .sx-side nav a,.sx-side nav button{white-space:nowrap;width:auto}
   }
-  body.ep-size-small{font-size:13px}
-  body.ep-size-large{font-size:16px}
 </style>
 </head>
 <body>
 
-<header class="top">
-  <a class="brand" href="/"><div class="logo">EP</div>EditPrompt</a>
-  <a class="back" href="/">Back to site</a>
-  <div class="me" id="topMe" hidden><div class="avatar" id="topAvatar"></div><span id="topName"></span></div>
+<header class="nav">
+  <a class="brand" href="/" aria-label="EditPrompt home">
+    <div class="logo" aria-hidden="true">EP</div>
+    <div><b>EditPrompt</b><small>AI tools for video creators</small></div>
+  </a>
+  <nav aria-label="Main navigation">
+    <a href="/#generator">AI Generator</a>
+    <a href="/#tools">Tools</a>
+    <a href="/#categories">Categories</a>
+    <a href="/#store">Store</a>
+    <a href="/software.html">Software</a>
+    <a href="/#dashboard">Dashboard</a>
+    <a href="/studio-tools.html">Creator Studio</a>
+  </nav>
+  <div class="right account">
+    <a id="navLogin" class="btn ghost" href="/?login=1">Login</a>
+    <button id="navLogout" class="btn ghost hide" type="button">Logout</button>
+  </div>
 </header>
 
-<div class="layout">
-  <aside class="side">
+<div class="sx-layout">
+  <aside class="sx-side">
     <h1>Settings</h1>
     <p class="sub">Manage your account, preferences and more</p>
     <nav id="sideNav" aria-label="Settings sections">
@@ -139,148 +116,154 @@
         <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Preferences</button>
       <button type="button" data-pane="security">
         <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg>Security</button>
-      <a href="/library.html">
+      <a class="sx-link" href="/library.html">
         <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Subscription &amp; Billing</a>
-      <a href="/privacy.html">
+      <a class="sx-link" href="/privacy.html">
         <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Privacy &amp; Data</a>
-      <a href="/contact.html">
+      <a class="sx-link" href="/contact.html">
         <svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-1v-6h3M4 13v4a2 2 0 0 0 2 2h1v-6H4"/></svg>Support</a>
     </nav>
   </aside>
 
   <main>
-    <div id="signedOut" class="card signin" hidden>
+    <div id="signedOut" class="sx-card sx-signin" hidden>
       <h3>Please sign in to see your settings.</h3>
-      <p class="hint"><a href="/?login=1">Sign in to EditPrompt</a></p>
+      <p class="sx-hint"><a href="/?login=1">Sign in to EditPrompt</a></p>
     </div>
 
     <div id="signedIn" hidden>
 
       <!-- ACCOUNT -->
-      <section class="pane on" data-pane-id="account">
-        <div class="card">
-          <div class="profile">
-            <div class="big" id="bigAvatar">?</div>
-            <div class="info">
-              <div class="name"><span id="pName">—</span></div>
-              <div class="meta" id="pEmail"></div>
-              <div class="meta" id="pSince"></div>
+      <section class="sx-pane on" data-pane-id="account">
+        <div class="sx-card">
+          <div class="sx-profile">
+            <div class="sx-big" id="bigAvatar">?</div>
+            <div class="sx-info">
+              <div class="sx-name"><span id="pName">—</span></div>
+              <div class="sx-meta" id="pEmail"></div>
+              <div class="sx-meta" id="pSince"></div>
             </div>
           </div>
         </div>
 
-        <div class="grid2">
-          <div class="card">
-            <div class="hd">
-              <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+        <div class="sx-grid2">
+          <div class="sx-card">
+            <div class="sx-hd">
+              <div class="sx-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
               <div><h3>Profile Information</h3><p>Update your personal information</p></div>
             </div>
             <form id="profileForm" novalidate>
-              <label for="fName">Full Name</label>
-              <input type="text" id="fName" name="name" maxlength="60" autocomplete="name" required>
-              <label for="fEmail">Email Address</label>
-              <input type="email" id="fEmail" readonly>
-              <p class="hint">Your email is used to sign in and cannot be changed here.</p>
-              <div class="actions">
-                <span class="msg" id="profileMsg" role="status"></span>
-                <button class="btn" type="submit" id="saveProfile" disabled>Update Profile</button>
+              <label class="sx-label" for="fName">Full Name</label>
+              <input class="sx-input" type="text" id="fName" name="name" maxlength="60" autocomplete="name" required>
+              <label class="sx-label" for="fEmail">Email Address</label>
+              <input class="sx-input" type="email" id="fEmail" readonly>
+              <p class="sx-hint">Your email is used to sign in and cannot be changed here.</p>
+              <div class="sx-actions">
+                <span class="sx-msg" id="profileMsg" role="status"></span>
+                <button class="btn primary" type="submit" id="saveProfile" disabled>Update Profile</button>
               </div>
             </form>
           </div>
 
-          <div class="card">
-            <div class="hd">
-              <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+          <div class="sx-card">
+            <div class="sx-hd">
+              <div class="sx-ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
               <div><h3>Change Password</h3><p>Keep your account secure</p></div>
             </div>
-            <p class="hint" style="margin-top:0">EditPrompt signs you in with your email and a one-time code, so there is no password to change.</p>
-            <div class="actions"><a class="btn ghost" href="/?login=1">Sign in again</a></div>
+            <p class="sx-hint" style="margin-top:0">EditPrompt signs you in with your email and a one-time code, so there is no password to change.</p>
+            <div class="sx-actions"><a class="btn ghost" href="/?login=1">Sign in again</a></div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="hd">
-            <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></div>
+        <div class="sx-card">
+          <div class="sx-hd">
+            <div class="sx-ic"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></div>
             <div><h3>Your Purchases</h3><p>Prompt packs you own and their invoices</p></div>
           </div>
-          <div class="stat">
-            <div class="box"><small>Plan</small><b>Free</b></div>
-            <div class="box"><small>Member since</small><b id="sinceBox">—</b></div>
+          <div class="sx-stat">
+            <div class="sx-box"><small>Plan</small><b>Free</b></div>
+            <div class="sx-box"><small>Member since</small><b id="sinceBox">—</b></div>
           </div>
-          <div class="actions"><a class="btn ghost" href="/library.html">View purchase history →</a></div>
+          <div class="sx-actions"><a class="btn ghost" href="/library.html">View purchase history →</a></div>
         </div>
       </section>
 
       <!-- PREFERENCES -->
-      <section class="pane" data-pane-id="preferences">
-        <div class="title">
-          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
+      <section class="sx-pane" data-pane-id="preferences">
+        <div class="sx-title">
+          <div class="sx-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
           <div><h2>Preferences</h2><p>Saved on this browser only</p></div>
         </div>
-        <div class="card">
-          <div class="hd"><div><h3>Appearance</h3><p>Choose how EditPrompt looks on this device</p></div></div>
-          <div class="row">
+        <div class="sx-card">
+          <div class="sx-hd"><div><h3>Appearance</h3><p>Choose how EditPrompt looks on this device</p></div></div>
+          <div class="sx-row">
             <div>Theme<small>Auto follows your device setting</small></div>
-            <div class="seg" role="group" aria-label="Theme">
+            <div class="sx-seg" role="group" aria-label="Theme">
               <button type="button" data-theme-set="light">Light</button>
               <button type="button" data-theme-set="dark">Dark</button>
               <button type="button" data-theme-set="auto">Auto</button>
             </div>
           </div>
-          <div class="row">
+          <div class="sx-row">
             <div>Accent color<small>Used for buttons and highlights</small></div>
-            <div class="dots" id="accentDots" role="group" aria-label="Accent color"></div>
+            <div class="sx-dots" id="accentDots" role="group" aria-label="Accent color"></div>
           </div>
-          <div class="row">
+          <div class="sx-row">
             <div>Text size<small>Applies across the site</small></div>
-            <div class="seg" role="group" aria-label="Text size">
+            <div class="sx-seg" role="group" aria-label="Text size">
               <button type="button" data-size-set="small">A−</button>
               <button type="button" data-size-set="normal">A</button>
               <button type="button" data-size-set="large">A+</button>
             </div>
           </div>
         </div>
-        <div class="card">
-          <div class="hd"><div><h3>Motion</h3><p>Accessibility options</p></div></div>
-          <div class="row">
+        <div class="sx-card">
+          <div class="sx-hd"><div><h3>Motion</h3><p>Accessibility options</p></div></div>
+          <div class="sx-row">
             <div>Reduce animations<small>Turns off hover and background motion</small></div>
-            <label class="switch"><input type="checkbox" id="prefMotion"><span></span></label>
+            <label class="sx-switch"><input type="checkbox" id="prefMotion"><span></span></label>
           </div>
         </div>
       </section>
 
       <!-- SECURITY -->
-      <section class="pane" data-pane-id="security">
-        <div class="title">
-          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg></div>
+      <section class="sx-pane" data-pane-id="security">
+        <div class="sx-title">
+          <div class="sx-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg></div>
           <div><h2>Security</h2><p>Where your account is signed in</p></div>
         </div>
-        <div class="card">
-          <div class="hd"><div><h3>Signing in</h3><p>Sign-in uses your email and a one-time code. Sign out here to end this session.</p></div></div>
-          <div class="actions" style="justify-content:flex-start"><button class="btn" type="button" id="logoutBtn">Sign out of this device</button></div>
+        <div class="sx-card">
+          <div class="sx-hd"><div><h3>Signing in</h3><p>Sign-in uses your email and a one-time code. Sign out here to end this session.</p></div></div>
+          <div class="sx-actions left"><button class="btn primary" type="button" id="secLogout">Sign out of this device</button></div>
         </div>
       </section>
     </div>
   </main>
 </div>
 
+<script src="/theme.js"></script>
 <script>
 (function () {
-  var THEME_KEY = "editprompt.creatorStudio.theme";
-  var MODE_KEY = "editprompt.ui.themeMode";
   var MOTION_KEY = "editprompt.ui.reduceMotion";
   var SIZE_KEY = "editprompt.ui.textSize";
+  var THEME_KEY = "editprompt.creatorStudio.theme";
+  var MODE_KEY = "editprompt.ui.themeMode";
   var ACCENT_PREFIX = "editprompt.ui.accent.";
   var accents = [
     { name: "Ruby", value: "#e5233a" }, { name: "Violet", value: "#7657f6" },
     { name: "Ocean", value: "#2878e8" }, { name: "Teal", value: "#0d9488" },
     { name: "Amber", value: "#d97706" }, { name: "Rose", value: "#db2777" }
   ];
+  var body = document.body;
   function get(k, f) { try { return localStorage.getItem(k) || f; } catch (_) { return f; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
-  /* Panes */
+  /* Mark "Settings" as the current page in the shared navbar (bold) */
+  var navSettings = document.getElementById("epSettingsLink");
+  if (navSettings) { navSettings.classList.add("sx-nav-active"); navSettings.setAttribute("aria-current", "page"); }
+
+  /* Side panes */
   var navBtns = document.querySelectorAll("#sideNav [data-pane]");
   function showPane(id) {
     navBtns.forEach(function (b) { b.setAttribute("aria-current", b.dataset.pane === id ? "page" : "false"); });
@@ -290,18 +273,21 @@
 
   /* Account */
   var user = null;
+  var navLogin = document.getElementById("navLogin"), navLogout = document.getElementById("navLogout");
+  function setSignedIn(on) {
+    navLogin.classList.toggle("hide", on);
+    navLogout.classList.toggle("hide", !on);
+  }
   fetch("/api/me", { credentials: "same-origin", headers: { Accept: "application/json" } })
     .then(function (r) { return r.ok ? r.json() : {}; })
     .then(function (d) {
       user = d && d.user;
-      if (!user) { document.getElementById("signedOut").hidden = false; return; }
+      if (!user) { document.getElementById("signedOut").hidden = false; setSignedIn(false); return; }
+      setSignedIn(true);
       document.getElementById("signedIn").hidden = false;
       var initials = (user.name || user.email || "?").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase();
       var since = user.created_at ? new Date(user.created_at.replace(" ", "T") + "Z").toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "—";
       document.getElementById("bigAvatar").textContent = initials;
-      document.getElementById("topAvatar").textContent = initials;
-      document.getElementById("topName").textContent = user.name;
-      document.getElementById("topMe").hidden = false;
       document.getElementById("pName").textContent = user.name;
       document.getElementById("pEmail").textContent = user.email;
       document.getElementById("pSince").textContent = "Member since " + since;
@@ -309,50 +295,48 @@
       document.getElementById("fName").value = user.name;
       document.getElementById("fEmail").value = user.email;
     })
-    .catch(function () { document.getElementById("signedOut").hidden = false; });
+    .catch(function () { document.getElementById("signedOut").hidden = false; setSignedIn(false); });
 
   var nameInput = document.getElementById("fName"), saveBtn = document.getElementById("saveProfile"), msg = document.getElementById("profileMsg");
-  nameInput.addEventListener("input", function () { saveBtn.disabled = !user || nameInput.value.trim() === user.name; msg.textContent = ""; msg.className = "msg"; });
+  nameInput.addEventListener("input", function () { saveBtn.disabled = !user || nameInput.value.trim() === user.name; msg.textContent = ""; msg.className = "sx-msg"; });
   document.getElementById("profileForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var name = nameInput.value.trim();
-    if (name.length < 2) { msg.textContent = "Name must be at least 2 characters."; msg.className = "msg err"; return; }
-    saveBtn.disabled = true; msg.textContent = "Saving…"; msg.className = "msg";
+    if (name.length < 2) { msg.textContent = "Name must be at least 2 characters."; msg.className = "sx-msg err"; return; }
+    saveBtn.disabled = true; msg.textContent = "Saving…"; msg.className = "sx-msg";
     fetch("/api/me/profile", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (!res.ok) throw new Error(res.d.error || "Could not save.");
         user = res.d.user;
         document.getElementById("pName").textContent = user.name;
-        document.getElementById("topName").textContent = user.name;
-        msg.textContent = "Profile updated."; msg.className = "msg ok";
+        document.getElementById("bigAvatar").textContent = user.name.trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase();
+        msg.textContent = "Profile updated."; msg.className = "sx-msg ok";
       })
-      .catch(function (err) { msg.textContent = err.message; msg.className = "msg err"; saveBtn.disabled = false; });
+      .catch(function (err) { msg.textContent = err.message; msg.className = "sx-msg err"; saveBtn.disabled = false; });
   });
 
-  /* Preferences: same keys the rest of the site reads */
+  /* Preferences: same storage keys theme.js reads, applied immediately */
+  function mode() { return get(MODE_KEY, "dark"); }
   function effectiveTheme() {
-    var mode = get(MODE_KEY, "");
-    if (mode === "auto") return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    if (mode() === "auto") return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
     return get(THEME_KEY, "dark") === "light" ? "light" : "dark";
   }
   function markTheme() {
-    var mode = get(MODE_KEY, "") === "auto" ? "auto" : effectiveTheme();
-    document.querySelectorAll("[data-theme-set]").forEach(function (b) { b.classList.toggle("on", b.dataset.themeSet === mode); });
-    document.documentElement.setAttribute("data-theme", effectiveTheme());
+    document.querySelectorAll("[data-theme-set]").forEach(function (b) { b.classList.toggle("on", b.dataset.themeSet === mode()); });
   }
   document.querySelectorAll("[data-theme-set]").forEach(function (b) {
     b.addEventListener("click", function () {
       var t = b.dataset.themeSet;
-      if (t === "auto") set(MODE_KEY, "auto"); else { set(THEME_KEY, t); set(MODE_KEY, t); }
-      markTheme();
+      if (t === "auto") { set(MODE_KEY, "auto"); } else { set(THEME_KEY, t); set(MODE_KEY, t); }
+      body.setAttribute("data-ep-theme", effectiveTheme());
+      markTheme(); markAccent();
     });
   });
 
   var dots = document.getElementById("accentDots");
-  function currentAccent() { return get(ACCENT_PREFIX + effectiveTheme(), accents[0].value); }
   function markAccent() {
-    var cur = currentAccent();
+    var cur = get(ACCENT_PREFIX + effectiveTheme(), accents[0].value);
     dots.innerHTML = "";
     accents.forEach(function (a) {
       var b = document.createElement("button");
@@ -361,7 +345,7 @@
       b.setAttribute("aria-pressed", a.value === cur ? "true" : "false");
       b.addEventListener("click", function () {
         set(ACCENT_PREFIX + effectiveTheme(), a.value);
-        document.body.style.setProperty("--accent", a.value);
+        body.style.setProperty("--accent", a.value);
         markAccent();
       });
       dots.appendChild(b);
@@ -370,8 +354,8 @@
 
   function markSize() {
     var s = get(SIZE_KEY, "normal");
-    document.body.classList.toggle("ep-size-small", s === "small");
-    document.body.classList.toggle("ep-size-large", s === "large");
+    body.classList.toggle("ep-size-small", s === "small");
+    body.classList.toggle("ep-size-large", s === "large");
     document.querySelectorAll("[data-size-set]").forEach(function (b) { b.classList.toggle("on", b.dataset.sizeSet === s); });
   }
   document.querySelectorAll("[data-size-set]").forEach(function (b) {
@@ -380,16 +364,21 @@
 
   var motion = document.getElementById("prefMotion");
   motion.checked = get(MOTION_KEY, "") === "1";
-  motion.addEventListener("change", function () { set(MOTION_KEY, motion.checked ? "1" : "0"); });
+  motion.addEventListener("change", function () {
+    set(MOTION_KEY, motion.checked ? "1" : "0");
+    body.classList.toggle("ep-reduce-motion", motion.checked);
+  });
 
   markTheme(); markAccent(); markSize();
 
-  /* Security */
-  document.getElementById("logoutBtn").addEventListener("click", function () {
+  /* Logout (navbar + security pane) */
+  function logout() {
     fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
       .catch(function () {})
       .then(function () { location.href = "/"; });
-  });
+  }
+  navLogout.addEventListener("click", logout);
+  document.getElementById("secLogout").addEventListener("click", logout);
 
   /* Open a section from the URL hash, e.g. /settings.html#security */
   var h = location.hash.replace("#", "");
