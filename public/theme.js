@@ -153,4 +153,13 @@
     applyAccent(getAccent(getTheme()));
     markMode();
   }
+
+  /* Presence: tell the server this signed-in customer is active (admin shows Online/Offline). */
+  function heartbeat() {
+    if (document.visibilityState && document.visibilityState !== "visible") return;
+    fetch("/api/heartbeat", { method: "POST", credentials: "same-origin" }).catch(function () {});
+  }
+  heartbeat();
+  setInterval(heartbeat, 60000);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") heartbeat(); });
 })();

@@ -540,6 +540,14 @@
         return Number.isNaN(d.getTime()) ? null : d;
       }
 
+      function presenceHtml(u) {
+        if (u.online) {
+          return '<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span>Online</span>';
+        }
+        const seen = u.last_seen ? formatDate(u.last_seen) : "Never";
+        return '<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--muted,#9aa0ad)"><span style="width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block"></span>Offline</span><div class="admin-meta" style="font-size:11px">Last seen ' + seen + '</div>';
+      }
+
       function formatDate(value) {
         if (!value) return "—";
         const d = parseDate(value);
@@ -884,7 +892,7 @@
 
         $("users").innerHTML = `<div class="admin-table-wrap"><table class="admin-table"><thead><tr>
           <th class="adm-check-col"><input type="checkbox" id="selAll" aria-label="Select all shown users" ${allChecked ? "checked" : ""} /></th>
-          <th>ID</th><th>User</th><th>Registered</th><th>Paid orders</th><th>Prompts</th><th>Status</th><th></th>
+          <th>ID</th><th>User</th><th>Registered</th><th>Paid orders</th><th>Prompts</th><th>Online</th><th>Status</th><th></th>
         </tr></thead><tbody>${list
           .map(
             (u) => `<tr>
@@ -894,6 +902,7 @@
               <td>${formatDate(u.created_at)}</td>
               <td>${Number(u.paid_orders || 0)} <span class="admin-meta">(₹${formatMoney(Number(u.paid_amount || 0) / 100)})</span></td>
               <td>${Number(u.prompts || 0)}</td>
+              <td>${presenceHtml(u)}</td>
               <td><span class="status-pill ${u.blocked ? "status-blocked" : "status-active"}">${u.blocked ? "Blocked" : "Active"}</span></td>
               <td style="white-space:nowrap">
                 <button class="btn ghost small" data-view="${escapeHtml(u.id)}" type="button">View</button>

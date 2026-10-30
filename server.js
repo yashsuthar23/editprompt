@@ -443,6 +443,10 @@ try {
 } catch {}
 
 try {
+  db.exec("ALTER TABLE users ADD COLUMN last_seen TEXT");
+} catch {}
+
+try {
   db.exec(
     "ALTER TABLE video_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0",
   );
@@ -4242,6 +4246,14 @@ app.post("/api/admin/logout", (req, res) => {
 // ADMIN USERS + BLOCK LIST
 // ============================================================
 
+/* Customer heartbeat: pages ping this while open so admin can show Online / Offline. */
+app.post("/api/heartbeat", requireLogin, (req, res) => {
+  db.prepare("UPDATE users SET last_seen=CURRENT_TIMESTAMP WHERE id=?").run(
+    req.session.userId,
+  );
+  res.json({ ok: true });
+});
+
 app.get("/api/admin/users", requireAdmin, (req, res) => {
   const rows = db
     .prepare(
@@ -4262,7 +4274,9 @@ app.get("/api/admin/users", requireAdmin, (req, res) => {
 
           (SELECT COUNT(*)
              FROM prompt_history h
-            WHERE h.user_id=u.id) AS prompts
+            WHERE h.user_id=u.id) AS prompts,
+
+          u.last_seen
 
         FROM users u
         ORDER BY u.id DESC
@@ -4282,6 +4296,11 @@ app.get("/api/admin/users", requireAdmin, (req, res) => {
     users: rows.map((row) => ({
       ...row,
       blocked: blocked.has(canonicalEmail(row.email)),
+      // Online = pinged within the last 2.5 minutes (heartbeat runs every 60s)
+      online:
+        !!row.last_seen &&
+        Date.now() - Date.parse(String(row.last_seen).replace(" ", "T") + "Z") <
+          150000,
     })),
   });
 });
