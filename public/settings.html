@@ -13,74 +13,106 @@
 <link rel="stylesheet" href="/animated-borders.css?v=1" />
 <link rel="stylesheet" href="/store-extras.css?v=1" />
 <style>
+  /* ---------- Responsive scale: text and spacing grow with the screen ---------- */
+  html{font-size:clamp(15px, 9px + 0.55vw, 20px)}
+  html,body{overflow-x:hidden}
+  body{font-size:1rem}
+
   /* Settings page: uses the site's shared colors (--panel, --border, --red, --muted) */
   a{text-decoration:none!important}
   .sx-nav-active{font-weight:700!important;color:#fff!important}
-  .sx-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;max-width:1240px;margin:0 auto;padding:24px}
-  .sx-side{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;align-self:start;position:sticky;top:96px}
-  .sx-side h1{font-size:20px;margin:6px 8px 2px}
-  .sx-side p.sub{margin:0 8px 12px;color:var(--muted);font-size:13px}
-  .sx-side nav{display:grid;gap:4px}
-  .sx-side nav a,.sx-side nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border:0;background:none;border-radius:10px;color:var(--text);cursor:pointer;font:inherit}
+
+  .sx-layout{display:grid;grid-template-columns:minmax(14rem,17rem) minmax(0,1fr);gap:1.5rem;width:min(1480px,94vw);margin:0 auto;padding:1.5rem 0 3rem;box-sizing:border-box}
+  .sx-main{min-width:0;width:auto;max-width:none;margin:0;padding:0;display:block}
+
+  .sx-side{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:0.75rem;align-self:start;position:sticky;top:6rem}
+  .sx-side h1{font-size:1.35rem;margin:0.4rem 0.5rem 0.2rem}
+  .sx-side p.sub{margin:0 0.5rem 0.75rem;color:var(--muted);font-size:0.85rem}
+  .sx-side nav{display:grid;gap:0.25rem}
+  .sx-side nav a,.sx-side nav button{display:flex;align-items:center;gap:0.65rem;width:100%;text-align:left;padding:0.7rem 0.75rem;border:0;background:none;border-radius:0.65rem;color:var(--text);cursor:pointer;font:inherit;font-size:0.95rem;min-height:2.75rem}
   .sx-side nav a:hover,.sx-side nav button:hover{background:rgba(229,35,41,.08)}
   .sx-side nav button[aria-current="page"]{background:rgba(229,35,41,.12);color:var(--red);font-weight:700}
-  .sx-side svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+  .sx-side svg{width:1.1rem;height:1.1rem;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+
   .sx-pane{display:none}
   .sx-pane.on{display:block}
-  .sx-title{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
-  .sx-title h2{margin:0;font-size:22px}
-  .sx-title p{margin:2px 0 0;color:var(--muted)}
-  .sx-ic{width:38px;height:38px;border-radius:11px;background:rgba(229,35,41,.12);color:var(--red);display:grid;place-items:center;flex:none}
-  .sx-ic svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
-  .sx-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px}
-  .sx-card h3{margin:0;font-size:16px}
-  .sx-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
-  .sx-hd p{margin:2px 0 0;color:var(--muted);font-size:13px}
-  .sx-profile{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-  .sx-big{width:76px;height:76px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:26px;font-weight:800}
-  .sx-info{flex:1;min-width:200px}
-  .sx-name{font-size:19px;font-weight:700}
-  .sx-meta{color:var(--muted);font-size:13px;margin-top:3px}
-  .sx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  @media (max-width:980px){.sx-grid2{grid-template-columns:1fr}}
-  .sx-label{display:block;font-weight:600;font-size:13px;margin:12px 0 6px}
+  .sx-title{display:flex;align-items:center;gap:0.75rem;margin:0.25rem 0 1.1rem}
+  .sx-title h2{margin:0;font-size:1.5rem;line-height:1.2}
+  .sx-title p{margin:0.15rem 0 0;color:var(--muted);font-size:0.95rem}
+  .sx-ic{width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(229,35,41,.12);color:var(--red);display:grid;place-items:center;flex:none}
+  .sx-ic svg{width:1.15rem;height:1.15rem;stroke:currentColor;fill:none;stroke-width:1.8}
+  .sx-card{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.25rem;margin-bottom:1.1rem;min-width:0}
+  .sx-card h3{margin:0;font-size:1.1rem;line-height:1.3}
+  .sx-hd{display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:1rem}
+  .sx-hd p{margin:0.15rem 0 0;color:var(--muted);font-size:0.9rem}
+  .sx-profile{display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap}
+  .sx-big{width:4.75rem;height:4.75rem;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:1.6rem;font-weight:800;flex:none}
+  .sx-info{flex:1;min-width:12rem}
+  .sx-name{font-size:1.2rem;font-weight:700;overflow-wrap:anywhere}
+  .sx-meta{color:var(--muted);font-size:0.9rem;margin-top:0.2rem;overflow-wrap:anywhere}
+  .sx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
+  .sx-grid2 > .sx-card{margin-bottom:0}
+  .sx-label{display:block;font-weight:600;font-size:0.9rem;margin:0.8rem 0 0.4rem}
   .sx-label:first-of-type{margin-top:0}
-  .sx-input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--input);color:var(--text);outline:none;font:inherit}
+  .sx-input{width:100%;padding:0.7rem 0.8rem;border:1px solid var(--border);border-radius:0.65rem;background:var(--input);color:var(--text);outline:none;font:inherit;font-size:1rem;min-height:2.75rem}
   .sx-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,35,41,.15)}
   .sx-input[readonly]{color:var(--muted)}
-  .sx-hint{color:var(--muted);font-size:12px;margin-top:6px}
-  .sx-actions{display:flex;justify-content:flex-end;margin-top:16px;gap:10px;align-items:center}
+  .sx-hint{color:var(--muted);font-size:0.85rem;margin-top:0.4rem}
+  .sx-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem;gap:0.6rem;align-items:center}
   .sx-actions.left{justify-content:flex-start}
-  .sx-msg{font-size:13px;margin-right:auto}
+  .sx-actions .btn{min-height:2.6rem}
+  .sx-msg{font-size:0.9rem;margin-right:auto}
   .sx-msg.err{color:#f87171}.sx-msg.ok{color:#4ade80}
-  .sx-stat{display:flex;gap:16px;flex-wrap:wrap}
-  .sx-box{flex:1;min-width:160px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--input)}
-  .sx-box small{color:var(--muted);font-size:12px}
-  .sx-box b{display:block;font-size:20px;margin-top:4px}
-  .sx-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--border)}
+  .sx-stat{display:flex;gap:1rem;flex-wrap:wrap}
+  .sx-box{flex:1;min-width:9rem;border:1px solid var(--border);border-radius:0.75rem;padding:0.85rem;background:var(--input)}
+  .sx-box small{color:var(--muted);font-size:0.8rem}
+  .sx-box b{display:block;font-size:1.2rem;margin-top:0.25rem}
+  .sx-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.9rem;padding:0.9rem 0;border-top:1px solid var(--border)}
   .sx-row:first-child{border-top:0;padding-top:0}
-  .sx-row small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-  .sx-seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
-  .sx-seg button{border:0;background:none;padding:8px 14px;cursor:pointer;color:var(--muted);font:inherit}
+  .sx-row > div:first-child{min-width:0;flex:1 1 12rem}
+  .sx-row small{display:block;color:var(--muted);font-size:0.8rem;margin-top:0.15rem}
+  .sx-seg{display:inline-flex;border:1px solid var(--border);border-radius:0.65rem;overflow:hidden;flex-wrap:wrap}
+  .sx-seg button{border:0;background:none;padding:0.55rem 0.9rem;cursor:pointer;color:var(--muted);font:inherit;min-height:2.5rem}
   .sx-seg button.on{background:var(--red);color:#fff;font-weight:700}
-  .sx-dots{display:flex;gap:10px}
-  .sx-dots button{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--sw)}
+  .sx-dots{display:flex;gap:0.6rem;flex-wrap:wrap}
+  .sx-dots button{width:1.9rem;height:1.9rem;border-radius:50%;border:3px solid transparent;cursor:pointer;background:var(--sw)}
   .sx-dots button[aria-pressed="true"]{border-color:var(--text)}
-  .sx-switch{position:relative;width:42px;height:24px;flex:none}
+  .sx-switch{position:relative;width:2.6rem;height:1.5rem;flex:none}
   .sx-switch input{opacity:0;width:0;height:0}
   .sx-switch span{position:absolute;inset:0;background:var(--border);border-radius:99px;cursor:pointer;transition:.2s}
-  .sx-switch span::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .sx-switch span::after{content:"";position:absolute;left:3px;top:3px;width:1.125rem;height:1.125rem;border-radius:50%;background:#fff;transition:.2s}
   .sx-switch input:checked + span{background:var(--red)}
-  .sx-switch input:checked + span::after{transform:translateX(18px)}
-  .sx-link{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;color:var(--text)}
-  .sx-links{display:flex;gap:8px;flex-wrap:wrap}
-  .sx-signin{text-align:center;padding:50px 20px}
+  .sx-switch input:checked + span::after{transform:translateX(1.125rem)}
+  .sx-link{display:flex;align-items:center;gap:0.65rem;padding:0.7rem 0.75rem;border-radius:0.65rem;color:var(--text);min-height:2.75rem}
+  .sx-links{display:flex;gap:0.5rem;flex-wrap:wrap}
+  .sx-signin{text-align:center;padding:3rem 1.25rem}
   .sx-signin a{color:var(--red);font-weight:700}
+
+  /* Tablet and phone */
   @media (max-width:820px){
-    .sx-layout{grid-template-columns:1fr;padding:14px}
-    .sx-side{position:static}
-    .sx-side nav{grid-auto-flow:column;overflow-x:auto}
-    .sx-side nav a,.sx-side nav button{white-space:nowrap;width:auto}
+    .sx-layout{grid-template-columns:1fr;width:100%;gap:0.9rem;padding:0.9rem 0.75rem 2rem}
+    .sx-side{position:static;padding:0.6rem}
+    .sx-side h1,.sx-side p.sub{display:none}
+    .sx-side nav{display:flex;overflow-x:auto;gap:0.35rem;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .sx-side nav::-webkit-scrollbar{display:none}
+    .sx-side nav a,.sx-side nav button{width:auto;white-space:nowrap;flex:none;padding:0.6rem 0.85rem}
+    .sx-grid2{grid-template-columns:1fr}
+    .sx-title h2{font-size:1.3rem}
+    .sx-card{padding:1rem}
+    .sx-actions .btn{width:100%}
+    .sx-actions.left .btn{width:auto}
+    .sx-actions .sx-msg{width:100%;margin:0 0 0.2rem}
+    .sx-seg{width:100%}
+    .sx-seg button{flex:1}
+    .sx-row{align-items:flex-start}
+    .sx-links .btn{flex:1}
+  }
+  @media (max-width:420px){
+    html{font-size:15px}
+    .sx-big{width:4rem;height:4rem}
+  }
+  @media (min-width:1600px){
+    .sx-layout{width:min(1600px,92vw)}
   }
   /* Entrance motion + reduce-motion, matching the rest of the site */
   @media (prefers-reduced-motion: no-preference){
@@ -97,6 +129,7 @@
   @media (prefers-reduced-motion: reduce){
     .sx-side,.sx-pane .sx-card,.sx-pane .sx-title{animation:none!important}
   }
+
 </style>
 </head>
 <body>
@@ -141,7 +174,7 @@
     </nav>
   </aside>
 
-  <main>
+  <main class="sx-main">
     <div id="signedOut" class="sx-card card sx-signin" hidden>
       <h3>Please sign in to see your settings.</h3>
       <p class="sx-hint"><a href="/?login=1">Sign in to EditPrompt</a></p>
@@ -275,6 +308,7 @@
 </div>
 
 <script src="/theme.js"></script>
+<script src="/mobile-nav.js"></script>
 <script src="/animated-borders.js?v=1" defer></script>
 <script>
 (function () {
