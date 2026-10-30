@@ -4108,6 +4108,52 @@ app.get("/api/admin/stats", requireAdmin, (req, res) => {
 // ADMIN ORDERS
 // ============================================================
 
+/* Who bought each prompt pack. Reads purchases directly, so buyers show
+   whether or not they are currently logged in. */
+app.get("/api/admin/pack-buyers", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare(
+      `
+        SELECT
+          p.id,
+          p.product_id,
+          p.amount,
+          p.created_at,
+          u.id AS user_id,
+          u.name,
+          u.email
+        FROM purchases p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.status = 'paid' AND p.amount > 0
+        ORDER BY p.created_at DESC
+        `,
+    )
+    .all();
+
+  const groups = {};
+  for (const r of rows) {
+    if (!groups[r.product_id]) {
+      groups[r.product_id] = {
+        product_id: r.product_id,
+        name: products[r.product_id]?.name || r.product_id,
+        buyers: [],
+      };
+    }
+    groups[r.product_id].buyers.push({
+      purchase_id: r.id,
+      user_id: r.user_id,
+      name: r.name,
+      email: r.email,
+      amount: r.amount,
+      created_at: r.created_at,
+    });
+  }
+
+  res.json({
+    packs: Object.values(groups).sort((a, b) => b.buyers.length - a.buyers.length),
+  });
+});
+
 app.get("/api/admin/orders", requireAdmin, (req, res) => {
   const rows = db
     .prepare(
