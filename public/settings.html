@@ -81,6 +81,21 @@
     .sx-side nav{grid-auto-flow:column;overflow-x:auto}
     .sx-side nav a,.sx-side nav button{white-space:nowrap;width:auto}
   }
+  /* Entrance motion + reduce-motion, matching the rest of the site */
+  @media (prefers-reduced-motion: no-preference){
+    @keyframes sxRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+    .sx-side{animation:sxRise .5s cubic-bezier(.2,.7,.2,1) both}
+    .sx-pane.on .sx-card{animation:sxRise .5s cubic-bezier(.2,.7,.2,1) both}
+    .sx-pane.on .sx-card:nth-child(2){animation-delay:.06s}
+    .sx-pane.on .sx-card:nth-child(3){animation-delay:.12s}
+    .sx-pane.on .sx-title{animation:sxRise .4s ease both}
+  }
+  body.ep-reduce-motion .sx-side,
+  body.ep-reduce-motion .sx-pane .sx-card,
+  body.ep-reduce-motion .sx-pane .sx-title{animation:none!important}
+  @media (prefers-reduced-motion: reduce){
+    .sx-side,.sx-pane .sx-card,.sx-pane .sx-title{animation:none!important}
+  }
 </style>
 </head>
 <body>
@@ -106,7 +121,7 @@
 </header>
 
 <div class="sx-layout">
-  <aside class="sx-side">
+  <aside class="sx-side panel">
     <h1>Settings</h1>
     <p class="sub">Manage your account, preferences and more</p>
     <nav id="sideNav" aria-label="Settings sections">
@@ -126,7 +141,7 @@
   </aside>
 
   <main>
-    <div id="signedOut" class="sx-card sx-signin" hidden>
+    <div id="signedOut" class="sx-card card sx-signin" hidden>
       <h3>Please sign in to see your settings.</h3>
       <p class="sx-hint"><a href="/?login=1">Sign in to EditPrompt</a></p>
     </div>
@@ -135,7 +150,7 @@
 
       <!-- ACCOUNT -->
       <section class="sx-pane on" data-pane-id="account">
-        <div class="sx-card">
+        <div class="sx-card card">
           <div class="sx-profile">
             <div class="sx-big" id="bigAvatar">?</div>
             <div class="sx-info">
@@ -147,7 +162,7 @@
         </div>
 
         <div class="sx-grid2">
-          <div class="sx-card">
+          <div class="sx-card card">
             <div class="sx-hd">
               <div class="sx-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
               <div><h3>Profile Information</h3><p>Update your personal information</p></div>
@@ -165,7 +180,7 @@
             </form>
           </div>
 
-          <div class="sx-card">
+          <div class="sx-card card">
             <div class="sx-hd">
               <div class="sx-ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
               <div><h3>Change Password</h3><p>Keep your account secure</p></div>
@@ -175,7 +190,7 @@
           </div>
         </div>
 
-        <div class="sx-card">
+        <div class="sx-card card">
           <div class="sx-hd">
             <div class="sx-ic"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></div>
             <div><h3>Your Purchases</h3><p>Prompt packs you own and their invoices</p></div>
@@ -194,7 +209,7 @@
           <div class="sx-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></div>
           <div><h2>Preferences</h2><p>Saved on this browser only</p></div>
         </div>
-        <div class="sx-card">
+        <div class="sx-card card">
           <div class="sx-hd"><div><h3>Appearance</h3><p>Choose how EditPrompt looks on this device</p></div></div>
           <div class="sx-row">
             <div>Theme<small>Auto follows your device setting</small></div>
@@ -217,7 +232,7 @@
             </div>
           </div>
         </div>
-        <div class="sx-card">
+        <div class="sx-card card">
           <div class="sx-hd"><div><h3>Motion</h3><p>Accessibility options</p></div></div>
           <div class="sx-row">
             <div>Reduce animations<small>Turns off hover and background motion</small></div>
@@ -232,7 +247,7 @@
           <div class="sx-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg></div>
           <div><h2>Security</h2><p>Where your account is signed in</p></div>
         </div>
-        <div class="sx-card">
+        <div class="sx-card card">
           <div class="sx-hd"><div><h3>Signing in</h3><p>Sign-in uses your email and a one-time code. Sign out here to end this session.</p></div></div>
           <div class="sx-actions left"><button class="btn primary" type="button" id="secLogout">Sign out of this device</button></div>
         </div>
@@ -242,6 +257,7 @@
 </div>
 
 <script src="/theme.js"></script>
+<script src="/animated-borders.js?v=1" defer></script>
 <script>
 (function () {
   var MOTION_KEY = "editprompt.ui.reduceMotion";
