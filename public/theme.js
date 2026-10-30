@@ -80,7 +80,7 @@
 
   var navEl = document.querySelector(".nav nav");
   if (navEl && !document.getElementById("epSettingsLink")) {
-        var settings = document.createElement("a"); settings.id = "epSettingsLink"; settings.href = "#settings"; settings.className = "ep-nav-settings"; settings.setAttribute("role", "button");
+        var settings = document.createElement("a"); settings.id = "epSettingsLink"; settings.href = "/settings.html"; settings.className = "ep-nav-settings"; settings.setAttribute("role", "button");
     settings.textContent = "Settings";
     settings.setAttribute("aria-expanded", "false"); settings.setAttribute("aria-controls", "epAppearancePanel");
     var panel = document.createElement("div"); panel.id = "epAppearancePanel"; panel.className = "ep-appearance-panel"; panel.hidden = true;
@@ -140,7 +140,7 @@
     }
     panel.querySelector(".ep-settings-close").addEventListener("click", function () { setPanel(false); });
     backdrop.addEventListener("click", function () { setPanel(false); });
-    settings.addEventListener("click", function (e) { e.preventDefault(); setPanel(true); });
+    
     panel.addEventListener("click", function (e) { e.stopPropagation(); });
     panel.querySelectorAll("[data-ep-set-theme]").forEach(function (b) { b.addEventListener("click", function () {
       var t = b.getAttribute("data-ep-set-theme");

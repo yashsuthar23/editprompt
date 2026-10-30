@@ -2037,6 +2037,18 @@ app.post("/api/auth/logout", (req, res) => {
 // CURRENT USER
 // ============================================================
 
+app.post("/api/me/profile", requireLogin, (req, res) => {
+  const name = String(req.body?.name || "").trim().replace(/\s+/g, " ");
+  if (name.length < 2 || name.length > 60) {
+    return res.status(400).json({ error: "Name must be 2 to 60 characters." });
+  }
+  db.prepare("UPDATE users SET name=? WHERE id=?").run(name, req.session.userId);
+  const user = db
+    .prepare("SELECT id, name, email, created_at FROM users WHERE id=?")
+    .get(req.session.userId);
+  res.json({ ok: true, user });
+});
+
 app.get("/api/me", (req, res) => {
   if (!req.session.userId) {
     return res.json({
