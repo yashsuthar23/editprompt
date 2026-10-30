@@ -76,26 +76,15 @@
         applyAccent(getAccent(getTheme()));
       }, 0);
     });
-  } else if (target) {
-    var toggle = document.createElement("button");
-    toggle.type = "button"; toggle.className = "ep-icon-button ep-theme-toggle";
-    toggle.setAttribute("data-ep-theme-toggle", ""); toggle.innerHTML = getTheme() === "light" ? moon : sun;
-    toggle.addEventListener("click", function () {
-      var next = getTheme() === "light" ? "dark" : "light";
-      saveTheme(next);
-      applyTheme(next);
-      applyAccent(getAccent(next));
-    });
-    target.appendChild(toggle);
   }
 
-  if (target && !document.getElementById("epSettingsWrap")) {
-    var wrap = document.createElement("div"); wrap.id = "epSettingsWrap"; wrap.className = "ep-settings-wrap";
-    var settings = document.createElement("button"); settings.type = "button"; settings.className = "ep-icon-button ep-settings-button";
-    settings.innerHTML = gear; settings.setAttribute("aria-label", "Appearance settings"); settings.title = "Appearance settings";
+  var navEl = document.querySelector(".nav nav");
+  if (navEl && !document.getElementById("epSettingsLink")) {
+        var settings = document.createElement("a"); settings.id = "epSettingsLink"; settings.href = "#settings"; settings.className = "ep-nav-settings"; settings.setAttribute("role", "button");
+    settings.textContent = "Settings";
     settings.setAttribute("aria-expanded", "false"); settings.setAttribute("aria-controls", "epAppearancePanel");
     var panel = document.createElement("div"); panel.id = "epAppearancePanel"; panel.className = "ep-appearance-panel"; panel.hidden = true;
-    panel.innerHTML = '<div class="ep-settings-title">Appearance</div><div class="ep-settings-label">Theme</div><div class="ep-theme-options"><button type="button" data-ep-set-theme="light">☼ <span>Light</span></button><button type="button" data-ep-set-theme="dark">☾ <span>Dark</span></button></div><div class="ep-settings-label">Accent color</div><div class="ep-accent-options" role="group" aria-label="Accent color">' + accents.map(function (x) { return '<button type="button" data-ep-accent="' + x.value + '" title="' + x.name + '" aria-label="' + x.name + ' accent" style="--swatch:' + x.value + '"></button>'; }).join("") + '</div><p class="ep-settings-note">Applies across EditPrompt on this browser.</p>';
+    panel.innerHTML = '<button type="button" class="ep-settings-close" aria-label="Close settings">✕</button><div class="ep-settings-title">Settings</div><div class="ep-settings-label">Theme</div><div class="ep-theme-options"><button type="button" data-ep-set-theme="light">☼ <span>Light</span></button><button type="button" data-ep-set-theme="dark">☾ <span>Dark</span></button></div><div class="ep-settings-label">Accent color</div><div class="ep-accent-options" role="group" aria-label="Accent color">' + accents.map(function (x) { return '<button type="button" data-ep-accent="' + x.value + '" title="' + x.name + '" aria-label="' + x.name + ' accent" style="--swatch:' + x.value + '"></button>'; }).join("") + '</div><p class="ep-settings-note">Saved on this browser only.</p>';
     var CATALOG = { cinematic: ["Cinematic AI Prompt Pack", "/cinematic-pack.html"], wedding: ["Wedding Video Prompt Pack"], ads: ["Product Ad Prompt Pack"], fashion: ["Fashion & Editorial Prompt Pack"], travel: ["Travel & Destination Prompt Pack"], automotive: ["Automotive Cinematic Prompt Pack"], realestate: ["Real Estate & Architecture Prompt Pack"], social: ["Social Media Reels Prompt Pack"], food: ["Food & Beverage Commercial Prompt Pack"] };
     var extraNames = {};
     var themeBox = panel.querySelector(".ep-theme-options");
@@ -142,8 +131,16 @@
     renderSaved(); markPrefs();
     var namesLoaded = false;
     function loadNames() { if (namesLoaded) return; namesLoaded = true; try { fetch("/api/packs").then(function (r) { return r.ok ? r.json() : { packs: [] }; }).then(function (d) { (d.packs || []).forEach(function (p) { extraNames[p.id] = p.name; }); renderSaved(); }).catch(function () {}); } catch (_) {} }
-    wrap.appendChild(settings); wrap.appendChild(panel); target.appendChild(wrap);
-    settings.addEventListener("click", function (e) { e.stopPropagation(); var open = panel.hidden; panel.hidden = !open; if (open) { renderSaved(); markPrefs(); loadNames(); } settings.setAttribute("aria-expanded", String(open)); });
+    var backdrop = document.createElement("div"); backdrop.className = "ep-settings-backdrop"; backdrop.hidden = true;
+    navEl.appendChild(settings); document.body.appendChild(backdrop); document.body.appendChild(panel);
+    function setPanel(open) {
+      panel.hidden = !open; backdrop.hidden = !open;
+      document.body.classList.toggle("ep-settings-open", open);
+      if (open) { renderSaved(); markPrefs(); markMode(); loadNames(); var f = panel.querySelector(".ep-settings-close"); if (f) f.focus(); }
+    }
+    panel.querySelector(".ep-settings-close").addEventListener("click", function () { setPanel(false); });
+    backdrop.addEventListener("click", function () { setPanel(false); });
+    settings.addEventListener("click", function (e) { e.preventDefault(); setPanel(true); });
     panel.addEventListener("click", function (e) { e.stopPropagation(); });
     panel.querySelectorAll("[data-ep-set-theme]").forEach(function (b) { b.addEventListener("click", function () {
       var t = b.getAttribute("data-ep-set-theme");
@@ -151,8 +148,8 @@
       applyTheme(getTheme()); applyAccent(getAccent(getTheme())); markMode();
     }); });
     panel.querySelectorAll("[data-ep-accent]").forEach(function (b) { b.addEventListener("click", function () { applyAccent(b.getAttribute("data-ep-accent")); }); });
-    document.addEventListener("click", function () { panel.hidden = true; settings.setAttribute("aria-expanded", "false"); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { panel.hidden = true; settings.setAttribute("aria-expanded", "false"); } });
+    panel.addEventListener("click", function (e) { e.stopPropagation(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") setPanel(false); });
     applyAccent(getAccent(getTheme()));
     markMode();
   }

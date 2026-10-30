@@ -4151,3 +4151,13 @@ body.ep-reduce-motion *,body.ep-reduce-motion *::before,body.ep-reduce-motion *:
 @media (max-width:760px){.ep-appearance-panel{width:min(300px,calc(100vw - 28px))}}
 .ep-pref-row input[type=checkbox]{width:auto!important;flex:none;margin:0}
 .ep-pref-row>span{white-space:nowrap}
+
+/* Settings as a modal opened from the "Settings" nav link */
+.ep-appearance-panel{position:fixed!important;left:50%!important;top:50%!important;right:auto!important;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 28px))!important;max-height:min(86vh,680px)!important;z-index:3001!important;animation:epSettingsIn .22s ease-out}
+.ep-appearance-panel[hidden],.ep-settings-backdrop[hidden]{display:none!important}
+.ep-settings-backdrop{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+.ep-settings-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--input);color:var(--text);cursor:pointer;font-size:14px}
+.ep-settings-title{font-size:18px!important;padding-right:40px}
+body.ep-settings-open{overflow:hidden}
+.nav nav a.ep-nav-settings{cursor:pointer}
+@keyframes epSettingsIn{from{opacity:0;transform:translate(-50%,-47%)}to{opacity:1;transform:translate(-50%,-50%)}}
