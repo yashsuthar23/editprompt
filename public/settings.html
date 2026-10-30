@@ -35,13 +35,13 @@
   .sx-side svg{width:1.1rem;height:1.1rem;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
 
   .sx-pane{display:none}
-  .sx-pane.on{display:block}
+  .sx-pane.on{display:flex;flex-direction:column;gap:1.1rem}
   .sx-title{display:flex;align-items:center;gap:0.75rem;margin:0.25rem 0 1.1rem}
   .sx-title h2{margin:0;font-size:1.5rem;line-height:1.2}
   .sx-title p{margin:0.15rem 0 0;color:var(--muted);font-size:0.95rem}
   .sx-ic{width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(229,35,41,.12);color:var(--red);display:grid;place-items:center;flex:none}
   .sx-ic svg{width:1.15rem;height:1.15rem;stroke:currentColor;fill:none;stroke-width:1.8}
-  .sx-card{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.25rem;margin-bottom:1.1rem;min-width:0}
+  .sx-card{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.25rem;margin:0;min-width:0}
   .sx-card h3{margin:0;font-size:1.1rem;line-height:1.3}
   .sx-hd{display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:1rem}
   .sx-hd p{margin:0.15rem 0 0;color:var(--muted);font-size:0.9rem}
@@ -51,7 +51,6 @@
   .sx-name{font-size:1.2rem;font-weight:700;overflow-wrap:anywhere}
   .sx-meta{color:var(--muted);font-size:0.9rem;margin-top:0.2rem;overflow-wrap:anywhere}
   .sx-grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
-  .sx-grid2 > .sx-card{margin-bottom:0}
   .sx-label{display:block;font-weight:600;font-size:0.9rem;margin:0.8rem 0 0.4rem}
   .sx-label:first-of-type{margin-top:0}
   .sx-input{width:100%;padding:0.7rem 0.8rem;border:1px solid var(--border);border-radius:0.65rem;background:var(--input);color:var(--text);outline:none;font:inherit;font-size:1rem;min-height:2.75rem}
