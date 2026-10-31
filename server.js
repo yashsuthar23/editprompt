@@ -100,10 +100,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// All persistent data (database + uploaded media) lives in DATA_DIR.
+// On Render, point DATA_DIR at a persistent disk (e.g. /var/data) so users,
+// purchases and history survive restarts and redeploys.
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : __dirname;
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
 // Persist login sessions in SQLite instead of express-session's default
 // MemoryStore, which loses all sessions when the Node process restarts.
 // The session table is stored in the same editprompt.db as the application data.
-const sessionDb = new DatabaseSync(path.join(__dirname, "editprompt.db"));
+const sessionDb = new DatabaseSync(path.join(DATA_DIR, "editprompt.db"));
 sessionDb.exec(`
   CREATE TABLE IF NOT EXISTS app_sessions (
     sid TEXT PRIMARY KEY,
@@ -275,7 +283,7 @@ setInterval(() => {
 // DATABASE
 // ============================================================
 
-const db = new DatabaseSync(path.join(__dirname, "editprompt.db"));
+const db = new DatabaseSync(path.join(DATA_DIR, "editprompt.db"));
 
 db.exec("PRAGMA journal_mode = WAL");
 
@@ -5196,7 +5204,7 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
     }
   };
 
-  const dbFile = path.join(__dirname, "editprompt.db");
+  const dbFile = path.join(DATA_DIR, "editprompt.db");
   const dbBytes =
     fileSize(dbFile) + fileSize(`${dbFile}-wal`) + fileSize(`${dbFile}-shm`);
 
@@ -5240,7 +5248,7 @@ app.get("/api/admin/system", requireAdmin, (req, res) => {
 // AI MEDIA STUDIO  (Image + Video generation)
 // ============================================================
 
-const MEDIA_DIR = path.join(__dirname, "media");
+const MEDIA_DIR = path.join(DATA_DIR, "media");
 
 try {
   fs.mkdirSync(MEDIA_DIR, { recursive: true });

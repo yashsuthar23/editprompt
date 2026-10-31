@@ -2,7 +2,11 @@
   - type: web
     name: editprompt
     runtime: node
-    plan: free
+    plan: starter
+    disk:
+      name: editprompt-data
+      mountPath: /var/data
+      sizeGB: 1
     branch: main
     buildCommand: npm install --omit=dev
     startCommand: npm start
@@ -11,6 +15,8 @@
         value: 22
       - key: NODE_ENV
         value: production
+      - key: DATA_DIR
+        value: /var/data
       - key: COOKIE_SECURE
         value: "true"
       - key: SESSION_SECRET
