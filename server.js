@@ -8355,6 +8355,60 @@ app.post("/api/media/video/:jobId/cancel", requireLogin, (req, res) => {
   res.json({ ok: true, status: "cancelled" });
 });
 
+/* ---------- Admin: AI & media (used by the admin "AI & Media" tab) ---------- */
+
+app.get("/api/admin/media-health", requireAdmin, (req, res) => {
+  const jobs = db
+    .prepare(
+      "SELECT status, COUNT(*) AS n FROM video_jobs GROUP BY status ORDER BY n DESC",
+    )
+    .all();
+  const media = db
+    .prepare(
+      "SELECT kind, COUNT(*) AS n FROM media_history GROUP BY kind ORDER BY n DESC",
+    )
+    .all();
+  res.json({ jobs, media });
+});
+
+app.get("/api/admin/video-jobs", requireAdmin, (req, res) => {
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit || 40)));
+  const jobs = db
+    .prepare(
+      `SELECT v.id, v.status, v.provider, v.model, v.prompt, v.error,
+              v.created_at, v.updated_at, u.email
+         FROM video_jobs v
+         LEFT JOIN users u ON u.id = v.user_id
+        ORDER BY v.updated_at DESC
+        LIMIT ?`,
+    )
+    .all(limit);
+  res.json({ jobs });
+});
+
+app.post("/api/admin/video-jobs/:jobId/cancel", requireAdmin, (req, res) => {
+  const job = videoJobs.get(req.params.jobId) || loadVideoJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: "Job not found." });
+  if (["done", "failed", "cancelled"].includes(job.status))
+    return res.json({ ok: true, status: job.status });
+  job.cancelled = true;
+  job.status = "cancelled";
+  job.updatedAt = Date.now();
+  persistVideoJob(job);
+  logAdmin("video_cancel", job.id, `user=${job.userId}`);
+  res.json({ ok: true, status: "cancelled" });
+});
+
+app.get("/api/admin/security-events", requireAdmin, (req, res) => {
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit || 100)));
+  const events = db
+    .prepare(
+      "SELECT id, event, ip, user_id, detail, created_at FROM security_events ORDER BY id DESC LIMIT ?",
+    )
+    .all(limit);
+  res.json({ events });
+});
+
 app.post(
   "/api/media/video/:jobId/retry",
   requireLogin,
@@ -8854,6 +8908,22 @@ mountSoftwareDownloads(app);
 app.get("/admin", (req, res) => {
   res.set("X-Robots-Tag", "noindex, nofollow");
   res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/api/admin/funnel", requireAdmin, (req, res) => {
+  const count = (sql) => Number(db.prepare(sql).get().n || 0);
+  res.json({
+    users: count("SELECT COUNT(*) AS n FROM users"),
+    generated: count(
+      "SELECT COUNT(DISTINCT user_id) AS n FROM prompt_history WHERE user_id IS NOT NULL",
+    ),
+    checkout: count(
+      "SELECT COUNT(DISTINCT user_id) AS n FROM purchases WHERE user_id IS NOT NULL",
+    ),
+    paid: count(
+      "SELECT COUNT(DISTINCT user_id) AS n FROM purchases WHERE status='paid' AND amount>0",
+    ),
+  });
 });
 
 app.get("*", (req, res) =>
