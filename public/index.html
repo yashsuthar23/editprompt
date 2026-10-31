@@ -4504,19 +4504,27 @@
         function setSaved(l){try{localStorage.setItem('ep_saved_packs',JSON.stringify(l));}catch(e){}}
         window.storeIsSaved=function(c){return saved().indexOf(idOf(c))!==-1;};
         function refresh(){if(window.storeFilterRefresh) window.storeFilterRefresh();}
+        var storeHearts=[];
         cards.forEach(function(c){
             c.style.position='relative';
             var id=idOf(c), b=document.createElement('button');
             b.type='button'; b.className='pack-heart'; b.setAttribute('aria-label','Save '+nameOf(c));
-            function paint(){var on=saved().indexOf(id)!==-1; b.classList.toggle('on',on); b.textContent=on?'\u2665':'\u2661';}
+            function paint(){var on=saved().indexOf(id)!==-1; b.classList.toggle('on',on); b.textContent=on?'\u2665':'\u2661'; b.setAttribute('aria-pressed',on?'true':'false');}
             b.addEventListener('click',function(e){
                 e.preventDefault(); e.stopPropagation();
                 var l=saved(), i=l.indexOf(id); if(i===-1) l.push(id); else l.splice(i,1);
-                setSaved(l); paint(); refresh();
+                setSaved(l); paint(); refresh(); window.dispatchEvent(new Event('ep-saved-changed'));
             });
             paint(); c.appendChild(b);
-            window.addEventListener('ep-saved-changed',function(){paint();refresh();});
+            storeHearts.push(paint);
         });
+        // Keep every heart in sync with the saved list: after returning from another
+        // page (back/forward cache), when another tab changes it, or when the tab wakes up.
+        function paintAllHearts(){storeHearts.forEach(function(fn){fn();});}
+        window.addEventListener('ep-saved-changed',function(){paintAllHearts();refresh();});
+        window.addEventListener('storage',function(e){if(e.key==='ep_saved_packs'){paintAllHearts();refresh();}});
+        window.addEventListener('pageshow',paintAllHearts);
+        document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible') paintAllHearts();});
         var sel=document.createElement('select'); sel.id='storeSort'; sel.setAttribute('aria-label','Sort packs'); sel.className='store-sort';
         [['default','Sort: Featured'],['low','Price: Low to High'],['high','Price: High to Low'],['name','Name: A to Z']].forEach(function(o){
             var op=document.createElement('option'); op.value=o[0]; op.textContent=o[1]; sel.appendChild(op);
