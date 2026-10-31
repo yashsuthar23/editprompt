@@ -1525,20 +1525,64 @@
       }
 
 
+      // Network hiccups ("Failed to fetch") are retried once before showing an error.
+      const isNetworkError = (e) => /Failed to fetch|NetworkError|did not respond/i.test(String(e?.message || ""));
+      const friendlyError = (m) => /Failed to fetch|NetworkError/i.test(String(m || ""))
+        ? "Could not reach the server. Check your connection, then tap Retry."
+        : (m || "Could not load this section.");
+      const retryOnce = async (fn) => {
+        try { return await fn(); }
+        catch (e) {
+          if (!isNetworkError(e)) throw e;
+          await new Promise((r) => setTimeout(r, 1500));
+          return fn();
+        }
+      };
+      const retryBtn = '<button class="btn ghost small" style="margin-top:8px" type="button" onclick="loadMediaHealth()">Retry</button>';
+
+      // Wrapper: if anything unexpected throws, both panels show an error instead of "Loading…".
       async function loadMediaHealth() {
         try {
-          const [h, jobs, providers] = await Promise.all([
-            api("/api/admin/media-health"),
-            api("/api/admin/video-jobs?limit=40"),
-            api("/api/media/providers/health").catch(() => ({available:[],recommended:null})),
-          ]);
+          await loadMediaHealthInner();
+        } catch (e) {
+          const msg = `<div class="adm-err">${escapeHtml(friendlyError(e.message))}</div>${retryBtn}`;
+          if ($("mediaHealth")) $("mediaHealth").innerHTML = msg;
+          if ($("adminVideoJobs")) $("adminVideoJobs").innerHTML = msg;
+        }
+      }
+
+      async function loadMediaHealthInner() {
+        // Each request is independent and time-limited, so one failing
+        // endpoint no longer leaves the other panel stuck on "Loading…".
+        const withTimeout = (p, ms = 20000) => Promise.race([
+          p,
+          new Promise((_, rej) => setTimeout(() => rej(new Error("Server did not respond in time.")), ms)),
+        ]);
+        const errBox = (r) => `<div class="adm-err">${escapeHtml(friendlyError(r.reason?.message))}</div>${retryBtn}`;
+
+        const [hRes, jRes, pRes] = await Promise.allSettled([
+          withTimeout(retryOnce(() => api("/api/admin/media-health"))),
+          withTimeout(retryOnce(() => api("/api/admin/video-jobs?limit=40"))),
+          withTimeout(retryOnce(() => api("/api/media/providers/health"))),
+        ]);
+
+        // Health panel: providers + job status + media counts
+        if (hRes.status === "fulfilled") {
+          const h = hRes.value;
+          const providers = pRes.status === "fulfilled" ? pRes.value : { available: [], recommended: null };
+          const providerText = (providers.available || []).join(", ") || "None configured";
           const jobRows = (h.jobs || []).map(x => `<div class="adm-row"><b>${escapeHtml(x.status)}</b><span>${formatMoney(x.n)} jobs</span></div>`).join("") || '<div class="muted">No jobs yet.</div>';
           const mediaRows = (h.media || []).map(x => `<div class="adm-row"><b>${escapeHtml(x.kind)}</b><span>${formatMoney(x.n)}</span></div>`).join("");
-          const providerText = (providers.available || []).join(", ") || "None configured";
           $("mediaHealth").innerHTML = `<div class="adm-stack"><h4>Providers</h4><div class="adm-row"><b>${escapeHtml(providerText)}</b><span>Recommended: ${escapeHtml(providers.recommended || "—")}</span></div><h4>Job status</h4>${jobRows}<h4>Media</h4>${mediaRows || '<div class="muted">No media yet.</div>'}</div>`;
-          $("adminVideoJobs").innerHTML = (jobs.jobs || []).map(j => `<div class="adm-row" style="gap:10px;align-items:flex-start"><div><b>${escapeHtml(j.status)}</b> · ${escapeHtml(j.provider || "auto")}<div class="muted">${escapeHtml(j.email || "")}</div><div class="mini">${escapeHtml(j.error || j.model || j.prompt || "")}</div></div><button class="btn ghost small" data-admin-cancel-job="${escapeHtml(j.id)}" ${["done","failed","cancelled"].includes(j.status)?"disabled":""}>Cancel</button></div>`).join("") || '<div class="muted">No video jobs.</div>';
-        } catch (e) {
-          $("mediaHealth").innerHTML = `<div class="adm-err">${escapeHtml(e.message)}</div>`;
+        } else {
+          $("mediaHealth").innerHTML = errBox(hRes);
+        }
+
+        // Jobs panel
+        if (jRes.status === "fulfilled") {
+          $("adminVideoJobs").innerHTML = (jRes.value.jobs || []).map(j => `<div class="adm-row" style="gap:10px;align-items:flex-start"><div><b>${escapeHtml(j.status)}</b> · ${escapeHtml(j.provider || "auto")}<div class="muted">${escapeHtml(j.email || "")}</div><div class="mini">${escapeHtml(j.error || j.model || j.prompt || "")}</div></div><button class="btn ghost small" data-admin-cancel-job="${escapeHtml(j.id)}" ${["done","failed","cancelled"].includes(j.status)?"disabled":""}>Cancel</button></div>`).join("") || '<div class="muted">No video jobs.</div>';
+        } else {
+          $("adminVideoJobs").innerHTML = errBox(jRes);
         }
       }
 
