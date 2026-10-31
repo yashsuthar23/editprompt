@@ -8910,6 +8910,41 @@ app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+/* Admin emails a customer directly from the user drawer (sent through the same
+   Google Email API used for login codes). */
+app.post("/api/admin/users/:id/email", requireAdmin, async (req, res) => {
+  const user = db
+    .prepare("SELECT id, name, email FROM users WHERE id=?")
+    .get(Number(req.params.id));
+  if (!user) return res.status(404).json({ error: "User not found." });
+
+  const subject = String(req.body?.subject || "").trim().slice(0, 150);
+  const message = String(req.body?.message || "").trim().slice(0, 5000);
+  if (!subject) return res.status(400).json({ error: "Subject is required." });
+  if (!message) return res.status(400).json({ error: "Message is required." });
+
+  const esc = (v) =>
+    String(v).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+    );
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject,
+      text: message,
+      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6">${esc(
+        message,
+      ).replace(/\n/g, "<br>")}</div>`,
+    });
+  } catch (err) {
+    return res.status(502).json({ error: err.message || "Email could not be sent." });
+  }
+
+  logAdmin("user_email", String(user.id), `subject=${subject.slice(0, 80)}`);
+  res.json({ ok: true });
+});
+
 app.get("/api/admin/funnel", requireAdmin, (req, res) => {
   const count = (sql) => Number(db.prepare(sql).get().n || 0);
   res.json({

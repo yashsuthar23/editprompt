@@ -1459,7 +1459,7 @@
                 : `<button class="btn danger small" data-block="${escapeHtml(u.email)}" type="button">Block user</button>`
             }
             <button class="btn ghost small" data-copy="${escapeHtml(u.email)}" type="button">Copy email</button>
-            <a class="btn ghost small" href="mailto:${escapeHtml(u.email)}">Send email</a>
+            <button class="btn ghost small" data-send-mail="${escapeHtml(u.id)}" type="button">Send email</button>
             <button class="btn danger small" data-delete-user="${escapeHtml(u.id)}" type="button">Delete user</button>
           </div>
 
@@ -1690,6 +1690,7 @@
         const rs = t.closest("[data-restore]");
         const gr = t.closest("[data-grant]");
         const cp = t.closest("[data-copy]");
+        const sm = t.closest("[data-send-mail]");
         const du = t.closest("[data-delete-user]");
         const su = t.closest("[data-save-user]");
         const bk = t.closest("[data-bulk]");
@@ -1750,6 +1751,21 @@
             if (!confirm("Delete this image/video permanently?")) return;
             await post("/api/admin/delete-media", { id: Number(dm.getAttribute("data-del-media")) });
             await afterChange();
+          } else if (sm) {
+            const subject = prompt("Email subject:");
+            if (!subject || !subject.trim()) return;
+            const message = prompt("Message to send:");
+            if (!message || !message.trim()) return;
+            sm.disabled = true;
+            try {
+              await post("/api/admin/users/" + encodeURIComponent(sm.getAttribute("data-send-mail")) + "/email", { subject, message });
+              sm.textContent = "Sent ✓";
+              setTimeout(() => (sm.textContent = "Send email"), 2000);
+            } catch (err) {
+              alert("Email not sent: " + err.message);
+            } finally {
+              sm.disabled = false;
+            }
           } else if (cp) {
             const email = cp.getAttribute("data-copy");
             try {
