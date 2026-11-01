@@ -2609,8 +2609,31 @@ app.get("/api/download/:productId", requireLogin, (req, res) => {
 // AI VIDEO PROMPT GENERATOR
 // ============================================================
 
+// ------------------------------------------------------------
+// AI FAILURE -> friendly, structured error (never leak raw provider text)
+// ------------------------------------------------------------
+function aiFailure(err) {
+  const msg = String(err?.message || "");
+  if (/quota|rate.?limit|RESOURCE_EXHAUSTED|overload|UNAVAILABLE|HTTP 429|HTTP 503/i.test(msg))
+    return { status: 503, code: "AI_BUSY", retryable: true,
+      error: "AI is busy right now. Please try again in a minute." };
+  if (/timeout|timed out|network error|ENOTFOUND|ECONN|ETIMEDOUT|fetch failed/i.test(msg))
+    return { status: 504, code: "AI_TIMEOUT", retryable: true,
+      error: "AI took too long to respond. Please try again." };
+  if (/safety|blocked|no text|empty/i.test(msg))
+    return { status: 422, code: "AI_REFUSED", retryable: false,
+      error: "AI couldn't generate this one. Try rewording your subject." };
+  if (/API key|PERMISSION_DENIED|UNAUTHENTICATED|HTTP 40[134]|not found/i.test(msg))
+    return { status: 503, code: "AI_UNAVAILABLE", retryable: false,
+      error: "AI service is temporarily unavailable. Please try again later." };
+  return { status: 502, code: "AI_FAILED", retryable: true,
+    error: "AI couldn't generate your prompt. Please try again." };
+}
+
 app.post(
   "/api/generate",
+
+  requireLogin,
 
   rateLimit({
     windowMs: 60_000,
@@ -2907,16 +2930,16 @@ Negative Prompt:
 
         mode = "ai-gemini";
       } catch (err) {
-        console.error(
-          "Gemini generate failed, using local fallback:",
-          err.message,
-        );
+        console.error("Gemini generate failed:", err.message);
 
-        prompt = localPrompt(inputData);
+        // No silent template fallback: tell the user what happened.
+        const failure = aiFailure(err);
 
-        prompt = cleanGeneratedPrompt(prompt);
-
-        mode = "local-fallback";
+        return res.status(failure.status).json({
+          error: failure.error,
+          code: failure.code,
+          retryable: failure.retryable,
+        });
       }
     } else {
       prompt = localPrompt(inputData);
@@ -2978,6 +3001,8 @@ Negative Prompt:
 
 app.post(
   "/api/improve",
+
+  requireLogin,
 
   rateLimit({
     windowMs: 60_000,
@@ -3076,6 +3101,14 @@ Negative Prompt:
         mode = "ai-gemini-improved";
       } catch (err) {
         console.error("Gemini improve failed:", err.message);
+
+        const failure = aiFailure(err);
+
+        return res.status(failure.status).json({
+          error: failure.error,
+          code: failure.code,
+          retryable: failure.retryable,
+        });
       }
     }
 
@@ -8993,6 +9026,17 @@ if (
       console.error("SMTP connection: FAILED:", error.message);
     });
 }
+
+// Any uncaught route error -> JSON (the frontend expects JSON, not an HTML page)
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err?.message || err);
+  if (res.headersSent) return next(err);
+  res.status(err?.status || 500).json({
+    error: "Something went wrong on our side. Please try again.",
+    code: "SERVER_ERROR",
+    retryable: true,
+  });
+});
 
 app.listen(port, () => {
   console.log(`EditPrompt V7 running at http://localhost:${port}`);

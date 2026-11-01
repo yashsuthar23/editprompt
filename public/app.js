@@ -55,15 +55,38 @@ async function apiFetch(url, options = {}) {
 }
 
 async function apiRequest(url, options = {}) {
-  const response = await apiFetch(url, options);
+  let response;
+
+  try {
+    response = await apiFetch(url, options);
+  } catch (networkError) {
+    const err = new Error(
+      "Can't reach the server. Check your internet connection and try again.",
+    );
+    err.code = "NETWORK";
+    err.retryable = true;
+    throw err;
+  }
+
   const data = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(
-      data.error ||
-        data.message ||
-        `Request failed (${response.status})`,
+    const err = new Error(
+      response.status === 401
+        ? "Please sign up or log in to use AI."
+        : data.error ||
+            data.message ||
+            `Request failed (${response.status})`,
     );
+    err.status = response.status;
+    err.code = data.code || "";
+    err.retryable = data.retryable !== false && response.status >= 500;
+
+    if (response.status === 401 && typeof openLoginModal === "function") {
+      openLoginModal();
+    }
+
+    throw err;
   }
 
   return data;
@@ -1631,6 +1654,13 @@ if ($("generateBtn")) {
       const button =
         $("generateBtn");
 
+      // AI is for signed-in users only
+      if (!currentUser) {
+        openLoginModal();
+
+        return toast("Sign up or log in to generate with AI ✨");
+      }
+
       let subject =
         $("subject")
           ?.value.trim() || "";
@@ -1739,6 +1769,8 @@ if ($("generateBtn")) {
         if ($("output")) {
           $("output").textContent =
             finalPrompt;
+
+          window.epClearAiError?.();
         }
 
         lastPromptSource = subject;
@@ -1774,10 +1806,14 @@ if ($("generateBtn")) {
           error,
         );
 
-        toast(
-          error.message ||
-            "Generation failed",
-        );
+        if (window.epShowAiError) {
+          window.epShowAiError(error, () => button.click());
+        } else {
+          toast(
+            error.message ||
+              "Generation failed",
+          );
+        }
       } finally {
         button.disabled = false;
         button.textContent =
@@ -1850,6 +1886,13 @@ if ($("improveBtn")) {
       const button =
         $("improveBtn");
 
+      // AI is for signed-in users only
+      if (!currentUser) {
+        openLoginModal();
+
+        return toast("Sign up or log in to improve with AI ✨");
+      }
+
       const originalText =
         button.textContent;
 
@@ -1891,6 +1934,8 @@ if ($("improveBtn")) {
         if ($("output")) {
           $("output").textContent =
             improvedPrompt;
+
+          window.epClearAiError?.();
         }
 
         lastHistoryId =
@@ -1917,10 +1962,14 @@ if ($("improveBtn")) {
           error,
         );
 
-        toast(
-          error.message ||
-            "Improve failed",
-        );
+        if (window.epShowAiError) {
+          window.epShowAiError(error, () => button.click());
+        } else {
+          toast(
+            error.message ||
+              "Improve failed",
+          );
+        }
       } finally {
         button.disabled = false;
         button.textContent =

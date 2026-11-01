@@ -1,0 +1,71 @@
+/* v9: AI error box, simplified store, developer portfolio, mobile app-style layout */
+
+/* ---------- AI error box ---------- */
+.ai-error{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;padding:12px 14px;border-radius:14px;
+  background:rgba(229,35,41,.10);border:1px solid rgba(229,35,41,.45);color:var(--text)}
+.ai-error .ai-error-icon{font-size:20px;line-height:1.2}
+.ai-error .ai-error-body{flex:1;min-width:0}
+.ai-error strong{display:block;font-size:14px;margin-bottom:2px}
+.ai-error p{margin:0;font-size:13px;color:var(--muted)}
+.ai-error .ai-error-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.ai-error button{min-height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--border);
+  background:var(--panel);color:var(--text);font-weight:600;cursor:pointer}
+.ai-error button.primary{background:var(--red);border-color:var(--red);color:#fff}
+
+/* ---------- Simplified premium store ---------- */
+#store.ep-store-lite .store-search,
+#store.ep-store-lite .store-tabs{display:none!important}
+#store.ep-store-lite .store-grid > .product:nth-of-type(n+4){display:none!important}
+.store-more{display:flex;justify-content:center;margin-top:22px}
+.store-more a{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 22px;border-radius:12px;
+  border:1px solid var(--border);background:var(--panel);color:var(--text);font-weight:700;text-decoration:none}
+.store-more a:hover{border-color:var(--red)}
+
+/* ---------- About the developer (portfolio) ---------- */
+.dev-about .dev-card{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:26px;
+  border:1px solid var(--border);border-radius:20px;background:var(--panel)}
+.dev-avatar{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:800;
+  color:#fff;background:linear-gradient(135deg,var(--red),#7a1216)}
+.dev-card h3{margin:0 0 4px;font-size:24px}
+.dev-role{margin:0 0 10px;color:var(--muted)}
+.dev-bio{margin:0 0 14px;line-height:1.6}
+.dev-links{display:flex;flex-wrap:wrap;gap:10px}
+.dev-links a{display:inline-flex;align-items:center;min-height:42px;padding:0 16px;border-radius:10px;
+  border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:600;background:transparent}
+.dev-links a.primary{background:var(--red);border-color:var(--red);color:#fff}
+.dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.dev-ach{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--panel)}
+.dev-ach b{display:block;margin-bottom:4px}
+.dev-ach span{color:var(--muted);font-size:14px;line-height:1.5}
+.dev-stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.dev-stack span{padding:6px 12px;border-radius:999px;border:1px solid var(--border);font-size:13px;color:var(--muted)}
+@media (max-width:640px){
+  .dev-about .dev-card{grid-template-columns:1fr;text-align:left;padding:20px}
+  .dev-avatar{width:68px;height:68px;font-size:24px}
+}
+
+/* ---------- Mobile: one screen at a time + bottom tab bar ---------- */
+.ep-tabbar{display:none}
+@media (max-width:768px){
+  body.ep-mobile{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  body.ep-mobile .ep-tab-hide{display:none!important}
+  body.ep-mobile .section{padding-top:18px;padding-bottom:18px}
+  body.ep-mobile .hero{padding-top:18px;padding-bottom:10px;min-height:0}
+  body.ep-mobile .hero .visual,
+  body.ep-mobile .hero .window,
+  body.ep-mobile .hero .stats,
+  body.ep-mobile .hero .pillrow,
+  body.ep-mobile .hero .orb{display:none!important}
+  body.ep-mobile .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.ep-mobile footer{padding-bottom:12px}
+
+  .ep-tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:900;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
+    background:var(--bg);border-top:1px solid var(--border)}
+  body.ep-menu-open .ep-tabbar{display:none}
+  .ep-tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;
+    background:transparent;border:0;border-radius:12px;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+  .ep-tabbar button .ico{font-size:19px;line-height:1}
+  .ep-tabbar button.on{color:var(--text);background:rgba(229,35,41,.14)}
+  .ep-tabbar button.on .ico{filter:none}
+}
