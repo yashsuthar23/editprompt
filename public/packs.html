@@ -140,7 +140,7 @@
             autocomplete="off"
           />
 
-          <select id="packsSort" aria-label="Sort packs" style="width:auto;max-width:240px;display:inline-block;margin-left:10px;padding:10px 12px;border-radius:10px;background:#141414;color:#f5f2ec;border:1px solid #303030"><option value="default">Sort: Featured</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="name">Name: A to Z</option></select>
+          <select id="packsSort" aria-label="Sort packs" style="width:auto;max-width:240px;display:inline-block;margin-left:10px;padding:10px 12px;border-radius:10px;background:#141414;color:#f5f2ec;border:1px solid #303030"><option value="name" selected>Sort: A to Z</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="default">Featured</option></select>
 
           <span id="packsResultInfo" aria-live="polite"></span>
         </div>
@@ -367,10 +367,10 @@
           try { localStorage.setItem("ep_saved_packs", JSON.stringify(l)); } catch (e) {}
         }
         function sorted() {
-          var l = all.slice(), m = sortSel ? sortSel.value : "default";
+          var l = all.slice(), m = sortSel ? sortSel.value : "name";
           if (m === "low") l.sort(function (a, b) { return (+a.price || 0) - (+b.price || 0); });
           if (m === "high") l.sort(function (a, b) { return (+b.price || 0) - (+a.price || 0); });
-          if (m === "name") l.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+          if (m === "name") l.sort(function (a, b) { return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" }); });
           return l;
         }
 
