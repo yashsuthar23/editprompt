@@ -65,6 +65,9 @@
     '<input id="npCats" class="adm-input grow" maxlength="200" placeholder="Categories, comma thi alag karo (Gaming, Reels)" /></div>' +
     '<textarea id="npDesc" class="adm-input" rows="3" maxlength="600" placeholder="Description" style="width:100%"></textarea>' +
     '<textarea id="npText" class="adm-input" rows="6" placeholder="Prompts ahiya paste karo, athva niche thi .txt file upload karo" style="width:100%"></textarea>' +
+    '<div class="adm-tools" style="align-items:center"><label class="muted" style="margin:0">Cover image (optional)</label>' +
+    '<input id="npCover" type="file" accept="image/jpeg,image/png,image/webp" />' +
+    '<img id="npCoverPrev" alt="" style="display:none;height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #303747" /></div>' +
     '<div class="adm-tools"><input id="npFile" type="file" accept=".txt,text/plain" />' +
     '<button id="npSave" class="btn small" type="button">Save pack (manual)</button>' +
     '<button id="npAi" class="btn ghost small" type="button">Generate with AI</button></div>' +
@@ -486,14 +489,9 @@
         $("proProducts").textContent = e.message;
       });
   }
-  // Pick an image, crop it to 16:9, shrink it, and upload it as the pack cover.
-  function changeCover(id) {
-    var input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/jpeg,image/png,image/webp";
-    input.onchange = function () {
-      var file = input.files && input.files[0];
-      if (!file) return;
+  // Crop an image file to 16:9, shrink it, and return it as a JPEG blob.
+  function coverBlob(file) {
+    return new Promise(function (resolve, reject) {
       var url = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
@@ -511,26 +509,7 @@
         URL.revokeObjectURL(url);
         canvas.toBlob(
           function (blob) {
-            if (!blob) return alert("Could not read that image.");
-            fetch("/api/admin/packs/" + encodeURIComponent(id) + "/cover", {
-              method: "POST",
-              credentials: "same-origin",
-              headers: { "Content-Type": "image/jpeg" },
-              body: blob,
-            })
-              .then(function (r) {
-                return r.json().then(function (j) {
-                  if (!r.ok) throw new Error(j.error || "Upload failed");
-                  return j;
-                });
-              })
-              .then(function () {
-                alert("Cover updated.");
-                loadProducts();
-              })
-              .catch(function (e) {
-                alert(e.message);
-              });
+            blob ? resolve(blob) : reject(new Error("Could not read that image."));
           },
           "image/jpeg",
           0.86,
@@ -538,9 +517,45 @@
       };
       img.onerror = function () {
         URL.revokeObjectURL(url);
-        alert("That file is not a valid image.");
+        reject(new Error("That file is not a valid image."));
       };
       img.src = url;
+    });
+  }
+
+  function uploadCover(id, blob) {
+    return fetch("/api/admin/packs/" + encodeURIComponent(id) + "/cover", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob,
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) throw new Error(j.error || "Upload failed");
+        return j;
+      });
+    });
+  }
+
+  // "Cover" button on an existing pack
+  function changeCover(id) {
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      coverBlob(file)
+        .then(function (blob) {
+          return uploadCover(id, blob);
+        })
+        .then(function () {
+          alert("Cover updated.");
+          loadProducts();
+        })
+        .catch(function (e) {
+          alert(e.message);
+        });
     };
     input.click();
   }
@@ -602,6 +617,16 @@
     };
     reader.readAsText(f);
   });
+  $("npCover").addEventListener("change", function () {
+    var f = this.files && this.files[0];
+    var prev = $("npCoverPrev");
+    if (!f) {
+      prev.style.display = "none";
+      return;
+    }
+    prev.src = URL.createObjectURL(f);
+    prev.style.display = "inline-block";
+  });
   function submitPack(mode) {
     var msg = $("npMsg");
     var name = $("npName").value.trim();
@@ -629,14 +654,32 @@
       categories: $("npCats").value,
       promptText: $("npText").value,
     })
-      .then(function () {
-        msg.textContent =
+      .then(function (created) {
+        var base =
           mode === "ai"
             ? "Started. Niche table ma progress juo — AI pachi store par live thase."
             : "Pack saved ane store par live che.";
-        ["npName", "npPrice", "npTag", "npCats", "npDesc", "npText"].forEach(function (id) { $(id).value = ""; });
-        $("npFile").value = "";
-        loadProducts();
+        var coverFile = $("npCover").files && $("npCover").files[0];
+        var done = function (extra) {
+          msg.textContent = base + (extra || "");
+          ["npName", "npPrice", "npTag", "npCats", "npDesc", "npText"].forEach(function (id) { $(id).value = ""; });
+          $("npFile").value = "";
+          $("npCover").value = "";
+          $("npCoverPrev").style.display = "none";
+          loadProducts();
+        };
+        if (!coverFile || !created || !created.id) return done();
+        msg.textContent = "Uploading cover…";
+        return coverBlob(coverFile)
+          .then(function (blob) {
+            return uploadCover(created.id, blob);
+          })
+          .then(function () {
+            done(" Cover image set.");
+          })
+          .catch(function (er) {
+            done(" (Cover upload failed: " + er.message + ". Use the Cover button on the pack to retry.)");
+          });
       })
       .catch(function (er) { msg.textContent = "Error: " + er.message; })
       .then(function () { buttons.forEach(function (b) { b.disabled = false; }); });
