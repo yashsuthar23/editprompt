@@ -1,12 +1,8 @@
-﻿services:
+services:
   - type: web
     name: editprompt
     runtime: node
-    plan: starter
-    disk:
-      name: editprompt-data
-      mountPath: /var/data
-      sizeGB: 1
+    plan: free
     branch: main
     buildCommand: npm install --omit=dev
     startCommand: npm start
@@ -15,12 +11,19 @@
         value: 22
       - key: NODE_ENV
         value: production
-      - key: DATA_DIR
-        value: /var/data
       - key: COOKIE_SECURE
         value: "true"
       - key: SESSION_SECRET
         generateValue: true
+      # Free permanent storage: database is backed up to a PRIVATE GitHub repo
+      - key: BACKUP_GITHUB_TOKEN
+        sync: false
+      - key: BACKUP_GITHUB_REPO
+        sync: false
+      - key: BACKUP_GITHUB_BRANCH
+        value: main
+      - key: BACKUP_GITHUB_PATH
+        value: editprompt.db
       - key: ADMIN_EMAILS
         sync: false
       - key: SMTP_HOST
