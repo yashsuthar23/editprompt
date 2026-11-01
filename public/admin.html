@@ -196,6 +196,36 @@
             <link rel="stylesheet" href="/light-fixes.css?v=6">
     <link rel="stylesheet" href="/mobile-nav.css">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
+    <style>
+      /* Mobile: packs & pricing table becomes one card per pack */
+      @media (max-width: 760px) {
+        #proProducts > div { overflow: visible !important; }
+        #proProducts table, #proProducts tbody { display: block; width: 100%; }
+        #proProducts thead { display: none; }
+        #proProducts tr {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+          padding: 14px; margin-bottom: 12px;
+          border: 1px solid var(--border, #303747); border-radius: 14px;
+          background: rgba(255, 255, 255, 0.02);
+        }
+        #proProducts td { display: block; padding: 0 !important; border: 0 !important; min-width: 0; }
+        #proProducts td:nth-child(1) { grid-column: 1 / -1; }
+        #proProducts td:nth-child(2)::before,
+        #proProducts td:nth-child(3)::before {
+          display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: .04em;
+          text-transform: uppercase; color: var(--muted, #a7afc0);
+        }
+        #proProducts td:nth-child(2)::before { content: "Price (₹)"; }
+        #proProducts td:nth-child(3)::before { content: "Sales"; }
+        #proProducts td:nth-child(3) { align-self: end; font-size: 18px; font-weight: 700; }
+        #proProducts td:nth-child(4) {
+          grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        #proProducts td:nth-child(4) .btn { flex: 1 1 90px; min-height: 42px; margin: 0; }
+        #proProducts .adm-input { min-width: 0 !important; width: 100% !important; box-sizing: border-box; }
+        #proProducts td:nth-child(1) .muted { display: block; margin-top: 6px; line-height: 1.5; }
+      }
+    </style>
 </head>
   <body>
     <header class="nav">

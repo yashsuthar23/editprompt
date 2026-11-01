@@ -62,20 +62,15 @@
     box.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
-  /* ---------- Simplified store: top 3 packs + link to the full catalog ---------- */
+  /* ---------- Simplified store: top 3 packs + ONE button to the full catalog ---------- */
   var store = $("store");
   if (store) {
     store.classList.add("ep-store-lite");
     var grid = store.querySelector(".store-grid");
-    if (grid && !store.querySelector(".store-more")) {
+    var btn = store.querySelector(".store-more-btn");
+    if (grid && btn) {
       var total = grid.querySelectorAll(":scope > .product").length;
-      var wrap = document.createElement("div");
-      wrap.className = "store-more";
-      var a = document.createElement("a");
-      a.href = "/packs.html";
-      a.textContent = "Browse all " + (total || "") + " packs →";
-      wrap.appendChild(a);
-      grid.parentNode.insertBefore(wrap, grid.nextSibling);
+      btn.innerHTML = "Browse all " + (total || "") + " packs <span aria-hidden=\"true\">→</span>";
     }
   }
 
