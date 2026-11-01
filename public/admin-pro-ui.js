@@ -65,10 +65,12 @@
     '<input id="npCats" class="adm-input grow" maxlength="200" placeholder="Categories, comma thi alag karo (Gaming, Reels)" /></div>' +
     '<textarea id="npDesc" class="adm-input" rows="3" maxlength="600" placeholder="Description" style="width:100%"></textarea>' +
     '<textarea id="npText" class="adm-input" rows="6" placeholder="Prompts ahiya paste karo, athva niche thi .txt file upload karo" style="width:100%"></textarea>' +
-    '<div class="adm-tools" style="align-items:center"><label class="muted" style="margin:0">Cover image (optional)</label>' +
+    '<div class="adm-tools" style="flex-direction:column;align-items:stretch;gap:6px"><label class="muted" style="margin:0"><b>🖼️ Cover image</b> (optional, shown on the store card)</label>' +
     '<input id="npCover" type="file" accept="image/jpeg,image/png,image/webp" />' +
-    '<img id="npCoverPrev" alt="" style="display:none;height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #303747" /></div>' +
-    '<div class="adm-tools"><input id="npFile" type="file" accept=".txt,text/plain" />' +
+    '<img id="npCoverPrev" alt="" style="display:none;height:56px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #303747;align-self:flex-start" /></div>' +
+    '<div class="adm-tools" style="flex-direction:column;align-items:stretch;gap:6px"><label class="muted" style="margin:0"><b>📄 Prompts file</b> (.txt, optional: use this instead of pasting prompts above)</label>' +
+    '<input id="npFile" type="file" accept=".txt,text/plain" /></div>' +
+    '<div class="adm-tools">' +
     '<button id="npSave" class="btn small" type="button">Save pack (manual)</button>' +
     '<button id="npAi" class="btn ghost small" type="button">Generate with AI</button></div>' +
     '<div class="adm-tools"><span id="npMsg" class="muted" style="margin:0"></span></div></div>' +
