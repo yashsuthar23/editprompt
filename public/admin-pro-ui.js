@@ -466,6 +466,11 @@
                         p.id +
                         '">Retry</button>'
                       : "") +
+                  (p.status === "ready"
+                    ? ' <button class="btn ghost small" data-pcover="' +
+                      p.id +
+                      '">Cover</button>'
+                    : "") +
                   (p.status === "generating"
                     ? ""
                     : ' <button class="btn ghost small" data-pdel="' +
@@ -481,6 +486,65 @@
         $("proProducts").textContent = e.message;
       });
   }
+  // Pick an image, crop it to 16:9, shrink it, and upload it as the pack cover.
+  function changeCover(id) {
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        var W = 1200,
+          H = 675,
+          canvas = document.createElement("canvas");
+        canvas.width = W;
+        canvas.height = H;
+        var ctx = canvas.getContext("2d");
+        // "cover" fit: fill the frame, centre-crop the rest
+        var scale = Math.max(W / img.width, H / img.height);
+        var w = img.width * scale,
+          h = img.height * scale;
+        ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(
+          function (blob) {
+            if (!blob) return alert("Could not read that image.");
+            fetch("/api/admin/packs/" + encodeURIComponent(id) + "/cover", {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "Content-Type": "image/jpeg" },
+              body: blob,
+            })
+              .then(function (r) {
+                return r.json().then(function (j) {
+                  if (!r.ok) throw new Error(j.error || "Upload failed");
+                  return j;
+                });
+              })
+              .then(function () {
+                alert("Cover updated.");
+                loadProducts();
+              })
+              .catch(function (e) {
+                alert(e.message);
+              });
+          },
+          "image/jpeg",
+          0.86,
+        );
+      };
+      img.onerror = function () {
+        URL.revokeObjectURL(url);
+        alert("That file is not a valid image.");
+      };
+      img.src = url;
+    };
+    input.click();
+  }
+
   $("proProducts").addEventListener("click", function (e) {
     var d = e.target.dataset || {};
     if (d.pvis) {
@@ -491,6 +555,10 @@
         .catch(function (er) {
           alert(er.message);
         });
+      return;
+    }
+    if (d.pcover) {
+      changeCover(d.pcover);
       return;
     }
     if (d.pretry) {

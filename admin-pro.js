@@ -214,6 +214,15 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Custom cover images uploaded from the admin panel (kept in the DB so they
+    // survive restarts together with the GitHub database backup).
+    db2.exec(`CREATE TABLE IF NOT EXISTS pack_covers(
+      pack_id TEXT PRIMARY KEY,
+      mime TEXT NOT NULL,
+      data BLOB NOT NULL,
+      ver TEXT NOT NULL
+    )`);
+
     db2.exec(`CREATE TABLE IF NOT EXISTS pack_files(
       pack_id TEXT PRIMARY KEY,
       content TEXT NOT NULL,
@@ -829,7 +838,26 @@ CREATE TABLE IF NOT EXISTS broadcasts(id INTEGER PRIMARY KEY AUTOINCREMENT, subj
       return svgDataUri(svg);
     }
 
+    function customCoverUrl(id) {
+      const row = db2
+        .prepare("SELECT ver FROM pack_covers WHERE pack_id=?")
+        .get(id);
+
+      return row
+        ? "/api/packs/" + encodeURIComponent(id) + "/cover?v=" + row.ver
+        : "";
+    }
+
     function publicPack(r) {
+      const out = publicPackBase(r);
+      const custom = customCoverUrl(r.id);
+
+      if (custom) out.cover = custom;
+
+      return out;
+    }
+
+    function publicPackBase(r) {
       let info = {};
 
       try {
@@ -891,6 +919,110 @@ cover: String(info.cover || "").startsWith("/store-previews/covers/")
         ),
       };
     }
+
+    // ---- Admin: change a pack's cover image ----
+    function readBody(req, limit) {
+      return new Promise((resolve, reject) => {
+        const chunks = [];
+        let size = 0;
+
+        req.on("data", (ch) => {
+          size += ch.length;
+
+          if (size > limit) {
+            reject(new Error("TOO_LARGE"));
+            req.destroy();
+            return;
+          }
+
+          chunks.push(ch);
+        });
+        req.on("end", () => resolve(Buffer.concat(chunks)));
+        req.on("error", reject);
+      });
+    }
+
+    function sniffImage(buf) {
+      if (buf.length > 12 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)
+        return "image/jpeg";
+      if (buf.length > 12 && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+        return "image/png";
+      if (buf.length > 12 && buf.slice(0, 4).toString() === "RIFF" && buf.slice(8, 12).toString() === "WEBP")
+        return "image/webp";
+
+      return "";
+    }
+
+    app2.post(
+      "/api/admin/packs/:id/cover",
+      requireAdmin2,
+      async (req, res) => {
+        const row = packRow(req.params.id);
+
+        if (!row)
+          return res.status(404).json({ error: "Pack not found." });
+
+        let body;
+
+        try {
+          body = await readBody(req, 3 * 1024 * 1024);
+        } catch (e) {
+          return res.status(413).json({
+            error: "Image is too large (max 3 MB).",
+          });
+        }
+
+        const mime = sniffImage(body);
+
+        if (!mime)
+          return res.status(400).json({
+            error: "Please upload a JPG, PNG or WebP image.",
+          });
+
+        const ver = String(Date.now());
+
+        db2
+          .prepare(
+            "INSERT INTO pack_covers(pack_id,mime,data,ver) VALUES(?,?,?,?) " +
+              "ON CONFLICT(pack_id) DO UPDATE SET mime=excluded.mime, data=excluded.data, ver=excluded.ver",
+          )
+          .run(row.id, mime, body, ver);
+
+        logAdmin2("pack_cover", row.id, row.name);
+
+        res.json({ ok: true, cover: customCoverUrl(row.id) });
+      },
+    );
+
+    app2.post(
+      "/api/admin/packs/:id/cover/reset",
+      requireAdmin2,
+      (req, res) => {
+        const row = packRow(req.params.id);
+
+        if (!row)
+          return res.status(404).json({ error: "Pack not found." });
+
+        db2.prepare("DELETE FROM pack_covers WHERE pack_id=?").run(row.id);
+
+        logAdmin2("pack_cover_reset", row.id, row.name);
+
+        res.json({ ok: true });
+      },
+    );
+
+    app2.get("/api/packs/:id/cover", (req, res) => {
+      const row = db2
+        .prepare("SELECT mime, data, ver FROM pack_covers WHERE pack_id=?")
+        .get(req.params.id);
+
+      if (!row) return res.status(404).end();
+
+      res.setHeader("Content-Type", row.mime);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("ETag", '"' + row.ver + '"');
+      res.end(Buffer.from(row.data));
+    });
 
     app2.get(
       "/api/packs",
