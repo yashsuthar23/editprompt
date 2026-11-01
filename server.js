@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { initAdminPro } from "./admin-pro.js";
 import { mountSoftwareDownloads } from "./software-dl.js";
+import { restoreDb, startBackups, backupOnWrites } from "./db-persist.js";
 
 dotenv.config();
 
@@ -107,6 +108,10 @@ const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : __dirname;
 fs.mkdirSync(DATA_DIR, { recursive: true });
+
+// Free permanent storage: restore editprompt.db from the private GitHub backup
+// BEFORE the database is opened (no-op if BACKUP_GITHUB_* is not set).
+await restoreDb(DATA_DIR);
 
 // Persist login sessions in SQLite instead of express-session's default
 // MemoryStore, which loses all sessions when the Node process restarts.
@@ -288,6 +293,10 @@ const db = new DatabaseSync(path.join(DATA_DIR, "editprompt.db"));
 db.exec("PRAGMA journal_mode = WAL");
 
 db.exec("PRAGMA foreign_keys = ON");
+
+// Back up after every successful write + on a timer + on shutdown.
+startBackups(db, DATA_DIR);
+app.use(backupOnWrites());
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS prompt_versions(
