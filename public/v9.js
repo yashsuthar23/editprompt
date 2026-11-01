@@ -62,15 +62,65 @@
     box.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
-  /* ---------- Simplified store: top 3 packs + ONE button to the full catalog ---------- */
+  /* ---------- Simplified store: 3 featured packs (new admin packs first) + ONE button ---------- */
   var store = $("store");
   if (store) {
     store.classList.add("ep-store-lite");
     var grid = store.querySelector(".store-grid");
     var btn = store.querySelector(".store-more-btn");
-    if (grid && btn) {
-      var total = grid.querySelectorAll(":scope > .product").length;
-      btn.innerHTML = "Browse all " + (total || "") + " packs <span aria-hidden=\"true\">→</span>";
+    var SLOTS = 3;      // cards shown on the homepage
+    var MAX_NEW = 2;    // newest admin-created packs shown first
+
+    var esc = function (v) {
+      return String(v == null ? "" : v).replace(/[&<>"']/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+      });
+    };
+
+    var staticCards = grid ? Array.prototype.slice.call(grid.querySelectorAll(":scope > .product")) : [];
+
+    var finish = function (newCount, totalCount) {
+      var slots = Math.max(0, SLOTS - newCount);
+      staticCards.forEach(function (card, i) {
+        card.classList.toggle("ep-store-extra", i >= slots);
+      });
+      if (btn) {
+        btn.innerHTML = "Browse all " + totalCount + " packs <span aria-hidden=\"true\">→</span>";
+      }
+      store.classList.add("ep-store-ready");
+    };
+
+    var makeCard = function (p) {
+      var href = "/pack.html?id=" + encodeURIComponent(p.id);
+      var card = document.createElement("div");
+      card.className = "product";
+      card.dataset.id = p.id;
+      var cover = p.cover
+        ? "style=\"background-image:url('" + esc(p.cover) + "');background-size:cover;background-position:center;background-color:#0c0c0c;display:block;aspect-ratio:16/9;\""
+        : "style=\"display:block;aspect-ratio:16/9;\"";
+      card.innerHTML =
+        '<a class="thumb custom-pack-thumb" href="' + href + '" aria-label="' + esc(p.name) + '" ' + cover + "></a>" +
+        '<div class="tag">' + esc(p.tag || "NEW") + "</div>" +
+        "<h3>" + esc(p.name) + "</h3>" +
+        "<p>" + esc(p.description || p.tagline || "Production-ready AI prompts.") + "</p>" +
+        '<div class="pack-specs"><span>' + esc(p.count || p.promptCount || "PROMPTS") + "</span><span>PDF + ZIP</span><span>Instant access</span></div>" +
+        '<div class="price">₹' + esc(p.price) + "</div>" +
+        '<a class="btn primary full" href="' + href + '">Buy Now' + (p.price ? " — ₹" + esc(p.price) : "") + "</a>";
+      return card;
+    };
+
+    if (grid) {
+      fetch("/api/packs", { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : { packs: [] }; })
+        .then(function (d) {
+          var packs = (d && d.packs) || [];
+          var shown = packs.slice(0, MAX_NEW);
+          shown.slice().reverse().forEach(function (p) {
+            grid.insertBefore(makeCard(p), grid.firstChild);
+          });
+          finish(shown.length, staticCards.length + packs.length);
+        })
+        .catch(function () { finish(0, staticCards.length); });
     }
   }
 
