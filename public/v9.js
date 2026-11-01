@@ -80,10 +80,13 @@
     var staticCards = grid ? Array.prototype.slice.call(grid.querySelectorAll(":scope > .product")) : [];
 
     var finish = function (newCount, totalCount) {
-      var slots = Math.max(0, SLOTS - newCount);
+      // Always keep the first static card (the Best Seller) visible
+      var slots = Math.max(1, SLOTS - newCount);
       staticCards.forEach(function (card, i) {
         card.classList.toggle("ep-store-extra", i >= slots);
       });
+      var countEl = $("storePackCount");
+      if (countEl) countEl.textContent = "📚 " + totalCount + " premium packs";
       if (btn) {
         btn.innerHTML = "Browse all " + totalCount + " packs <span aria-hidden=\"true\">→</span>";
       }
@@ -115,8 +118,10 @@
         .then(function (d) {
           var packs = (d && d.packs) || [];
           var shown = packs.slice(0, MAX_NEW);
-          shown.slice().reverse().forEach(function (p) {
-            grid.insertBefore(makeCard(p), grid.firstChild);
+          // Best Seller first, then the newest admin packs
+          var anchor = staticCards.length ? staticCards[0].nextSibling : null;
+          shown.forEach(function (p) {
+            grid.insertBefore(makeCard(p), anchor);
           });
           finish(shown.length, staticCards.length + packs.length);
         })
