@@ -93,6 +93,41 @@
       store.classList.add("ep-store-ready");
     };
 
+    // Heart (save) button: same storage + events as the other pack cards
+    var SAVED_KEY = "ep_saved_packs";
+    var readSaved = function () {
+      try { return JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); } catch (e) { return []; }
+    };
+    var hearts = [];
+    var makeHeart = function (p) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pack-heart";
+      b.setAttribute("aria-label", "Save " + p.name);
+      var paint = function () {
+        var on = readSaved().indexOf(p.id) !== -1;
+        b.classList.toggle("on", on);
+        b.textContent = on ? "\u2665" : "\u2661";
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      };
+      b.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var l = readSaved(), i = l.indexOf(p.id);
+        if (i === -1) l.push(p.id); else l.splice(i, 1);
+        try { localStorage.setItem(SAVED_KEY, JSON.stringify(l)); } catch (err) {}
+        paint();
+        window.dispatchEvent(new Event("ep-saved-changed"));
+      });
+      paint();
+      hearts.push(paint);
+      return b;
+    };
+    var repaintHearts = function () { hearts.forEach(function (fn) { fn(); }); };
+    window.addEventListener("ep-saved-changed", repaintHearts);
+    window.addEventListener("storage", function (e) { if (e.key === SAVED_KEY) repaintHearts(); });
+    window.addEventListener("pageshow", repaintHearts);
+
     var makeCard = function (p) {
       var href = "/pack.html?id=" + encodeURIComponent(p.id);
       var card = document.createElement("div");
@@ -109,6 +144,8 @@
         '<div class="pack-specs"><span>' + esc(p.count || p.promptCount || "PROMPTS") + "</span><span>PDF + ZIP</span><span>Instant access</span></div>" +
         '<div class="price">₹' + esc(p.price) + "</div>" +
         '<a class="btn primary full" href="' + href + '">Buy Now' + (p.price ? " — ₹" + esc(p.price) : "") + "</a>";
+      card.style.position = "relative";
+      card.appendChild(makeHeart(p));
       return card;
     };
 
