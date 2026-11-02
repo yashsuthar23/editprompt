@@ -4235,7 +4235,7 @@ $("ivDownloadBtn")?.addEventListener("click", async (event) => {
 
 /* Puter.js browser fallback: runs only after the existing HF video job fails. */
 async function ivGenerateWithPuter(prompt, imageFile) {
-  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js is not loaded");
+  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
   ivSetProgress(12, "Hugging Face failed — switching to Puter…");
   const options = { model: "togetherai:wan-ai/wan2.7-t2v", seconds: 5, size: "720p" };
   if (imageFile) options.input_reference = imageFile;
@@ -4271,6 +4271,9 @@ async function ivPoll(jobId) {
 
     try {
       const data = await apiRequest(`/api/media/video/${jobId}`);
+      if (["failed", "error", "cancelled"].includes(String(data.status || "").toLowerCase())) {
+        throw new Error(data.error || data.message || "Hugging Face video job failed");
+      }
 
       if (data.status === "done") {
         ivState.polling = false;
@@ -4381,7 +4384,7 @@ async function ivGenerate() {
         await ivGenerateWithPuter(prompt, imageFile);
       } catch (puterError) {
         console.error("Puter fallback error:", puterError);
-        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterError.message}). Puter may require sign-in/available credits.`);
+        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterError.message}). Puter sign-in/credits may be required.`);
       }
     }
   }
