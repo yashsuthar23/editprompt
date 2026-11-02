@@ -3508,6 +3508,41 @@ async function mediaPollVideo(jobId) {
 async function mediaGenerateVideo({ fromImage = false } = {}) {
   const prompt = mediaCurrentPrompt();
 
+  // Optional browser-side Puter provider; default Hugging Face flow stays unchanged.
+  if (($("videoProvider")?.value || "huggingface") === "puter") {
+    if (fromImage) {
+      toast("Puter Wan 2.7 is connected for Text-to-Video only. Select Hugging Face for Image-to-Video.");
+      return;
+    }
+    mediaState.cancelled = false;
+    mediaShowStep("loading");
+    mediaStartProgress(150, "Puter Wan 2.7 is rendering…");
+    try {
+      if (!window.editPromptPuterT2V) throw new Error("Puter.js provider script is not loaded. Refresh the page and try again.");
+      const result = await window.editPromptPuterT2V({
+        prompt,
+        duration: $("videoDuration")?.value || "5 seconds",
+        ratio: $("ratio")?.value || ""
+      });
+      if (mediaState.cancelled) return;
+      mediaStopProgress();
+      mediaSetProgress(100, "Done");
+      mediaShowResult({
+        kind: "video",
+        file: "puter-wan2.7-video.mp4",
+        url: result.url,
+        downloadUrl: result.url
+      });
+      toast("Puter video generated 🎬");
+    } catch (error) {
+      console.error("Puter video generation error:", error);
+      if (!mediaState.cancelled) mediaFail(error.message || "Puter video generation failed");
+    } finally {
+      mediaStopProgress();
+    }
+    return;
+  }
+
   mediaState.cancelled = false;
 
   mediaShowStep("loading");
