@@ -3553,8 +3553,32 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
   } catch (error) {
     console.error("Video generation error:", error);
 
-    if (!mediaState.cancelled) mediaFail(error.message);
+    if (mediaState.cancelled) return;
+
+    // HF job creation or polling failed: try Puter in the browser as a fallback.
+    try {
+      await mediaGenerateWithPuter(prompt, fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null);
+    } catch (puterError) {
+      console.error("Puter fallback error:", puterError);
+      mediaFail(`Hugging Face failed (${error.message}); Puter fallback failed (${puterError.message}). Check Puter sign-in/authorization and credits.`);
+    }
   }
+}
+
+async function mediaGenerateWithPuter(prompt, imageFile) {
+  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
+  mediaSetProgress(12, "Hugging Face failed — switching to Puter…");
+  const options = { model: "togetherai:wan-ai/wan2.7-t2v", seconds: 5, size: "720p" };
+  if (imageFile) options.input_reference = imageFile;
+  const result = await window.puter.ai.txt2vid(prompt, options);
+  if (mediaState.cancelled) return;
+  const videoUrl = result?.src || result?.currentSrc || (typeof result === "string" ? result : "");
+  if (!videoUrl) throw new Error("Puter returned no playable video URL");
+  mediaState.polling = false;
+  mediaState.lastVideoMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
+  mediaSetProgress(100, "Done — generated with Puter");
+  mediaShowResult({ kind: "video", file: videoUrl, url: videoUrl, downloadUrl: videoUrl });
+  toast("Video generated with Puter 🎬");
 }
 
 /* ---------- VIDEO IMAGE UPLOAD ---------- */
