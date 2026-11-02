@@ -3465,6 +3465,9 @@ async function mediaPollVideo(jobId) {
 
     try {
       const data = await apiRequest(`/api/media/video/${jobId}`);
+      if (["failed", "error", "cancelled"].includes(String(data.status || "").toLowerCase())) {
+        throw new Error(data.error || data.message || "Hugging Face video job failed");
+      }
 
       if (data.status === "done") {
         mediaState.polling = false;
@@ -3507,41 +3510,6 @@ async function mediaPollVideo(jobId) {
 
 async function mediaGenerateVideo({ fromImage = false } = {}) {
   const prompt = mediaCurrentPrompt();
-
-  // Optional browser-side Puter provider; default Hugging Face flow stays unchanged.
-  if (($("videoProvider")?.value || "huggingface") === "puter") {
-    if (fromImage) {
-      toast("Puter Wan 2.7 is connected for Text-to-Video only. Select Hugging Face for Image-to-Video.");
-      return;
-    }
-    mediaState.cancelled = false;
-    mediaShowStep("loading");
-    mediaStartProgress(150, "Puter Wan 2.7 is rendering…");
-    try {
-      if (!window.editPromptPuterT2V) throw new Error("Puter.js provider script is not loaded. Refresh the page and try again.");
-      const result = await window.editPromptPuterT2V({
-        prompt,
-        duration: $("videoDuration")?.value || "5 seconds",
-        ratio: $("ratio")?.value || ""
-      });
-      if (mediaState.cancelled) return;
-      mediaStopProgress();
-      mediaSetProgress(100, "Done");
-      mediaShowResult({
-        kind: "video",
-        file: "puter-wan2.7-video.mp4",
-        url: result.url,
-        downloadUrl: result.url
-      });
-      toast("Puter video generated 🎬");
-    } catch (error) {
-      console.error("Puter video generation error:", error);
-      if (!mediaState.cancelled) mediaFail(error.message || "Puter video generation failed");
-    } finally {
-      mediaStopProgress();
-    }
-    return;
-  }
 
   mediaState.cancelled = false;
 
@@ -4265,6 +4233,34 @@ $("ivDownloadBtn")?.addEventListener("click", async (event) => {
   });
 })();
 
+/* Puter.js browser fallback: runs only after the existing HF video job fails. */
+async function ivGenerateWithPuter(prompt, imageFile) {
+  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js is not loaded");
+  ivSetProgress(12, "Hugging Face failed — switching to Puter…");
+  const options = { model: "togetherai:wan-ai/wan2.7-t2v", seconds: 5, size: "720p" };
+  if (imageFile) options.input_reference = imageFile;
+  const video = await window.puter.ai.txt2vid(prompt, options);
+  if (ivState.cancelled) return;
+  const videoUrl = video?.src || String(video || "");
+  if (!videoUrl) throw new Error("Puter returned no video URL");
+  ivState.file = videoUrl;
+  ivState.lastMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
+  const holder = $("ivPreview");
+  if (holder) {
+    holder.innerHTML = "";
+    const player = document.createElement("video");
+    player.src = videoUrl; player.controls = true; player.playsInline = true;
+    player.autoplay = true; player.muted = true; player.loop = true; player.preload = "metadata";
+    player.addEventListener("loadedmetadata", ivLayout);
+    holder.appendChild(player);
+  }
+  const download = $("ivDownloadBtn");
+  if (download) download.href = videoUrl;
+  ivStopProgress(); ivState.running = false; ivShow("result"); ivLayout();
+  $("ivResult")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  toast("Video generated with Puter 🎬");
+}
+
 async function ivPoll(jobId) {
   ivState.polling = true;
   const startedAt = Date.now();
@@ -4295,8 +4291,7 @@ async function ivPoll(jobId) {
       ivSetProgress(ivState.progress, `Rendering video… ${elapsed}s`);
     } catch (error) {
       console.error("Video poll error:", error);
-      if (!ivState.cancelled) ivFail(error.message);
-      return;
+      throw error;
     }
   }
 }
@@ -4380,8 +4375,15 @@ async function ivGenerate() {
     ivSetProgress(6, "Rendering video… this may take a few minutes");
     await ivPoll(data.jobId);
   } catch (error) {
-    console.error("Video generation error:", error);
-    if (!ivState.cancelled) ivFail(error.message);
+    console.error("Hugging Face video generation error:", error);
+    if (!ivState.cancelled) {
+      try {
+        await ivGenerateWithPuter(prompt, imageFile);
+      } catch (puterError) {
+        console.error("Puter fallback error:", puterError);
+        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterError.message}). Puter may require sign-in/available credits.`);
+      }
+    }
   }
 }
 
