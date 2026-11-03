@@ -3454,27 +3454,50 @@ async function mediaGenerateImage() {
 /* ---------- VIDEO ---------- */
 
 /* Puter.js fallback (text-to-video only). Puter bills the signed-in user's own
-   Puter account. Model IDs use the provider/model form, e.g. "google/veo-3.1-fast".
-   The "animate image" source is a server-side file reference Puter cannot read,
-   so image-to-video does not fall back to Puter. */
-const PUTER_VIDEO_MODEL = "google/veo-3.1-fast";
+   Puter account. Puter's docs list two naming styles for Veo, and the server
+   rejects some of them with "Model not found", so the candidates are tried in
+   order and only "Model not found" moves on to the next one. The "animate image"
+   source is a server-side file reference Puter cannot read, so image-to-video
+   does not fall back to Puter. */
+const PUTER_VIDEO_MODELS = [
+  "veo-3.1-fast-generate-preview",
+  "veo-3.1-generate-preview",
+  "google/veo-3.1",
+  "veo-3.0-fast-generate-001",
+];
 
 function puterVideoSize(ratio) {
   const value = String(ratio || "").toLowerCase();
   return value.includes("vertical") || value.includes("9:16") ? "720x1280" : "1280x720";
 }
 
+function isPuterModelNotFound(error) {
+  const text = String(error?.message || error?.error || error || "");
+  return /model not found/i.test(text);
+}
+
 async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "") {
   if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
   const cleanPrompt = String(prompt || "").trim();
   if (!cleanPrompt) throw new Error("Prompt is empty");
-  const video = await window.puter.ai.txt2vid(cleanPrompt, {
-    model: PUTER_VIDEO_MODEL,
-    size: puterVideoSize(ratio),
-  });
-  const url = video?.src || (typeof video === "string" ? video : "");
-  if (!url) throw new Error("Puter returned no video URL");
-  return url;
+
+  let lastError = null;
+  for (const model of PUTER_VIDEO_MODELS) {
+    try {
+      const video = await window.puter.ai.txt2vid(cleanPrompt, {
+        model,
+        size: puterVideoSize(ratio),
+      });
+      const url = video?.src || (typeof video === "string" ? video : "");
+      if (!url) throw new Error("Puter returned no video URL");
+      return url;
+    } catch (error) {
+      if (!isPuterModelNotFound(error)) throw error;
+      console.warn(`Puter model not available: ${model}, trying next`);
+      lastError = error;
+    }
+  }
+  throw new Error(`No Puter Veo model is available (${lastError?.message || "Model not found"})`);
 }
 
 async function mediaGenerateWithPuter(prompt, imageFile = null) {
