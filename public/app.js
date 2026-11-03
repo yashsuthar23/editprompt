@@ -3453,15 +3453,35 @@ async function mediaGenerateImage() {
 
 /* ---------- VIDEO ---------- */
 
-async function mediaGenerateWithPuter(prompt, imageFile = null) {
+/* Puter.js fallback (text-to-video only). Puter bills the signed-in user's own
+   Puter account. Model IDs use the provider/model form, e.g. "google/veo-3.1-fast".
+   The "animate image" source is a server-side file reference Puter cannot read,
+   so image-to-video does not fall back to Puter. */
+const PUTER_VIDEO_MODEL = "google/veo-3.1-fast";
+
+function puterVideoSize(ratio) {
+  const value = String(ratio || "").toLowerCase();
+  return value.includes("vertical") || value.includes("9:16") ? "720x1280" : "1280x720";
+}
+
+async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "") {
   if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
+  const cleanPrompt = String(prompt || "").trim();
+  if (!cleanPrompt) throw new Error("Prompt is empty");
+  const video = await window.puter.ai.txt2vid(cleanPrompt, {
+    model: PUTER_VIDEO_MODEL,
+    size: puterVideoSize(ratio),
+  });
+  const url = video?.src || (typeof video === "string" ? video : "");
+  if (!url) throw new Error("Puter returned no video URL");
+  return url;
+}
+
+async function mediaGenerateWithPuter(prompt, imageFile = null) {
+  if (imageFile) throw new Error("Puter fallback supports text-to-video only");
   mediaSetProgress(15, "HF unavailable — generating with Puter…");
-  const options = { model: "wan2.7-t2v", seconds: 5, size: "720p" };
-  if (imageFile) options.input_reference = imageFile;
-  const video = await window.puter.ai.txt2vid(prompt, options);
+  const videoUrl = await puterTextToVideoUrl(prompt);
   if (mediaState.cancelled) return;
-  const videoUrl = video?.src || String(video || "");
-  if (!videoUrl) throw new Error("Puter returned no video URL");
   mediaState.polling = false;
   mediaState.lastVideoMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
   mediaSetProgress(100, "Video generated with Puter");
@@ -3567,11 +3587,18 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
     mediaSetProgress(6, "Rendering video… this may take a few minutes");
 
-    await mediaPollVideo(data.jobId);
+    // Without allowPuter, a failed server job (e.g. "Free video limit reached")
+    // never reaches the Puter fallback inside mediaPollVideo.
+    await mediaPollVideo(data.jobId, {
+      allowPuter: !fromImage,
+      prompt,
+      imageFile: fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null,
+    });
   } catch (error) {
     console.error("Video generation error:", error);
     if (!mediaState.cancelled) {
-      try { await mediaGenerateWithPuter(prompt, fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null); }
+      if (fromImage) return mediaFail(error.message);
+      try { await mediaGenerateWithPuter(prompt, null); }
       catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterError.message}`); }
     }
   }
@@ -4255,14 +4282,10 @@ $("ivDownloadBtn")?.addEventListener("click", async (event) => {
 
 /* Puter.js browser fallback: runs only after the existing HF video job fails. */
 async function ivGenerateWithPuter(prompt, imageFile) {
-  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
+  if (imageFile) throw new Error("Puter fallback supports text-to-video only");
   ivSetProgress(12, "Hugging Face failed — switching to Puter…");
-  const options = { model: "togetherai:wan-ai/wan2.7-t2v", seconds: 5, size: "720p" };
-  if (imageFile) options.input_reference = imageFile;
-  const video = await window.puter.ai.txt2vid(prompt, options);
+  const videoUrl = await puterTextToVideoUrl(prompt);
   if (ivState.cancelled) return;
-  const videoUrl = video?.src || String(video || "");
-  if (!videoUrl) throw new Error("Puter returned no video URL");
   ivState.file = videoUrl;
   ivState.lastMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
   const holder = $("ivPreview");
@@ -4400,6 +4423,7 @@ async function ivGenerate() {
   } catch (error) {
     console.error("Hugging Face video generation error:", error);
     if (!ivState.cancelled) {
+      if (imageFile) return ivFail(`Hugging Face failed: ${error.message}`);
       try {
         await ivGenerateWithPuter(prompt, imageFile);
       } catch (puterError) {
