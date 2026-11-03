@@ -3472,14 +3472,72 @@ function puterVideoSize(ratio) {
 }
 
 function isPuterModelNotFound(error) {
-  const text = String(error?.message || error?.error || error || "");
+  const text = String(error?.message || error?.error?.message || error?.error || error || "");
   return /model not found/i.test(text);
 }
 
-async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "") {
+/* Puter errors are often plain objects like {error:{code:"auth_canceled"}} rather
+   than Error instances, so read every shape or the UI shows "undefined". */
+function puterErrorText(error) {
+  const code = error?.error?.code || error?.code || "";
+  const msg = error?.message || error?.error?.message || (typeof error === "string" ? error : "");
+  if (code === "auth_canceled" || /auth.*cancel/i.test(`${code} ${msg}`)) {
+    return "Puter sign-in was not completed. Click \"Sign in to Puter\", finish signing in, and wait for the popup to close.";
+  }
+  if (/insufficient|credit|balance|payment/i.test(`${code} ${msg}`)) {
+    return "Your Puter account has no video credits left.";
+  }
+  return msg || code || "Unknown Puter error";
+}
+
+/* Puter's sign-in popup must be opened from a real click. By the time the HF
+   job has failed the click is long gone, so the browser blocks or cancels the
+   popup (auth_canceled). Show a button and open the popup from that click. */
+async function puterEnsureSignedIn(labelId) {
+  if (!window.puter?.auth) throw new Error("Puter.js SDK did not load");
+  let signedIn = false;
+  try { signedIn = !!window.puter.auth.isSignedIn(); } catch { /* ignore */ }
+  if (signedIn) return;
+
+  const label = $(labelId);
+  if (!label) { await window.puter.auth.signIn(); return; }
+
+  document.getElementById("puterSignInBtn")?.remove();
+  const original = label.textContent;
+  label.textContent = "Free HF quota is used up. Sign in to Puter to continue:";
+  const btn = document.createElement("button");
+  btn.id = "puterSignInBtn";
+  btn.type = "button";
+  btn.textContent = "🔑 Sign in to Puter & continue";
+  btn.style.cssText = "display:block;margin:10px auto 0;padding:10px 18px;border:0;border-radius:10px;background:#e8213a;color:#fff;font-weight:700;cursor:pointer";
+  label.insertAdjacentElement("afterend", btn);
+
+  await new Promise((resolve, reject) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Waiting for Puter…";
+      try {
+        await window.puter.auth.signIn();
+        if (!window.puter.auth.isSignedIn()) throw new Error("not signed in");
+        btn.remove();
+        label.textContent = original;
+        resolve();
+      } catch (error) {
+        btn.disabled = false;
+        btn.textContent = "🔑 Try signing in again";
+        label.textContent = puterErrorText(error);
+        console.warn("Puter sign-in failed:", error);
+      }
+    });
+  });
+}
+
+async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "", labelId = "mediaProgressText") {
   if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
   const cleanPrompt = String(prompt || "").trim();
   if (!cleanPrompt) throw new Error("Prompt is empty");
+
+  await puterEnsureSignedIn(labelId);
 
   let lastError = null;
   for (const model of PUTER_VIDEO_MODELS) {
@@ -3492,12 +3550,12 @@ async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "") {
       if (!url) throw new Error("Puter returned no video URL");
       return url;
     } catch (error) {
-      if (!isPuterModelNotFound(error)) throw error;
+      if (!isPuterModelNotFound(error)) throw new Error(puterErrorText(error));
       console.warn(`Puter model not available: ${model}, trying next`);
       lastError = error;
     }
   }
-  throw new Error(`No Puter Veo model is available (${lastError?.message || "Model not found"})`);
+  throw new Error(`No Puter Veo model is available (${puterErrorText(lastError)})`);
 }
 
 async function mediaGenerateWithPuter(prompt, imageFile = null) {
@@ -3561,7 +3619,7 @@ async function mediaPollVideo(jobId, fallback = {}) {
       console.error("Video poll error:", error);
       if (!mediaState.cancelled && fallback.allowPuter) {
         try { await mediaGenerateWithPuter(fallback.prompt, fallback.imageFile); return; }
-        catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterError.message}`); return; }
+        catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterErrorText(puterError)}`); return; }
       }
       if (!mediaState.cancelled) mediaFail(error.message);
       return;
@@ -3622,7 +3680,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
     if (!mediaState.cancelled) {
       if (fromImage) return mediaFail(error.message);
       try { await mediaGenerateWithPuter(prompt, null); }
-      catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterError.message}`); }
+      catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterErrorText(puterError)}`); }
     }
   }
 }
@@ -4307,7 +4365,7 @@ $("ivDownloadBtn")?.addEventListener("click", async (event) => {
 async function ivGenerateWithPuter(prompt, imageFile) {
   if (imageFile) throw new Error("Puter fallback supports text-to-video only");
   ivSetProgress(12, "Hugging Face failed — switching to Puter…");
-  const videoUrl = await puterTextToVideoUrl(prompt);
+  const videoUrl = await puterTextToVideoUrl(prompt, undefined, "ivProgressText");
   if (ivState.cancelled) return;
   ivState.file = videoUrl;
   ivState.lastMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
@@ -4451,7 +4509,7 @@ async function ivGenerate() {
         await ivGenerateWithPuter(prompt, imageFile);
       } catch (puterError) {
         console.error("Puter fallback error:", puterError);
-        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterError.message}). Puter sign-in/credits may be required.`);
+        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterErrorText(puterError)}). Puter sign-in/credits may be required.`);
       }
     }
   }
