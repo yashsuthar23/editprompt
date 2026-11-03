@@ -3394,7 +3394,7 @@ function mediaFail(message) {
         mediaState.polling = false;
         mediaShowStep("loading");
         mediaStartProgress(110, "Retrying video…");
-        await mediaPollVideo(data.jobId, { allowPuter: true, prompt, imageFile: fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null });
+        await mediaPollVideo(data.jobId, {});
       } catch (e) { retry.disabled = false; toast(e.message || "Retry failed"); }
     };
     const target = $("mediaStepType");
@@ -3460,123 +3460,6 @@ async function mediaGenerateImage() {
 }
 
 /* ---------- VIDEO ---------- */
-
-/* Puter.js fallback (text-to-video only). Puter bills the signed-in user's own
-   Puter account. Puter's docs list two naming styles for Veo, and the server
-   rejects some of them with "Model not found", so the candidates are tried in
-   order and only "Model not found" moves on to the next one. The "animate image"
-   source is a server-side file reference Puter cannot read, so image-to-video
-   does not fall back to Puter. */
-const PUTER_VIDEO_MODELS = [
-  "veo-3.1-fast-generate-preview",
-  "veo-3.1-generate-preview",
-  "google/veo-3.1",
-  "veo-3.0-fast-generate-001",
-];
-
-function puterVideoSize(ratio) {
-  const value = String(ratio || "").toLowerCase();
-  return value.includes("vertical") || value.includes("9:16") ? "720x1280" : "1280x720";
-}
-
-function isPuterModelNotFound(error) {
-  const text = String(error?.message || error?.error?.message || error?.error || error || "");
-  return /model not found/i.test(text);
-}
-
-/* Puter errors are often plain objects like {error:{code:"auth_canceled"}} rather
-   than Error instances, so read every shape or the UI shows "undefined". */
-function puterErrorText(error) {
-  const code = error?.error?.code || error?.code || "";
-  const msg = error?.message || error?.error?.message || (typeof error === "string" ? error : "");
-  if (code === "auth_canceled" || /auth.*cancel/i.test(`${code} ${msg}`)) {
-    return "Puter sign-in was not completed. Click \"Sign in to Puter\", finish signing in, and wait for the popup to close.";
-  }
-  if (/insufficient|credit|balance|payment/i.test(`${code} ${msg}`)) {
-    return "Your Puter account has no video credits left.";
-  }
-  return msg || code || "Unknown Puter error";
-}
-
-/* Puter's sign-in popup must be opened from a real click. By the time the HF
-   job has failed the click is long gone, so the browser blocks or cancels the
-   popup (auth_canceled). Show a button and open the popup from that click. */
-async function puterEnsureSignedIn(labelId) {
-  if (!window.puter?.auth) throw new Error("Puter.js SDK did not load");
-  let signedIn = false;
-  try { signedIn = !!window.puter.auth.isSignedIn(); } catch { /* ignore */ }
-  if (signedIn) return;
-
-  const label = $(labelId);
-  if (!label) { await window.puter.auth.signIn(); return; }
-
-  document.getElementById("puterSignInBtn")?.remove();
-  const original = label.textContent;
-  label.textContent = "Free HF quota is used up. Sign in to Puter to continue:";
-  const btn = document.createElement("button");
-  btn.id = "puterSignInBtn";
-  btn.type = "button";
-  btn.textContent = "🔑 Sign in to Puter & continue";
-  btn.style.cssText = "display:block;margin:10px auto 0;padding:10px 18px;border:0;border-radius:10px;background:#e8213a;color:#fff;font-weight:700;cursor:pointer";
-  label.insertAdjacentElement("afterend", btn);
-
-  await new Promise((resolve, reject) => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      btn.textContent = "Waiting for Puter…";
-      try {
-        await window.puter.auth.signIn();
-        if (!window.puter.auth.isSignedIn()) throw new Error("not signed in");
-        btn.remove();
-        label.textContent = original;
-        resolve();
-      } catch (error) {
-        btn.disabled = false;
-        btn.textContent = "🔑 Try signing in again";
-        label.textContent = puterErrorText(error);
-        console.warn("Puter sign-in failed:", error);
-      }
-    });
-  });
-}
-
-async function puterTextToVideoUrl(prompt, ratio = $("ratio")?.value || "", labelId = "mediaProgressText") {
-  if (!window.puter?.ai?.txt2vid) throw new Error("Puter.js SDK did not load");
-  const cleanPrompt = String(prompt || "").trim();
-  if (!cleanPrompt) throw new Error("Prompt is empty");
-
-  await puterEnsureSignedIn(labelId);
-
-  let lastError = null;
-  for (const model of PUTER_VIDEO_MODELS) {
-    try {
-      const video = await window.puter.ai.txt2vid(cleanPrompt, {
-        model,
-        size: puterVideoSize(ratio),
-      });
-      const url = video?.src || (typeof video === "string" ? video : "");
-      if (!url) throw new Error("Puter returned no video URL");
-      return url;
-    } catch (error) {
-      if (!isPuterModelNotFound(error)) throw new Error(puterErrorText(error));
-      console.warn(`Puter model not available: ${model}, trying next`);
-      lastError = error;
-    }
-  }
-  throw new Error(`No Puter Veo model is available (${puterErrorText(lastError)})`);
-}
-
-async function mediaGenerateWithPuter(prompt, imageFile = null) {
-  if (imageFile) throw new Error("Puter fallback supports text-to-video only");
-  mediaSetProgress(15, "HF unavailable — generating with Puter…");
-  const videoUrl = await puterTextToVideoUrl(prompt);
-  if (mediaState.cancelled) return;
-  mediaState.polling = false;
-  mediaState.lastVideoMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
-  mediaSetProgress(100, "Video generated with Puter");
-  mediaShowResult({ kind: "video", file: videoUrl, url: videoUrl, downloadUrl: videoUrl });
-  toast("Video generated with Puter 🎬");
-}
 
 async function mediaPollVideo(jobId, fallback = {}) {
   mediaState.polling = true;
@@ -3672,13 +3555,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
 
     mediaSetProgress(6, "Rendering video… this may take a few minutes");
 
-    // Without allowPuter, a failed server job (e.g. "Free video limit reached")
-    // never reaches the Puter fallback inside mediaPollVideo.
-    await mediaPollVideo(data.jobId, {
-      allowPuter: !fromImage,
-      prompt,
-      imageFile: fromImage ? (mediaState.uploadedImageFile || mediaState.sourceImageFile) : null,
-    });
+    await mediaPollVideo(data.jobId);
   } catch (error) {
     console.error("Video generation error:", error);
     if (!mediaState.cancelled) {
@@ -4363,30 +4240,6 @@ $("ivDownloadBtn")?.addEventListener("click", async (event) => {
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
 })();
-
-/* Puter.js browser fallback: runs only after the existing HF video job fails. */
-async function ivGenerateWithPuter(prompt, imageFile) {
-  if (imageFile) throw new Error("Puter fallback supports text-to-video only");
-  ivSetProgress(12, "Hugging Face failed — switching to Puter…");
-  const videoUrl = await puterTextToVideoUrl(prompt, undefined, "ivProgressText");
-  if (ivState.cancelled) return;
-  ivState.file = videoUrl;
-  ivState.lastMeta = { file: videoUrl, url: videoUrl, downloadUrl: videoUrl, provider: "puter" };
-  const holder = $("ivPreview");
-  if (holder) {
-    holder.innerHTML = "";
-    const player = document.createElement("video");
-    player.src = videoUrl; player.controls = true; player.playsInline = true;
-    player.autoplay = true; player.muted = true; player.loop = true; player.preload = "metadata";
-    player.addEventListener("loadedmetadata", ivLayout);
-    holder.appendChild(player);
-  }
-  const download = $("ivDownloadBtn");
-  if (download) download.href = videoUrl;
-  ivStopProgress(); ivState.running = false; ivShow("result"); ivLayout();
-  $("ivResult")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  toast("Video generated with Puter 🎬");
-}
 
 async function ivPoll(jobId) {
   ivState.polling = true;
