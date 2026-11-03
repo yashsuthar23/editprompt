@@ -3353,13 +3353,21 @@ function mediaShowResult({ kind, file, url, downloadUrl, batch = null }) {
   mediaShowStep("preview");
 }
 
+
+function isVideoLimitError(raw) {
+  return /free video limit|temporarily unavailable|zerogpu|quota|capacity|not running|No video provider/i.test(String(raw || ""));
+}
+const VIDEO_LIMIT_MESSAGE = "⏳ Aaj nu free video limit puru thai gayu chhe. Roj reset thay chhe — kal fari try karo. Tamaro prompt taiyar chhe, copy kari ne bija free video tool ma vaparo.";
+
 function mediaFail(message) {
   mediaStopProgress();
 
   const raw = String(message || "Media generation failed");
   let friendly = raw;
 
-  if (raw.includes("Hugging Face free video credits are exhausted")) {
+  if (isVideoLimitError(raw)) {
+    friendly = VIDEO_LIMIT_MESSAGE;
+  } else if (raw.includes("Hugging Face free video credits are exhausted")) {
     friendly = "⚠️ Hugging Face free video credits are exhausted. No free remote video credits are currently available.";
   } else if (raw.includes("Pollinations balance is 0")) {
     friendly = "⚠️ Pollinations has 0 balance. Configure a funded video provider.";
@@ -3617,10 +3625,6 @@ async function mediaPollVideo(jobId, fallback = {}) {
       mediaState.polling = false;
 
       console.error("Video poll error:", error);
-      if (!mediaState.cancelled && fallback.allowPuter) {
-        try { await mediaGenerateWithPuter(fallback.prompt, fallback.imageFile); return; }
-        catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterErrorText(puterError)}`); return; }
-      }
       if (!mediaState.cancelled) mediaFail(error.message);
       return;
     }
@@ -3678,9 +3682,7 @@ async function mediaGenerateVideo({ fromImage = false } = {}) {
   } catch (error) {
     console.error("Video generation error:", error);
     if (!mediaState.cancelled) {
-      if (fromImage) return mediaFail(error.message);
-      try { await mediaGenerateWithPuter(prompt, null); }
-      catch (puterError) { console.error("Puter main video fallback error:", puterError); mediaFail(`HF failed: ${error.message}. Puter failed: ${puterErrorText(puterError)}`); }
+      mediaFail(error.message);
     }
   }
 }
@@ -4179,6 +4181,7 @@ function ivStopProgress() {
 
 function ivFriendlyError(message) {
   const raw = String(message || "Video generation failed");
+  if (isVideoLimitError(raw)) return VIDEO_LIMIT_MESSAGE;
   if (raw.includes("Hugging Face free video credits are exhausted")) {
     return "⚠️ Hugging Face free video credits are exhausted. No free remote video credits are currently available.";
   }
@@ -4504,13 +4507,7 @@ async function ivGenerate() {
   } catch (error) {
     console.error("Hugging Face video generation error:", error);
     if (!ivState.cancelled) {
-      if (imageFile) return ivFail(`Hugging Face failed: ${error.message}`);
-      try {
-        await ivGenerateWithPuter(prompt, imageFile);
-      } catch (puterError) {
-        console.error("Puter fallback error:", puterError);
-        ivFail(`HF failed (${error.message}); Puter fallback failed (${puterErrorText(puterError)}). Puter sign-in/credits may be required.`);
-      }
+      ivFail(error.message);
     }
   }
 }
