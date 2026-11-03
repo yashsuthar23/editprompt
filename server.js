@@ -8035,6 +8035,29 @@ app.post(
       return res.status(400).json({ error: "Prompt is too long." });
     }
 
+    // Free mode: all users share ONE Hugging Face ZeroGPU quota, so give each
+    // user a small daily allowance. Failed/cancelled jobs do not count, so a
+    // retry after a provider failure is free. Admin and paid-provider mode skip this.
+    const usingPaidVideo =
+      paidVideoEnabled() && (hasUsableFalKey() || hasUsableReplicateKey());
+    if (!usingPaidVideo && !isAdminSession(req)) {
+      const perDay = Math.max(
+        1,
+        Number(process.env.FREE_VIDEOS_PER_DAY || 2) || 2,
+      );
+      const used = db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM video_jobs
+           WHERE user_id=? AND created_at>? AND status IN ('pending','processing','done')`,
+        )
+        .get(req.session.userId, Date.now() - 24 * 60 * 60 * 1000).n;
+      if (used >= perDay) {
+        return res.status(429).json({
+          error: `Aaj na ${perDay} free video puru thai gaya chhe. Kal fari try karo. Tamaro prompt copy kari ne bija free video tool ma vaparvo.`,
+        });
+      }
+    }
+
     const aspectRatio = videoAspectRatio(req.body?.ratio);
     const durationSeconds = videoDuration(req.body?.duration);
     const fps = [24, 30, 60].includes(Number(req.body?.fps))
