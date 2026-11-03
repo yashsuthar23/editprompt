@@ -4343,7 +4343,9 @@ app.post("/api/admin/logout", (req, res) => {
 // ============================================================
 
 /* Customer heartbeat: pages ping this while open so admin can show Online / Offline. */
-app.post("/api/heartbeat", requireLogin, (req, res) => {
+app.post("/api/heartbeat", (req, res) => {
+  // Logged-out visitors: reply 204 (not 401) so the browser console stays clean.
+  if (!req.session || !req.session.userId) return res.status(204).end();
   db.prepare("UPDATE users SET last_seen=CURRENT_TIMESTAMP WHERE id=?").run(
     req.session.userId,
   );

@@ -583,6 +583,13 @@
         return '<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--muted,#9aa0ad)"><span style="width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block"></span>Offline</span><div class="admin-meta" style="font-size:11px">Last seen ' + seen + '</div>';
       }
 
+      // Status pill: Blocked (red) > Online (green) > Offline (grey)
+      function statusPillHtml(u) {
+        if (u.blocked) return '<span class="status-pill status-blocked">Blocked</span>';
+        if (u.online) return '<span class="status-pill status-active">Online</span>';
+        return '<span class="status-pill status-other">Offline</span>';
+      }
+
       function formatDate(value) {
         if (!value) return "—";
         const d = parseDate(value);
@@ -938,7 +945,7 @@
               <td>${Number(u.paid_orders || 0)} <span class="admin-meta">(₹${formatMoney(Number(u.paid_amount || 0) / 100)})</span></td>
               <td>${Number(u.prompts || 0)}</td>
               <td>${presenceHtml(u)}</td>
-              <td><span class="status-pill ${u.blocked ? "status-blocked" : "status-active"}">${u.blocked ? "Blocked" : "Active"}</span></td>
+              <td>${statusPillHtml(u)}</td>
               <td style="white-space:nowrap">
                 <button class="btn ghost small" data-view="${escapeHtml(u.id)}" type="button">View</button>
                 ${
