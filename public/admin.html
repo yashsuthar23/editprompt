@@ -343,6 +343,7 @@
           <button class="adm-tab-btn active" data-tab="overview" role="tab" aria-selected="true" type="button">Overview</button>
           <button class="adm-tab-btn" data-tab="users" role="tab" aria-selected="false" type="button">Users <span class="tab-badge" id="usersBadge"></span></button>
           <button class="adm-tab-btn" data-tab="orders" role="tab" aria-selected="false" type="button">Orders <span class="tab-badge" id="ordersBadge"></span></button>
+          <button class="adm-tab-btn" data-tab="notifications" role="tab" aria-selected="false" type="button">Notifications <span class="tab-badge" id="messagesBadge"></span></button>
           <button class="adm-tab-btn" data-tab="activity" role="tab" aria-selected="false" type="button">Activity</button>
           <button class="adm-tab-btn" data-tab="blocked" role="tab" aria-selected="false" type="button">Blocked <span class="tab-badge" id="blockedBadge"></span></button>
           <button class="adm-tab-btn" data-tab="deleted" role="tab" aria-selected="false" type="button">Deleted <span class="tab-badge" id="deletedBadge"></span></button>
@@ -470,6 +471,21 @@
 
             <h3 style="margin-top:18px">All orders</h3>
             <div id="orders"><div class="admin-loading">Loading orders…</div></div>
+          </div>
+        </div>
+
+        <!-- ===== CONTACT MESSAGE NOTIFICATIONS ===== -->
+        <div id="tab-notifications" role="tabpanel" class="adm-hide">
+          <div class="panel">
+            <div class="adm-tools" style="justify-content:space-between">
+              <div>
+                <h3 style="margin:0 0 5px">Contact messages</h3>
+                <p class="muted" style="margin:0">Messages submitted through the website contact form. New messages are shown in the badge.</p>
+              </div>
+              <button id="refreshMessages" class="btn ghost small" type="button">Refresh messages</button>
+            </div>
+            <div id="contactMessagesState" class="muted" style="margin-top:16px">Loading messages…</div>
+            <div id="contactMessages" class="adm-list"></div>
           </div>
         </div>
 
@@ -609,7 +625,7 @@
       let openUserId = null;
       let lastFocus = null;
 
-      const TABS = ["overview", "users", "orders", "activity", "blocked", "deleted", "system", "media", "security"];
+      const TABS = ["overview", "users", "orders", "notifications", "activity", "blocked", "deleted", "system", "media", "security"];
       let currentTab = "overview";
 
       let productNames = {
@@ -823,6 +839,7 @@
         if (updateHash) history.replaceState(null, "", "#" + name);
 
         if (name === "activity") loadActivity();
+        if (name === "notifications") loadContactMessages(true);
         if (name === "system") loadSystem();
         if (name === "media") loadMediaHealth();
         if (name === "security") loadSecurityEvents();
@@ -1353,6 +1370,40 @@
         await afterChange();
       }
 
+      /* ---------- contact message notifications ---------- */
+
+      async function loadContactMessages(markRead) {
+        const state = $("contactMessagesState");
+        const list = $("contactMessages");
+        if (!state || !list) return;
+        state.textContent = "Loading messages…";
+        try {
+          const data = await api("/api/admin/contact-messages");
+          const messages = data.messages || [];
+          $("messagesBadge").textContent = Number(data.unreadCount || 0) || "";
+          if (markRead && Number(data.unreadCount || 0) > 0) {
+            await post("/api/admin/contact-messages/read-all", {});
+            $("messagesBadge").textContent = "";
+          }
+          state.textContent = messages.length ? messages.length + " message" + (messages.length === 1 ? "" : "s") : "No contact messages yet.";
+          list.innerHTML = messages.length ? messages.map((m) => `
+            <article class="feed-item" style="margin-top:10px">
+              <div class="feed-top" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <span class="status-pill ${Number(m.is_read) ? "status-other" : "status-pending"}">${Number(m.is_read) ? "Read" : "New"}</span>
+                  <span class="status-pill status-active">${escapeHtml(m.topic || "General")}</span>
+                  <b>${escapeHtml(m.name || "Unknown")}</b>
+                </div>
+                <span class="admin-meta">${formatDate(m.created_at)}${m.created_at ? " UTC" : ""}</span>
+              </div>
+              <div style="margin-top:8px"><a href="mailto:${escapeHtml(m.email || "")}">${escapeHtml(m.email || "No email")}</a></div>
+              <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 0">${escapeHtml(m.message || "")}</p>
+            </article>`).join("") : '<div class="empty-state">No contact messages yet.</div>';
+        } catch (err) {
+          state.textContent = "Could not load messages: " + err.message;
+        }
+      }
+
       /* ---------- activity ---------- */
 
       async function loadActivity() {
@@ -1614,6 +1665,14 @@
               $(target).innerHTML = errBox(r.reason && r.reason.message ? r.reason.message : "Could not load.");
             }
           });
+          // Keep the notification badge current without marking messages read.
+          try {
+            const messages = await api("/api/admin/contact-messages");
+            $("messagesBadge").textContent = Number(messages.unreadCount || 0) || "";
+            if (currentTab === "notifications") await loadContactMessages(false);
+          } catch (messageErr) {
+            console.error("Admin load error (contact messages):", messageErr);
+          }
           if (currentTab === "activity") loadActivity();
           if (currentTab === "system") loadSystem();
           if (typeof window.proReload === "function") await window.proReload();
@@ -1880,6 +1939,8 @@
           alert(err.message);
         }
       });
+
+      $("refreshMessages")?.addEventListener("click", () => loadContactMessages(false));
 
       /* ---------- start ---------- */
 

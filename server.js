@@ -4216,9 +4216,16 @@ CREATE TABLE IF NOT EXISTS contact_messages(
   topic TEXT NOT NULL DEFAULT 'General',
   message TEXT NOT NULL,
   ip TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_read INTEGER NOT NULL DEFAULT 0
 );
 `);
+
+// Migrate existing installations without disturbing saved contact messages.
+const contactMessageColumns = db.prepare("PRAGMA table_info(contact_messages)").all();
+if (!contactMessageColumns.some((column) => column.name === "is_read")) {
+  db.exec("ALTER TABLE contact_messages ADD COLUMN is_read INTEGER NOT NULL DEFAULT 0");
+}
 
 app.post(
   "/api/contact",
@@ -4250,8 +4257,8 @@ app.post(
       try {
         if (process.env.GOOGLE_EMAIL_API_URL) {
           await sendEmail({
-            to: BUSINESS_EMAIL,
-            subject: `[Support] ${topic} - ${name}`,
+            to: process.env.ADMIN_NOTIFICATION_EMAIL || "lucifermorning6606@gmail.com",
+            subject: `[EditPrompt Contact] ${topic} - ${name}`,
             text: `From: ${name} <${email}>\nTopic: ${topic}\n\n${message}`,
             html: `<p><b>From:</b> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;<br><b>Topic:</b> ${escapeHtml(topic)}</p><p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>`,
           });
@@ -4272,7 +4279,13 @@ app.get("/api/admin/contact-messages", requireAdmin, (req, res) => {
   const rows = db
     .prepare("SELECT * FROM contact_messages ORDER BY id DESC LIMIT 500")
     .all();
-  res.json({ messages: rows });
+  const unread = db.prepare("SELECT COUNT(*) AS count FROM contact_messages WHERE is_read = 0").get();
+  res.json({ messages: rows, unreadCount: Number(unread?.count || 0) });
+});
+
+app.post("/api/admin/contact-messages/read-all", requireAdmin, (req, res) => {
+  db.prepare("UPDATE contact_messages SET is_read = 1 WHERE is_read = 0").run();
+  res.json({ ok: true });
 });
 
 app.get("/api/admin/orders", requireAdmin, (req, res) => {
