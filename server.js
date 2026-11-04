@@ -4204,6 +4204,77 @@ app.get("/api/admin/pack-buyers", requireAdmin, (req, res) => {
   });
 });
 
+// ============================================================
+// CONTACT / SUPPORT MESSAGES
+// ============================================================
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS contact_messages(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  topic TEXT NOT NULL DEFAULT 'General',
+  message TEXT NOT NULL,
+  ip TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+app.post(
+  "/api/contact",
+  rateLimit({
+    windowMs: 10 * 60_000,
+    max: 5,
+    message: "Too many messages. Please try again in a few minutes.",
+  }),
+  async (req, res) => {
+    try {
+      const body = req.body || {};
+      const name = String(body.name || "").trim().slice(0, 80);
+      const email = String(body.email || "").trim().slice(0, 120);
+      const message = String(body.message || "").trim().slice(0, 2000);
+      const allowed = ["General", "Download", "Account", "Payment", "Refund"];
+      const topic = allowed.includes(body.topic) ? body.topic : "General";
+
+      if (!name) return res.status(400).json({ error: "Please enter your name." });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        return res.status(400).json({ error: "Please enter a valid email address." });
+      if (message.length < 10)
+        return res.status(400).json({ error: "Please write a little more detail (at least 10 characters)." });
+
+      db.prepare(
+        "INSERT INTO contact_messages (name, email, topic, message, ip) VALUES (?,?,?,?,?)",
+      ).run(name, email, topic, message, req.ip || "");
+
+      // Best effort: notify the support inbox. Message is already saved, so a mail failure never fails the request.
+      try {
+        if (process.env.GOOGLE_EMAIL_API_URL) {
+          await sendEmail({
+            to: BUSINESS_EMAIL,
+            subject: `[Support] ${topic} - ${name}`,
+            text: `From: ${name} <${email}>\nTopic: ${topic}\n\n${message}`,
+            html: `<p><b>From:</b> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;<br><b>Topic:</b> ${escapeHtml(topic)}</p><p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>`,
+          });
+        }
+      } catch (mailErr) {
+        console.error("Contact notify email failed:", mailErr.message);
+      }
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Contact form error:", err);
+      res.status(500).json({ error: "Could not send your message. Please email support@editprompt.in." });
+    }
+  },
+);
+
+app.get("/api/admin/contact-messages", requireAdmin, (req, res) => {
+  const rows = db
+    .prepare("SELECT * FROM contact_messages ORDER BY id DESC LIMIT 500")
+    .all();
+  res.json({ messages: rows });
+});
+
 app.get("/api/admin/orders", requireAdmin, (req, res) => {
   const rows = db
     .prepare(

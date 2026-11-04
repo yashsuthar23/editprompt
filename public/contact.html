@@ -15,6 +15,25 @@
     <link rel="stylesheet" href="/light-fixes.css?v=1">
     <link rel="stylesheet" href="/mobile-nav.css">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
+<link rel="stylesheet" href="/mobile-pro.css?v=1" />
+<style>
+/* Contact page layout + click fixes */
+.contact-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.contact-help{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px;align-items:stretch}
+.contact-help .card,.contact-two .panel{display:flex;flex-direction:column}
+.contact-help .card .btn,.contact-two .panel .btn{margin-top:auto;align-self:flex-start}
+.contact-two .panel .btn.full{align-self:stretch;text-align:center}
+.contact-two .panel>.btn:not(.full){margin-top:14px}
+.contact-help .card>.btn{margin-top:16px}
+.contact-help #contactCard{grid-row:span 2}
+.card a,.panel a,.card button,.panel button,.card input,.card select,.card textarea{position:relative;z-index:3;pointer-events:auto}
+.contact-help #contactForm{display:grid;gap:10px;margin-top:12px}
+.contact-help #contactForm button[type=submit]{width:100%;justify-self:stretch}
+#contactMsg{min-height:1.2em;margin:0}
+#contactMsg.ok{color:#4ade80}#contactMsg.err{color:#ff7b7b}
+.copy-mail{margin-left:8px;cursor:pointer}
+@media(max-width:860px){.contact-two,.contact-help{grid-template-columns:1fr}.contact-help #contactCard{grid-row:auto}}
+</style>
 </head>
 
 <body>
@@ -69,7 +88,7 @@
     </div>
 
 
-    <div class="two">
+    <div class="contact-two">
 
         <!-- CONTACT INFORMATION -->
 
@@ -93,10 +112,12 @@
 
                 <a
                     href="mailto:support@editprompt.in"
+                    data-mail="support@editprompt.in"
                     style="color:var(--ivory)"
                 >
                     support@editprompt.in
                 </a>
+                <button type="button" class="btn ghost small copy-mail" id="copyMailBtn">Copy</button>
             </p>
 
             <p class="muted">
@@ -120,8 +141,9 @@
 
             <a
                 class="btn ghost"
+                id="emailSupportBtn"
                 href="mailto:support@editprompt.in"
-                style="margin-top:8px"
+                data-mail="support@editprompt.in"
             >
                 Email Support →
             </a>
@@ -170,6 +192,7 @@
             <a
                 class="btn primary full"
                 href="/library.html"
+                data-go="/library.html"
             >
                 Check My Library First →
             </a>
@@ -181,10 +204,7 @@
 
     <!-- QUICK HELP -->
 
-    <div
-        class="three"
-        style="margin-top:20px"
-    >
+    <div class="contact-help">
 
         <div class="card">
 
@@ -204,6 +224,7 @@
             <a
                 class="btn ghost small"
                 href="/library.html"
+                data-go="/library.html"
             >
                 Open My Library
             </a>
@@ -229,7 +250,9 @@
 
             <a
                 class="btn ghost small"
-                href="mailto:support@editprompt.in?subject=Download%20Support"
+                href="#contactCard"
+                data-topic="Download"
+                data-prefill="Download problem. Product / pack: \nPayment ID: \nWhat happened: "
             >
                 Get Download Help
             </a>
@@ -241,12 +264,12 @@
             <div class="tag">MESSAGE US</div>
             <h3>Send us a message</h3>
             <p class="muted">We reply within one working day. Include your payment ID for payment or download issues.</p>
-            <form id="contactForm" style="display:grid;gap:10px;margin-top:12px">
+            <form id="contactForm" novalidate>
                 <input name="name" placeholder="Your name" maxlength="80" required>
                 <input name="email" type="email" placeholder="Email address" maxlength="120" required>
                 <select name="topic"><option>General</option><option>Download</option><option>Account</option><option>Payment</option><option>Refund</option></select>
                 <textarea name="message" rows="5" placeholder="How can we help?" minlength="10" maxlength="2000" required></textarea>
-                <button class="btn small" type="submit">Send message</button>
+                <button class="btn primary" type="submit">Send message</button>
                 <p id="contactMsg" class="muted" role="status"></p>
             </form>
         </div>
@@ -268,7 +291,9 @@
 
             <a
                 class="btn ghost small"
-                href="mailto:support@editprompt.in?subject=Account%20Support"
+                href="#contactCard"
+                data-topic="Account"
+                data-prefill="Login / account issue. Account email: \nWhat happened: "
             >
                 Contact Support
             </a>
@@ -300,16 +325,63 @@
 
 
 <script>
-document.getElementById("contactForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-  var f = e.target, m = document.getElementById("contactMsg"), b = f.querySelector("button");
-  b.disabled = true; m.textContent = "Sending…";
-  fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.fromEntries(new FormData(f))) })
-    .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Could not send."); }); })
-    .then(function () { f.reset(); m.textContent = "Thanks! Your message has been sent. We will reply by email."; })
-    .catch(function (er) { m.textContent = er.message; })
-    .then(function () { b.disabled = false; });
-});
+(function () {
+  var MAIL = "support@editprompt.in";
+  var form = document.getElementById("contactForm");
+  var msg = document.getElementById("contactMsg");
+
+  function say(t, cls) { msg.textContent = t; msg.className = "muted " + (cls || ""); }
+
+  // Normal navigation buttons (works even if another script interferes)
+  document.querySelectorAll("[data-go]").forEach(function (a) {
+    a.addEventListener("click", function (e) { e.preventDefault(); location.href = a.getAttribute("data-go"); });
+  });
+
+  // Download / Account help -> fill the form and jump to it
+  document.querySelectorAll("[data-topic]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      form.topic.value = a.getAttribute("data-topic");
+      if (!form.message.value.trim()) form.message.value = (a.getAttribute("data-prefill") || "").replace(/\\n/g, "\n");
+      document.getElementById("contactCard").scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(function () { (form.name.value ? form.message : form.name).focus(); }, 350);
+    });
+  });
+
+  // Email links: open Gmail compose in a new tab (mailto does nothing without a mail app)
+  document.querySelectorAll("[data-mail]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.open("https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(MAIL), "_blank", "noopener");
+    });
+  });
+
+  var copyBtn = document.getElementById("copyMailBtn");
+  if (copyBtn) copyBtn.addEventListener("click", function () {
+    function done() { copyBtn.textContent = "Copied ✓"; setTimeout(function () { copyBtn.textContent = "Copy"; }, 1800); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(MAIL).then(done, done);
+    else { var t = document.createElement("textarea"); t.value = MAIL; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } catch (_) {} t.remove(); done(); }
+  });
+
+  // Contact form
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var b = form.querySelector("button[type=submit]");
+    if (!form.name.value.trim()) return say("Please enter your name.", "err");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim())) return say("Please enter a valid email address.", "err");
+    if (form.message.value.trim().length < 10) return say("Please write at least 10 characters.", "err");
+    b.disabled = true; say("Sending…");
+    fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: form.name.value, email: form.email.value, topic: form.topic.value, message: form.message.value })
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || "Could not send. Please email " + MAIL); }); })
+      .then(function () { form.reset(); say("Thanks! Your message has been sent. We will reply by email.", "ok"); })
+      .catch(function (er) { say(er.message, "err"); })
+      .then(function () { b.disabled = false; });
+  });
+})();
 </script>
 <script src="/nav.js" defer></script>
 <script src="/site-status.js" defer></script>
