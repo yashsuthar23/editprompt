@@ -225,6 +225,66 @@
         #proProducts .adm-input { min-width: 0 !important; width: 100% !important; box-sizing: border-box; }
         #proProducts td:nth-child(1) .muted { display: block; margin-top: 6px; line-height: 1.5; }
       }
+
+      /* ---------- animations ---------- */
+      @keyframes admFadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+      @keyframes admFadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes admSlideDown { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: none; } }
+      @keyframes admPop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+      @keyframes admSpin { to { transform: rotate(360deg); } }
+      @keyframes admPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(225,29,46,.0); } 50% { box-shadow: 0 0 0 6px rgba(225,29,46,.12); } }
+
+      header.nav { animation: admSlideDown .45s cubic-bezier(.2,.8,.2,1) both; }
+      #loginView .panel { animation: admPop .45s cubic-bezier(.2,.8,.2,1) both; }
+      #dashView { animation: admFadeIn .4s ease both; }
+      [role="tabpanel"]:not(.adm-hide) { animation: admFadeUp .38s cubic-bezier(.2,.8,.2,1) both; }
+      #tab-pro:not(.adm-hide) > .panel { animation: admFadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
+      #tab-pro:not(.adm-hide) > .panel:nth-child(2) { animation-delay: .06s; }
+      #tab-pro:not(.adm-hide) > .panel:nth-child(3) { animation-delay: .12s; }
+      #tab-pro:not(.adm-hide) > .panel:nth-child(4) { animation-delay: .18s; }
+      #tab-pro:not(.adm-hide) > .panel:nth-child(n+5) { animation-delay: .24s; }
+      .statcard, .five > *, .six > * { animation: admFadeUp .45s cubic-bezier(.2,.8,.2,1) both; }
+      .five > *:nth-child(2), .six > *:nth-child(2) { animation-delay: .05s; }
+      .five > *:nth-child(3), .six > *:nth-child(3) { animation-delay: .10s; }
+      .five > *:nth-child(4), .six > *:nth-child(4) { animation-delay: .15s; }
+      .five > *:nth-child(5), .six > *:nth-child(5) { animation-delay: .20s; }
+
+      /* table rows slide in one after another */
+      #proProducts tbody tr, .admin-table tbody tr { animation: admFadeUp .35s ease both; }
+      #proProducts tbody tr:nth-child(1), .admin-table tbody tr:nth-child(1) { animation-delay: .02s; }
+      #proProducts tbody tr:nth-child(2), .admin-table tbody tr:nth-child(2) { animation-delay: .05s; }
+      #proProducts tbody tr:nth-child(3), .admin-table tbody tr:nth-child(3) { animation-delay: .08s; }
+      #proProducts tbody tr:nth-child(4), .admin-table tbody tr:nth-child(4) { animation-delay: .11s; }
+      #proProducts tbody tr:nth-child(5), .admin-table tbody tr:nth-child(5) { animation-delay: .14s; }
+      #proProducts tbody tr:nth-child(6), .admin-table tbody tr:nth-child(6) { animation-delay: .17s; }
+      #proProducts tbody tr:nth-child(n+7), .admin-table tbody tr:nth-child(n+7) { animation-delay: .2s; }
+      #proProducts tbody tr { transition: background .2s ease; }
+      #proProducts tbody tr:hover { background: rgba(255,255,255,.035); }
+
+      /* buttons + inputs */
+      .btn { transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease; }
+      .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+      .btn:active:not(:disabled) { transform: scale(.96); }
+      .adm-input { transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+      .adm-input:focus { box-shadow: 0 0 0 3px rgba(225,29,46,.18); }
+      .adm-tab-btn { transition: background .2s ease, color .2s ease, transform .18s ease; }
+      .adm-tab-btn:hover { transform: translateY(-1px); }
+
+      /* Refresh button */
+      #refreshBtn::before {
+        content: "↻"; display: inline-block; margin-right: 6px; font-size: 15px; line-height: 1;
+        transition: transform .5s ease;
+      }
+      #refreshBtn:hover:not(:disabled)::before { transform: rotate(180deg); }
+      #refreshBtn.is-spinning { opacity: 1; cursor: progress; }
+      #refreshBtn.is-spinning::before { animation: admSpin .8s linear infinite; }
+      #refreshBtn:disabled { opacity: .8; }
+
+      .brand .logo { animation: admPulse 3.2s ease-in-out infinite; }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+      }
     </style>
 </head>
   <body>
@@ -240,7 +300,6 @@
       <div class="admin-actions">
         <button id="refreshBtn" class="btn ghost admin-refresh adm-hide" type="button">Refresh</button>
         <button id="logoutBtn" class="btn ghost adm-hide" type="button">Logout</button>
-        <a class="btn ghost" href="/">Back to Site</a>
       </div>
     </header>
 
@@ -1535,7 +1594,9 @@
 
       async function refreshAll() {
         const btn = $("refreshBtn");
+        if (btn.disabled) return;
         btn.disabled = true;
+        btn.classList.add("is-spinning");
         btn.textContent = "Refreshing…";
         try {
           const jobs = [
@@ -1555,8 +1616,10 @@
           });
           if (currentTab === "activity") loadActivity();
           if (currentTab === "system") loadSystem();
+          if (typeof window.proReload === "function") await window.proReload();
         } finally {
           btn.disabled = false;
+          btn.classList.remove("is-spinning");
           btn.textContent = "Refresh";
         }
       }

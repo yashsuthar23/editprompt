@@ -23,6 +23,7 @@
   function api(url, body) {
     return fetch(url, {
       method: body ? "POST" : "GET",
+      cache: "no-store",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
@@ -408,7 +409,7 @@
         $("proFunnel").textContent = e.message;
       });
   }
-  function loadProducts() {
+  function loadProducts(force) {
     api("/api/admin/products")
       .then(function (d) {
         clearTimeout(window.__packPoll);
@@ -417,8 +418,9 @@
             return p.status === "generating";
           })
         )
-          window.__packPoll = setTimeout(loadProducts, 4000);
+          window.__packPoll = setTimeout(function () { loadProducts(); }, 4000);
         if (
+          force !== true &&
           document.activeElement &&
           document.activeElement.tagName === "INPUT" &&
           document.activeElement.closest &&
@@ -767,9 +769,16 @@
     bc(false);
   });
 
-  function loadAll() {
+  // Used by the header Refresh button.
+  window.proReload = function () {
+    if (!loaded) return Promise.resolve();
+    loadAll(true);
+    return new Promise(function (r) { setTimeout(r, 600); });
+  };
+
+  function loadAll(force) {
     loadFunnel();
-    loadProducts();
+    loadProducts(force === true);
     loadBroadcast();
     loadSupport();
     loadRefunds();

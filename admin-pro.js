@@ -1281,17 +1281,21 @@ cover: String(info.cover || "").startsWith("/store-previews/covers/")
           .all())
           sales[r.product_id] = r.n;
 
-        const out = Object.entries(products2).map(([id, p]) => ({
-          id,
-          name: p.name,
-          price: p.price / 100,
-          sales: sales[id] || 0,
-          custom: false,
-        }));
+        // Ready custom packs are also mirrored into products2 (for checkout),
+        // so skip them here - they are listed below from prompt_packs.
+        const out = Object.entries(products2)
+          .filter(([id, p]) => !p.custom)
+          .map(([id, p]) => ({
+            id,
+            name: p.name,
+            price: p.price / 100,
+            sales: sales[id] || 0,
+            custom: false,
+          }));
 
         for (const r of db2
           .prepare(
-            "SELECT id, name, price, status, progress, error FROM prompt_packs ORDER BY created_at DESC",
+            "SELECT id, name, price, status, hidden, progress, error FROM prompt_packs ORDER BY created_at DESC",
           )
           .all())
           out.push({
@@ -1301,6 +1305,7 @@ cover: String(info.cover || "").startsWith("/store-previews/covers/")
             sales: sales[r.id] || 0,
             custom: true,
             status: r.status,
+            hidden: !!r.hidden,
             progress: r.progress,
             error: r.error,
           });
