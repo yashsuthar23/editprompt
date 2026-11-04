@@ -482,7 +482,7 @@
                 <h3 style="margin:0 0 5px">Contact messages</h3>
                 <p class="muted" style="margin:0">Messages submitted through the website contact form. New messages are shown in the badge.</p>
               </div>
-              <button id="refreshMessages" class="btn ghost small" type="button">Refresh messages</button>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="clearAllMessages" class="btn danger small" type="button">Clear all</button><button id="refreshMessages" class="btn ghost small" type="button">Refresh messages</button></div>
             </div>
             <div id="contactMessagesState" class="muted" style="margin-top:16px">Loading messages…</div>
             <div id="contactMessages" class="adm-list"></div>
@@ -1394,7 +1394,7 @@
                   <span class="status-pill status-active">${escapeHtml(m.topic || "General")}</span>
                   <b>${escapeHtml(m.name || "Unknown")}</b>
                 </div>
-                <span class="admin-meta">${formatDate(m.created_at)}${m.created_at ? " UTC" : ""}</span>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="admin-meta">${formatDate(m.created_at)}${m.created_at ? " UTC" : ""}</span><button class="btn danger small" type="button" onclick="deleteContactMessage(${Number(m.id)})">Delete</button></div>
               </div>
               <div style="margin-top:8px"><a href="mailto:${escapeHtml(m.email || "")}">${escapeHtml(m.email || "No email")}</a></div>
               <p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 0">${escapeHtml(m.message || "")}</p>
@@ -1403,6 +1403,30 @@
           state.textContent = "Could not load messages: " + err.message;
         }
       }
+
+      async function deleteContactMessage(id) {
+        if (!Number.isInteger(Number(id)) || Number(id) <= 0) return;
+        if (!confirm("Delete this contact message permanently? This cannot be undone.")) return;
+        try {
+          await post("/api/admin/contact-messages/delete", { id: Number(id) });
+          await loadContactMessages(false);
+        } catch (err) {
+          alert("Could not delete message: " + err.message);
+        }
+      }
+
+      async function clearAllContactMessages() {
+        if (!confirm("Delete ALL contact messages permanently? This cannot be undone.")) return;
+        if (!confirm("Please confirm again: permanently delete every contact message?")) return;
+        try {
+          await post("/api/admin/contact-messages/clear-all", {});
+          await loadContactMessages(false);
+        } catch (err) {
+          alert("Could not clear messages: " + err.message);
+        }
+      }
+
+      $("clearAllMessages")?.addEventListener("click", clearAllContactMessages);
 
       /* ---------- activity ---------- */
 

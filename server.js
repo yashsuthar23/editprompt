@@ -4288,6 +4288,21 @@ app.post("/api/admin/contact-messages/read-all", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/api/admin/contact-messages/delete", requireAdmin, (req, res) => {
+  const id = Number(req.body?.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "A valid message ID is required." });
+  }
+  const result = db.prepare("DELETE FROM contact_messages WHERE id = ?").run(id);
+  if (!result.changes) return res.status(404).json({ error: "Contact message not found." });
+  res.json({ ok: true, deleted: result.changes });
+});
+
+app.post("/api/admin/contact-messages/clear-all", requireAdmin, (req, res) => {
+  const result = db.prepare("DELETE FROM contact_messages").run();
+  res.json({ ok: true, deleted: result.changes });
+});
+
 app.get("/api/admin/orders", requireAdmin, (req, res) => {
   const rows = db
     .prepare(
