@@ -553,8 +553,8 @@ $("otp").addEventListener("input", () => {
   var actions = document.querySelector(".actions");
   if (!actions) return;
   var box = document.createElement("div");
-  box.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px";
-  box.innerHTML = '<input id="couponInput" placeholder="Coupon code" maxlength="20" style="max-width:170px;text-transform:uppercase"><button type="button" class="secondary small" id="couponApply">Apply</button><span id="couponMsg" role="status" style="font-size:14px"></span>';
+  box.className = "coupon-box";
+  box.innerHTML = '<input id="couponInput" placeholder="Coupon code" maxlength="20" autocapitalize="characters" autocomplete="off"><button type="button" class="secondary small" id="couponApply">Apply</button><span id="couponMsg" role="status"></span>';
   actions.parentNode.insertBefore(box, actions);
   var input = document.getElementById("couponInput"), msg = document.getElementById("couponMsg");
   input.value = (new URLSearchParams(location.search).get("coupon") || "").toUpperCase();
