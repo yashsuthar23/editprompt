@@ -90,8 +90,8 @@
       btn.setAttribute("aria-expanded", storeOpen ? "true" : "false");
     };
     var applyStoreState = function () {
-      staticCards.forEach(function (card) {
-        card.classList.toggle("ep-store-extra", !storeOpen && storeHidden.indexOf(card) !== -1);
+      storeHidden.forEach(function (card) {
+        card.classList.toggle("ep-store-extra", !storeOpen);
       });
       store.classList.toggle("ep-store-expanded", storeOpen);
       paintStoreButton();
@@ -104,10 +104,12 @@
       });
     }
 
-    var finish = function (newCount, totalCount) {
+    var finish = function (newCount, totalCount, extraCards) {
       // Always keep the first static card (the Best Seller) visible
       var slots = Math.max(1, SLOTS - newCount);
-      storeHidden = staticCards.filter(function (card, i) { return i >= slots; });
+      storeHidden = staticCards
+        .filter(function (card, i) { return i >= slots; })
+        .concat(extraCards || []);
       applyStoreState();
       var countEl = $("storePackCount");
       if (countEl) countEl.textContent = "📚 " + totalCount + " premium packs";
@@ -176,12 +178,19 @@
         .then(function (d) {
           var packs = (d && d.packs) || [];
           var shown = packs.slice(0, MAX_NEW);
+          var rest = packs.slice(MAX_NEW);
           // Best Seller first, then the newest admin packs
           var anchor = staticCards.length ? staticCards[0].nextSibling : null;
           shown.forEach(function (p) {
             grid.insertBefore(makeCard(p), anchor);
           });
-          finish(shown.length, staticCards.length + packs.length);
+          // The remaining admin packs go to the end of the grid and stay hidden until "Show more"
+          var extraCards = rest.map(function (p) {
+            var card = makeCard(p);
+            grid.appendChild(card);
+            return card;
+          });
+          finish(shown.length, staticCards.length + packs.length, extraCards);
         })
         .catch(function () { finish(0, staticCards.length); });
     }
