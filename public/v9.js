@@ -215,6 +215,13 @@
     { id: "store",  label: "Store",  ico: "🛍️", ids: ["store"] },
     { id: "me",     label: "Me",     ico: "👤", ids: ["dashboard"] }
   ];
+  var ICONS = {
+    create: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
+    media:  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
+    tools:  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+    store:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l1 12H5z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',
+    me:     '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg>'
+  };
   var mq = window.matchMedia("(max-width: 768px)");
   var bar = null;
   var current = "create";
@@ -276,9 +283,10 @@
       var b = document.createElement("button");
       b.type = "button";
       b.setAttribute("data-tab", t.id);
+      b.setAttribute("aria-label", t.label);
       var i = document.createElement("span");
       i.className = "ico";
-      i.textContent = t.ico;
+      i.innerHTML = ICONS[t.id] || t.ico;
       var l = document.createElement("span");
       l.textContent = t.label;
       b.appendChild(i);

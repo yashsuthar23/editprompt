@@ -13,12 +13,10 @@
   btn.innerHTML = '<span></span><span></span><span></span>';
   header.insertBefore(btn, header.querySelector(".right") || null);
 
-  // Dim backdrop: tap outside the menu panel to close it
-  var backdrop = document.createElement("div");
-  backdrop.className = "ep-nav-backdrop";
-  backdrop.setAttribute("aria-hidden", "true");
-  document.body.appendChild(backdrop);
-  backdrop.addEventListener("click", function () { setOpen(false); });
+  // Tap the dimmed area to the right of the drawer to close it
+  header.addEventListener("click", function (e) {
+    if (e.target === header && header.classList.contains("nav-open")) setOpen(false);
+  });
 
   // Close automatically if the window grows past the mobile breakpoint
   window.addEventListener("resize", function () {

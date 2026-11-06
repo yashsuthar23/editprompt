@@ -56,7 +56,7 @@
 /* ---------- Mobile: one screen at a time + bottom tab bar ---------- */
 .ep-tabbar{display:none}
 @media (max-width:768px){
-  body.ep-mobile{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  body.ep-mobile{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   body.ep-mobile .ep-tab-hide{display:none!important}
   body.ep-mobile .section{padding-top:18px;padding-bottom:18px}
   body.ep-mobile .hero{padding-top:18px;padding-bottom:10px;min-height:0}
@@ -65,16 +65,28 @@
   body.ep-mobile .hero .stats,
   body.ep-mobile .hero .pillrow,
   body.ep-mobile .hero .orb{display:none!important}
-  body.ep-mobile .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.ep-mobile .toast{bottom:calc(102px + env(safe-area-inset-bottom,0px))}
   body.ep-mobile footer{padding-bottom:12px}
 
-  .ep-tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:900;
-    padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
-    background:var(--bg);border-top:1px solid var(--border)}
+  /* Floating bar with a raised, notched active tab */
+  .ep-tabbar{display:flex;position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:900;
+    height:64px;padding:0 4px;background:var(--panel);border:1px solid var(--border);border-radius:24px;
+    box-shadow:0 16px 34px -12px rgba(0,0,0,.75)}
   body.ep-menu-open .ep-tabbar{display:none}
-  .ep-tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;
-    background:transparent;border:0;border-radius:12px;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
-  .ep-tabbar button .ico{font-size:19px;line-height:1}
-  .ep-tabbar button.on{color:var(--text);background:rgba(229,35,41,.14)}
-  .ep-tabbar button.on .ico{filter:none}
+  .ep-tabbar button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    height:64px;min-height:0;padding:0;background:transparent;border:0;border-radius:0;color:var(--muted);
+    font-size:10.5px;font-weight:600;letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:color .25s ease}
+  .ep-tabbar button .ico{position:relative;display:grid;place-items:center;width:26px;height:26px;font-size:0;line-height:0}
+  .ep-tabbar button .ico svg{position:relative;z-index:1;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .ep-tabbar button .ico::before{content:"";position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;
+    border-radius:50%;background:var(--red);box-shadow:0 0 0 7px var(--bg),0 10px 20px -4px rgba(229,35,41,.55);
+    transform:translateY(0) scale(0);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .ep-tabbar button.on{color:var(--text);background:transparent}
+  .ep-tabbar button.on .ico::before{transform:translateY(-22px) scale(1)}
+  .ep-tabbar button.on .ico svg{transform:translateY(-22px);stroke:#fff}
+  .ep-tabbar button.on > span:last-child{color:var(--red);font-weight:800}
+  .ep-tabbar button:active .ico svg{transform:scale(.92)}
+  .ep-tabbar button.on:active .ico svg{transform:translateY(-22px) scale(.92)}
 }

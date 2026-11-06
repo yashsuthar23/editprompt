@@ -1,0 +1,100 @@
+/* EditPrompt mobile footer: call-to-action band + brand / sitemap / legal columns.
+   Phones only (<= 768px). On larger screens the original footer is used. */
+.ep-mfoot { display: none; }
+
+@media (max-width: 768px) {
+  .ep-dfoot { display: none !important; }
+  /* the footer already reserves room for the tab bar */
+  body.ep-mobile { padding-bottom: 0 !important; }
+
+  .ep-mfoot {
+    display: block;
+    margin-top: 10px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); /* room for the bottom tab bar */
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    color: var(--text);
+  }
+  .ep-mfoot a { text-decoration: none; }
+
+  /* --- Call-to-action band --- */
+  .ep-mfoot .mf-cta {
+    position: relative;
+    padding: 34px 22px 36px;
+    text-align: center;
+    color: #fff;
+    background:
+      radial-gradient(120% 140% at 85% 0%, rgba(255,178,122,.28) 0%, transparent 55%),
+      linear-gradient(160deg, #e52329 0%, #a3151a 55%, #5d0d11 100%);
+    border-radius: 0 0 28px 28px;
+    overflow: hidden;
+  }
+  .ep-mfoot .mf-cta h2 {
+    margin: 0 auto 8px;
+    max-width: 18ch;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  .ep-mfoot .mf-cta p {
+    margin: 0 auto 20px;
+    max-width: 30ch;
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255,255,255,.85);
+  }
+  .ep-mfoot .mf-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 46px; padding: 0 26px;
+    border-radius: 12px;
+    background: #fff; color: #b3171d;
+    font-size: 14px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    box-shadow: 0 12px 24px -10px rgba(0,0,0,.55);
+  }
+  .ep-mfoot .mf-btn:active { transform: scale(.97); }
+
+  /* --- Footer body --- */
+  .ep-mfoot .mf-body { padding: 28px 22px 0; }
+
+  .ep-mfoot .mf-brand { display: flex; align-items: center; gap: 12px; }
+  .ep-mfoot .mf-logo {
+    flex: none; width: 44px; height: 44px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--red); color: #fff; font-weight: 800;
+  }
+  .ep-mfoot .mf-brand b { display: block; font-size: 17px; }
+  .ep-mfoot .mf-brand span:not(.mf-logo) { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+  .ep-mfoot .mf-about { margin: 14px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+  .ep-mfoot .mf-cols {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    margin-top: 26px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .ep-mfoot h4 {
+    margin: 0 0 12px;
+    font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .ep-mfoot .mf-cols a,
+  .ep-mfoot .mf-contact a {
+    display: block; padding: 6px 0;
+    font-size: 14px; color: var(--text); opacity: .82;
+    transition: color .18s ease, opacity .18s ease;
+  }
+  .ep-mfoot .mf-cols a:hover,
+  .ep-mfoot .mf-contact a:hover { color: var(--red); opacity: 1; }
+
+  .ep-mfoot .mf-contact { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--border); }
+  .ep-mfoot .mf-contact a { word-break: break-all; }
+
+  .ep-mfoot .mf-bottom {
+    display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+    margin-top: 24px; padding: 18px 0 4px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px; color: var(--muted);
+  }
+  .ep-mfoot .mf-bottom a { color: var(--text); font-weight: 600; opacity: .9; }
+  .ep-mfoot .mf-bottom a:hover { color: var(--red); }
+}
