@@ -86,6 +86,55 @@
     });
   }
 
+  /* Repeatable entrance for the About the Developer section.
+     Unlike the one-shot reveal above, these boxes animate in every time they scroll
+     into view (and reset when they leave), so it works without refreshing the page. */
+  var REPEAT_GROUPS = [
+    { sel: ".dev-head", dir: "ep-from-up" },
+    { sel: ".dev-card", dir: "ep-from-up" },
+    { sel: ".dev-list > li", dir: "alt" },
+    { sel: ".dev-stack", dir: "ep-from-up" }
+  ];
+  var repeatObserver = null;
+
+  function setupRepeatReveal() {
+    if (reduceMotion || !("IntersectionObserver" in window)) return;
+    if (!repeatObserver) {
+      root.classList.add("ep-anim");
+      repeatObserver = new IntersectionObserver(function (entries) {
+        var hits = [];
+        entries.forEach(function (entry) {
+          var el = entry.target;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.1) {
+            hits.push(el);
+          } else if (!entry.isIntersecting) {
+            // fully out of view: reset so it can play again next time
+            el.style.transitionDelay = "0ms";
+            el.classList.remove("ep-in");
+          }
+        });
+        hits.sort(function (a, b) {
+          return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1;
+        });
+        hits.forEach(function (el, k) {
+          el.style.transitionDelay = Math.min(k * 120, 480) + "ms";
+          requestAnimationFrame(function () { el.classList.add("ep-in"); });
+        });
+      }, { threshold: [0, 0.1, 0.25], rootMargin: "0px 0px -6% 0px" });
+    }
+    REPEAT_GROUPS.forEach(function (g) {
+      document.querySelectorAll(g.sel).forEach(function (el) {
+        if (el.__epRepeat) return;
+        el.__epRepeat = true;
+        var dir = g.dir === "alt"
+          ? (indexInParent(el) % 2 === 0 ? "ep-from-left" : "ep-from-right")
+          : g.dir;
+        el.classList.add("ep-reveal", "ep-repeat", dir);
+        repeatObserver.observe(el);
+      });
+    });
+  }
+
   /* ---------- 2. Show more / Show less for long lists ---------- */
 
   function applyCollapse(state) {
@@ -274,6 +323,7 @@
 
   function runAll() {
     setupReveal();
+    setupRepeatReveal();
     setupCollapsers();
     setupDescriptions();
     measureAllDescriptions();

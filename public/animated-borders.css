@@ -57,7 +57,9 @@
 .statcard,
 .media-card,
 .v8-panel,
-.adm-modal-card {
+.adm-modal-card,
+.dev-card,
+.dev-list li {
   position: relative;
   isolation: isolate;
   box-shadow:
@@ -88,7 +90,9 @@
 .statcard::after,
 .media-card::after,
 .v8-panel::after,
-.adm-modal-card::after {
+.adm-modal-card::after,
+.dev-card::after,
+.dev-list li::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -275,7 +279,9 @@ body[data-ep-theme="light"] .product:hover {
   .statcard::after,
   .media-card::after,
   .v8-panel::after,
-  .adm-modal-card::after {
+  .adm-modal-card::after,
+.dev-card::after,
+.dev-list li::after {
     animation: none;
   }
 }
@@ -322,7 +328,9 @@ body[data-ep-theme="light"] .product:hover {
   .statcard::after,
   .media-card::after,
   .v8-panel::after,
-  .adm-modal-card::after {
+  .adm-modal-card::after,
+.dev-card::after,
+.dev-list li::after {
     animation: none;
     filter: none;
     background: linear-gradient(

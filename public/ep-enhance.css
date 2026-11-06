@@ -13,7 +13,7 @@ main { overflow-x: clip; }
    Only active when JavaScript runs and motion is allowed. */
 .ep-anim .ep-reveal {
   opacity: 0;
-  transform: translate3d(var(--ep-from, -26px), 0, 0);
+  transform: translate3d(var(--ep-from, -26px), var(--ep-y, 0px), 0);
   transition:
     opacity 0.6s cubic-bezier(0.22, 0.7, 0.2, 1),
     transform 0.6s cubic-bezier(0.22, 0.7, 0.2, 1);
@@ -21,6 +21,7 @@ main { overflow-x: clip; }
 }
 .ep-anim .ep-reveal.ep-from-left  { --ep-from: -26px; }
 .ep-anim .ep-reveal.ep-from-right { --ep-from: 26px; }
+.ep-anim .ep-reveal.ep-from-up    { --ep-from: 0px; --ep-y: 28px; }
 .ep-anim .ep-reveal.ep-in { opacity: 1; transform: none; }
 
 /* ---------- Show more / Show less (card lists) ---------- */
@@ -60,10 +61,18 @@ main { overflow-x: clip; }
 .ep-foot-support {
   color: inherit;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
-.ep-foot-support:hover { color: var(--red, #e52329); }
+.ep-foot-support:hover { color: var(--red, #e52329); text-decoration: none; }
+
+/* Footer creator link (opens the portfolio) */
+.ep-foot-creator a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+.ep-foot-creator a:hover { color: var(--red, #e52329); }
 
 /* ---------- Hire Me panel ---------- */
 .ep-hire {

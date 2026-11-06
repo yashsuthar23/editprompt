@@ -3751,8 +3751,12 @@ body[data-ep-theme="light"] .categorygrid button.active {
 .store-more-wrap {
   display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin: 40px 0 10px;
 }
+.store-more-wrap .store-all-btn[hidden] { display: none !important; }
 
 /* Scroll-friendly entrance motion for cards and sections. Off for reduced motion. */
 @media (prefers-reduced-motion: no-preference) {

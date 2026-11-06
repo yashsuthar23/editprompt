@@ -68,7 +68,9 @@
     store.classList.add("ep-store-lite");
     var grid = store.querySelector(".store-grid");
     var btn = store.querySelector(".store-more-btn");
-    var SLOTS = 3;      // cards shown on the homepage
+    var allBtn = store.querySelector(".store-all-btn");
+    var SLOTS = 3;      // cards shown while the store is collapsed
+    var MAX_SHOWN = 9;  // never show more than 9 packs on the homepage; "Show all packs" opens the full list
     var MAX_NEW = 2;    // newest admin-created packs shown first
 
     var esc = function (v) {
@@ -81,7 +83,8 @@
 
     // "Show more" reveals the remaining featured packs in place; "Show less" collapses them again.
     var storeOpen = false;
-    var storeHidden = []; // cards hidden while the store is collapsed
+    var storeHidden = []; // cards hidden while the store is collapsed (max 9 shown once expanded)
+    var storeOverflow = []; // cards beyond the 9-pack cap: always hidden here, listed on the Show all page
     var paintStoreButton = function () {
       if (!btn) return;
       btn.innerHTML = storeOpen
@@ -93,7 +96,11 @@
       storeHidden.forEach(function (card) {
         card.classList.toggle("ep-store-extra", !storeOpen);
       });
+      storeOverflow.forEach(function (card) {
+        card.classList.add("ep-store-over");
+      });
       store.classList.toggle("ep-store-expanded", storeOpen);
+      if (allBtn) allBtn.hidden = !storeOpen; // sits beside "Show less"
       paintStoreButton();
     };
     if (btn) {
@@ -107,9 +114,13 @@
     var finish = function (newCount, totalCount, extraCards) {
       // Always keep the first static card (the Best Seller) visible
       var slots = Math.max(1, SLOTS - newCount);
-      storeHidden = staticCards
+      var hidden = staticCards
         .filter(function (card, i) { return i >= slots; })
         .concat(extraCards || []);
+      var visibleNow = Math.min(SLOTS, slots + newCount);
+      var revealable = Math.max(0, MAX_SHOWN - visibleNow);
+      storeHidden = hidden.slice(0, revealable);
+      storeOverflow = hidden.slice(revealable);
       applyStoreState();
       var countEl = $("storePackCount");
       if (countEl) countEl.textContent = "📚 " + totalCount + " premium packs";

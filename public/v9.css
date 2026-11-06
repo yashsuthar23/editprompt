@@ -16,7 +16,8 @@
 #store.ep-store-lite .store-search,
 #store.ep-store-lite .store-tabs{display:none!important}
 #store.ep-store-lite:not(.ep-store-ready) .store-grid > .product:nth-of-type(n+4){display:none!important}
-#store.ep-store-lite .store-grid > .product.ep-store-extra{display:none!important}
+#store.ep-store-lite .store-grid > .product.ep-store-extra,
+#store.ep-store-lite .store-grid > .product.ep-store-over{display:none!important}
 
 /* ---------- About the developer (portfolio) ---------- */
 .dev-about{padding-bottom:48px}

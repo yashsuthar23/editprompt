@@ -9,7 +9,8 @@
     ".tool-card", ".resultbox", ".compare-card", ".pe-group", ".modalbox",
     ".pack-preview-dialog", ".side-card", ".sa-card", ".dl-panel",
     ".historyitem", ".mediabatch-tile", ".pack-image-card", ".float-card",
-    ".statcard", ".media-card", ".v8-panel", ".adm-modal-card"
+    ".statcard", ".media-card", ".v8-panel", ".adm-modal-card",
+    ".dev-card", ".dev-list li"
   ].join(",");
 
   var io = new IntersectionObserver(function (entries) {
