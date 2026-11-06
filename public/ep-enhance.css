@@ -22,6 +22,10 @@ main { overflow-x: clip; }
 .ep-anim .ep-reveal.ep-from-left  { --ep-from: -26px; }
 .ep-anim .ep-reveal.ep-from-right { --ep-from: 26px; }
 .ep-anim .ep-reveal.ep-from-up    { --ep-from: 0px; --ep-y: 28px; }
+/* About the Developer boxes: clearly slide in from the left / right */
+.ep-anim .ep-reveal.ep-repeat.ep-from-left  { --ep-from: -80px; }
+.ep-anim .ep-reveal.ep-repeat.ep-from-right { --ep-from: 80px; }
+.ep-anim .ep-reveal.ep-repeat { transition-duration: 0.7s; }
 .ep-anim .ep-reveal.ep-in { opacity: 1; transform: none; }
 
 /* ---------- Show more / Show less (card lists) ---------- */

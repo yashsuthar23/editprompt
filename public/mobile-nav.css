@@ -41,10 +41,10 @@
   }
   .nav.nav-open > .brand { order: 1; flex: 1 1 auto; min-width: 0; }
   .nav.nav-open > .nav-toggle { order: 2; margin: 0; flex: 0 0 auto; }
-  .nav.nav-open nav { order: 3; flex: 0 0 100%; display: flex; flex-direction: column; margin-top: 12px; border-top: 1px solid var(--border); }
+  .nav.nav-open nav { order: 3; flex: 0 0 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
   .nav.nav-open > .right {
     order: 4; flex: 0 0 100%; display: flex; align-items: center; gap: 10px;
-    margin-top: 14px;
+    margin-top: 12px;
     animation: ep-link-in .3s cubic-bezier(.2,.7,.2,1) .2s both;
   }
   .nav.nav-open > .right > #loginBtn,
@@ -62,11 +62,13 @@
   body.ep-menu-open .ep-nav-backdrop { opacity: 1; pointer-events: auto; }
 
   .nav.nav-open nav a {
-    display: block; padding: 13px 4px; border-bottom: 1px solid var(--border);
-    font-size: 17px; font-weight: 700; color: var(--text); text-decoration: none;
-    animation: ep-link-in .36s cubic-bezier(.2,.7,.2,1) both;
+    display: flex; align-items: center; min-height: 44px; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 12px; background: var(--panel);
+    font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none;
+    animation: ep-link-in .3s cubic-bezier(.2,.7,.2,1) both;
   }
-  .nav.nav-open nav a:last-child { border-bottom: none; }
+  /* hide the long tagline in the open panel to keep it short */
+  .nav.nav-open > .brand small, .nav.nav-open > .brand span + span { display: none; }
   .nav.nav-open nav a:nth-child(1) { animation-delay: .04s; }
   .nav.nav-open nav a:nth-child(2) { animation-delay: .07s; }
   .nav.nav-open nav a:nth-child(3) { animation-delay: .10s; }

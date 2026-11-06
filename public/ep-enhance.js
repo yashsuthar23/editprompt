@@ -21,7 +21,6 @@
   var REVEAL_GROUPS = [
     "#store .store-grid > .product",
     "#packsGrid > .product",
-    ".dev-list > li",
     ".categorygrid > button",
     "#tools .three > .card"
   ];
