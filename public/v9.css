@@ -32,16 +32,10 @@
 .dev-card h3{margin:0;font-size:22px;line-height:1.2}
 .dev-role{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.4}
 .dev-bio{margin:0 0 20px;line-height:1.65;color:var(--text);opacity:.9;max-width:62ch}
-.dev-stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 0 22px;border:1px solid var(--border);
-  border-radius:14px;overflow:hidden}
-.dev-stats > div{padding:14px 10px;text-align:center}
-.dev-stats > div + div{border-left:1px solid var(--border)}
-.dev-stats b{display:block;font-size:22px;line-height:1.1}
-.dev-stats span{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
 .dev-links{display:flex;gap:10px;flex-wrap:wrap}
-.dev-links a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;
+.dev-links a,.dev-links button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 22px;
   border-radius:12px;border:1px solid var(--border);color:var(--text);text-decoration:none;font-weight:700;background:transparent}
-.dev-links a.primary{background:var(--red);border-color:var(--red);color:#fff}
+.dev-links a.primary,.dev-links button.primary{background:var(--red);border-color:var(--red);color:#fff;font:inherit;cursor:pointer}
 .dev-list{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .dev-list li{display:flex;gap:14px;align-items:flex-start;padding:16px;border:1px solid var(--border);
   border-radius:14px;background:var(--panel)}
@@ -55,7 +49,7 @@
   .dev-card{padding:22px 18px}
   .dev-list{grid-template-columns:1fr}
   .dev-links{display:grid;grid-template-columns:1fr 1fr}
-  .dev-links a{padding:0 10px}
+  .dev-links a,.dev-links button{padding:0 10px}
 }
 
 /* ---------- Mobile: one screen at a time + bottom tab bar ---------- */

@@ -1,0 +1,221 @@
+/* EditPrompt shared enhancements (loaded last on public pages).
+   - Alternating left/right entrance animation for card groups
+   - Show more / Show less for long lists and long descriptions
+   - Hire Me contact panel
+   - Support link in footers
+   - Compact spacing on phones (desktop is unchanged)                */
+
+/* ---------- Prevent horizontal scrolling caused by entrance motion ---------- */
+main { overflow-x: clip; }
+
+/* ---------- Alternating left/right entrance animation ----------
+   Odd items enter from the left, even items from the right.
+   Only active when JavaScript runs and motion is allowed. */
+.ep-anim .ep-reveal {
+  opacity: 0;
+  transform: translate3d(var(--ep-from, -26px), 0, 0);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.22, 0.7, 0.2, 1);
+  will-change: opacity, transform;
+}
+.ep-anim .ep-reveal.ep-from-left  { --ep-from: -26px; }
+.ep-anim .ep-reveal.ep-from-right { --ep-from: 26px; }
+.ep-anim .ep-reveal.ep-in { opacity: 1; transform: none; }
+
+/* ---------- Show more / Show less (card lists) ---------- */
+.ep-collapsed { display: none !important; }
+.ep-more-btn {
+  display: flex;
+  margin: 18px auto 0;
+  min-height: 44px;
+  padding: 0 22px;
+  font-weight: 700;
+}
+.ep-more-btn[hidden] { display: none !important; }
+
+/* ---------- Show more / Show less (long descriptions) ---------- */
+.product > p.ep-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ep-desc-btn {
+  align-self: flex-start;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--red, #e52329);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ep-desc-btn:hover { text-decoration: underline; }
+.ep-desc-btn[hidden] { display: none !important; }
+
+/* ---------- Footer support link ---------- */
+.ep-foot-support {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ep-foot-support:hover { color: var(--red, #e52329); }
+
+/* ---------- Hire Me panel ---------- */
+.ep-hire {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.ep-hire[hidden] { display: none !important; }
+.ep-hire.is-open { opacity: 1; }
+.ep-hire-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.ep-hire-dialog {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  transform: translateY(12px);
+  transition: transform 0.2s ease;
+}
+.ep-hire.is-open .ep-hire-dialog { transform: none; }
+.ep-hire-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ep-hire-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ep-hire h3 {
+  margin: 8px 40px 16px 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+.ep-hire-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.ep-hire-row span { font-size: 12px; color: var(--muted); }
+.ep-hire-row a {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  word-break: break-all;
+}
+.ep-hire-row a:hover { color: var(--red, #e52329); }
+.ep-hire-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ep-hire-actions .btn { flex: 1 1 160px; }
+body.ep-modal-open { overflow: hidden; }
+
+/* ---------- Mobile: compact and fit-to-screen ---------- */
+@media (max-width: 950px) {
+  /* Mobile menu: always fills the whole screen when opened */
+  header.nav.nav-open {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    z-index: 1000 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Generated prompt actions: Copy / Improve / Favorite share one row on phones.
+     Selector is scoped to the result header so it outranks styles.css. */
+  .resulthead > .resultactions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+  .resulthead > .resultactions .btn {
+    min-width: 0;
+    flex: none;
+    padding-left: 6px;
+    padding-right: 6px;
+    text-align: center;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 700px) {
+  .section {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+  }
+  .dev-about { padding-bottom: 40px !important; }
+
+  .panel,
+  .card {
+    padding: 16px !important;
+  }
+
+  .product {
+    padding: 16px !important;
+  }
+
+  .dev-card {
+    padding: 20px 18px !important;
+  }
+
+  .dev-list li {
+    padding: 14px 16px !important;
+  }
+
+  .ep-hire-dialog { padding: 20px 18px; }
+
+  footer {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+  }
+}

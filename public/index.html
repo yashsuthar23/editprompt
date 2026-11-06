@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="/store-extras.css?v=1" />
     <link rel="stylesheet" href="/v9.css?v=1" />
 <link rel="stylesheet" href="/mobile-pro.css?v=1" />
+<link rel="stylesheet" href="/ep-enhance.css?v=1" />
 </head>
 
 <body>
@@ -143,7 +144,7 @@
             <div>
 
                 <div class="eyebrow">
-                    AI CREATOR PLATFORM • V7
+                    AI CREATOR PLATFORM • BY YASH SUTHAR
                 </div>
 
                 <h1>
@@ -3236,19 +3237,7 @@
                                 ☆ Favorite
                             </button>
 
-                            <button
-                                class="btn ghost small"
-                                id="savePromptVersionBtn"
-                                type="button">
-                                💾 Save Version
-                            </button>
-
-                            <button
-                                class="btn ghost small"
-                                id="promptVersionsBtn"
-                                type="button">
-                                🕘 Versions
-                            </button>
+                            
 
                         </div>
 
@@ -3716,7 +3705,7 @@
 
                 <div
                     id="recentPrompts"
-                    class="historygrid">
+                    class="historygrid" data-ep-collapse="6">
                 </div>
 
             </div>
@@ -4194,7 +4183,7 @@
             </div>
 
             <div class="store-more-wrap">
-                <a class="btn ghost store-more-btn" href="/packs.html">Show More <span aria-hidden="true">→</span></a>
+                <button type="button" class="btn ghost store-more-btn" id="storeMoreBtn" aria-expanded="false" aria-controls="store">Show more <span aria-hidden="true">↓</span></button>
             </div>
 
         </section>
@@ -4231,14 +4220,8 @@
                     secure payments and admin systems. Available for freelance projects and collaborations.
                 </p>
 
-                <div class="dev-stats">
-                    <div><b>9</b><span>Premium packs</span></div>
-                    <div><b>20</b><span>Starter packs</span></div>
-                    <div><b>2</b><span>Web + Windows app</span></div>
-                </div>
-
                 <div class="dev-links">
-                    <a class="primary" href="/contact.html">Hire me</a>
+                    <button type="button" class="primary" id="hireMeBtn" aria-haspopup="dialog" aria-controls="hireModal">Hire me</button>
                     <a href="https://github.com/yashsuthar23" target="_blank" rel="noopener">View GitHub</a>
                 </div>
 
@@ -4459,10 +4442,12 @@
 
         <span>
             © 2026 EditPrompt.in
+            <span aria-hidden="true"> · </span>
+            <a class="ep-foot-support" href="/contact.html">Support</a>
         </span>
 
-        <span>
-            V7 Creator Platform
+        <span class="ep-foot-creator">
+            EditPrompt Creator – Yash Suthar
         </span>
 
     </footer>
@@ -4482,8 +4467,26 @@
 
     <!-- APP JS -->
 
+    <!-- Hire Me panel: hiring email and a Support option only -->
+    <div id="hireModal" class="ep-hire" hidden>
+        <div class="ep-hire-backdrop" data-ep-hire-close></div>
+        <div class="ep-hire-dialog" role="dialog" aria-modal="true" aria-labelledby="hireTitle">
+            <button type="button" class="ep-hire-close" data-ep-hire-close aria-label="Close">×</button>
+            <div class="ep-hire-eyebrow">Hire me</div>
+            <h3 id="hireTitle">EditPrompt Creator – Yash Suthar</h3>
+            <div class="ep-hire-row">
+                <span>Email</span>
+                <a href="mailto:yashsuthar2303@gmail.com">yashsuthar2303@gmail.com</a>
+            </div>
+            <div class="ep-hire-actions">
+                <a class="btn primary" href="/contact.html">Support</a>
+            </div>
+        </div>
+    </div>
+
     <script src="/app.js" defer></script>
     <script src="/v9.js?v=1" defer></script>
+    <script src="/ep-enhance.js?v=1" defer></script>
 
 
     <script>
@@ -4504,15 +4507,6 @@
                 h.style.setProperty('--my',(e.clientY-b.top)+'px');
             });
         }
-    })();
-    </script>
-
-    <script>
-    /* store: homepage intentionally shows only the 9 featured packs.
-       The complete catalogue (including Admin/seed packs) is available at /packs.html. */
-    (function(){
-        var link=document.querySelector('.store-more-btn');
-        if(link) link.setAttribute('aria-label','Show all prompt packs');
     })();
     </script>
 

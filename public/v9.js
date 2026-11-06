@@ -79,17 +79,38 @@
 
     var staticCards = grid ? Array.prototype.slice.call(grid.querySelectorAll(":scope > .product")) : [];
 
+    // "Show more" reveals the remaining featured packs in place; "Show less" collapses them again.
+    var storeOpen = false;
+    var storeHidden = []; // cards hidden while the store is collapsed
+    var paintStoreButton = function () {
+      if (!btn) return;
+      btn.innerHTML = storeOpen
+        ? 'Show less <span aria-hidden="true">↑</span>'
+        : 'Show more <span aria-hidden="true">↓</span>';
+      btn.setAttribute("aria-expanded", storeOpen ? "true" : "false");
+    };
+    var applyStoreState = function () {
+      staticCards.forEach(function (card) {
+        card.classList.toggle("ep-store-extra", !storeOpen && storeHidden.indexOf(card) !== -1);
+      });
+      store.classList.toggle("ep-store-expanded", storeOpen);
+      paintStoreButton();
+    };
+    if (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        storeOpen = !storeOpen;
+        applyStoreState();
+      });
+    }
+
     var finish = function (newCount, totalCount) {
       // Always keep the first static card (the Best Seller) visible
       var slots = Math.max(1, SLOTS - newCount);
-      staticCards.forEach(function (card, i) {
-        card.classList.toggle("ep-store-extra", i >= slots);
-      });
+      storeHidden = staticCards.filter(function (card, i) { return i >= slots; });
+      applyStoreState();
       var countEl = $("storePackCount");
       if (countEl) countEl.textContent = "📚 " + totalCount + " premium packs";
-      if (btn) {
-        btn.innerHTML = "Browse all " + totalCount + " packs <span aria-hidden=\"true\">→</span>";
-      }
       store.classList.add("ep-store-ready");
     };
 

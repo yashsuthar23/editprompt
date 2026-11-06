@@ -1,4 +1,4 @@
-/* EditPrompt V7.6 enhancements: UX, prompt versions, video queue, recovery helpers. */
+/* EditPrompt enhancements: UX, video queue, recovery helpers. */
 (() => {
   "use strict";
 
@@ -17,45 +17,6 @@
     console.error("EditPrompt unhandled rejection:", event.reason);
   });
 
-  // Prompt version controls already exist in the V7.5 markup; wire them properly.
-  async function savePromptVersion() {
-    const id = window.__editPromptState?.lastHistoryId;
-    const output = typeof window.outputText === "function" ? window.outputText() : ($x("output")?.innerText || "").trim();
-    if (!id || !output) return toastSafe("Generate a prompt first.");
-    const label = window.prompt("Version name:", "Manual version");
-    if (label === null) return;
-    try {
-      await window.apiRequest(`/api/prompts/${id}/versions`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({prompt: output, label})
-      });
-      toastSafe("Prompt version saved ✓");
-    } catch (e) { toastSafe(e.message || "Could not save version"); }
-  }
-
-  async function showPromptVersions() {
-    const id = window.__editPromptState?.lastHistoryId;
-    if (!id) return toastSafe("Generate a prompt first.");
-    try {
-      const data = await window.apiRequest(`/api/prompts/${id}/versions`);
-      const items = data.items || [];
-      if (!items.length) return toastSafe("No saved versions yet.");
-      const lines = items.slice(0, 10).map((v, i) => `${i+1}. ${v.label || "Version"} — ${v.created_at}`).join("\n");
-      const choice = window.prompt(`${lines}\n\nEnter version number to restore:`);
-      if (!choice) return;
-      const n = Number(choice);
-      const v = items[n - 1];
-      if (!v) return toastSafe("Invalid version.");
-      if (!confirm(`Restore "${v.label || "Version"}"?`)) return;
-      const restored = await window.apiRequest(`/api/prompts/${id}/versions/${v.id}/restore`, {method:"POST"});
-      if ($x("output")) $x("output").textContent = restored.prompt;
-      toastSafe("Version restored ✓");
-    } catch (e) { toastSafe(e.message || "Could not load versions"); }
-  }
-
-  $x("savePromptVersionBtn")?.addEventListener("click", savePromptVersion);
-  $x("promptVersionsBtn")?.addEventListener("click", showPromptVersions);
 
   // Add a compact queue panel to the existing media loading step.
   function ensureQueueUI() {
