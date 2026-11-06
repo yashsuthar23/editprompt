@@ -72,7 +72,6 @@
   .ep-tabbar{display:flex;position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:900;
     height:64px;padding:0 4px;background:var(--panel);border:1px solid var(--border);border-radius:24px;
     box-shadow:0 16px 34px -12px rgba(0,0,0,.75)}
-  body.ep-menu-open .ep-tabbar{display:none}
   .ep-tabbar button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
     height:64px;min-height:0;padding:0;background:transparent;border:0;border-radius:0;color:var(--muted);
     font-size:10.5px;font-weight:600;letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent;

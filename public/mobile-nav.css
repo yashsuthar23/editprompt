@@ -26,55 +26,55 @@
   .nav.nav-open .nav-toggle span:nth-child(2) { opacity: 0; }
   .nav.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  /* ---- Slide-in drawer: brand-colour panel on the left, page dimmed on the right ---- */
+  /* ---- Compact dropdown card: header stays exactly where it is, a small red card opens under the
+     menu button, and the page stays visible behind (lightly dimmed). Tap outside / scroll to close. ---- */
   .nav.nav-open {
-    --ep-drawer-w: min(84vw, 330px);
-    position: fixed; inset: 0; z-index: 1000;
-    display: grid; grid-template-columns: 64px calc(var(--ep-drawer-w) - 64px) 1fr;
-    grid-auto-rows: min-content; align-content: start; gap: 0;
-    height: 100vh; height: 100dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-    padding: env(safe-area-inset-top, 0px) 0 0; margin: 0; box-sizing: border-box; border: 0;
-    background: rgba(5, 6, 9, .68);
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;
+    display: grid; grid-template-columns: 1fr auto; grid-auto-rows: min-content; align-content: start;
+    gap: 0; max-height: 100vh; max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+    background: transparent; border: 0; box-sizing: border-box;
     backdrop-filter: none; -webkit-backdrop-filter: none;
-    animation: ep-fade .22s ease both;
   }
   .nav.nav-open::-webkit-scrollbar { display: none; }
+  /* header bar background (same height as the closed header) */
   .nav.nav-open::before {
-    content: ""; position: fixed; left: 0; top: 0; bottom: 0; width: var(--ep-drawer-w); z-index: 0;
-    background: linear-gradient(170deg, #d91f26 0%, #b9171e 55%, #9a1118 100%);
-    border-radius: 0 30px 30px 0;
-    box-shadow: 18px 0 50px -12px rgba(0,0,0,.65);
-    animation: ep-drawer-in .34s cubic-bezier(.2,.8,.2,1) both;
+    content: ""; position: absolute; left: 0; right: 0; top: 0; z-index: 0;
+    height: var(--ep-nav-h, 72px); background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  /* light dim over the page below the header */
+  .nav.nav-open::after {
+    content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 0;
+    top: var(--ep-nav-h, 72px); background: rgba(0,0,0,.42);
+    animation: ep-fade .2s ease both;
   }
   .nav.nav-open > * { position: relative; z-index: 1; }
+  .nav.nav-open > .brand { grid-column: 1; grid-row: 1; }
+  .nav.nav-open > .nav-toggle { grid-column: 2; grid-row: 1; margin: 0; }
 
-  /* Row 1: close button (top-left) + brand */
-  .nav.nav-open > .nav-toggle {
-    grid-column: 1; grid-row: 1; margin: 18px 0 0 16px; width: 40px; height: 40px; min-width: 40px;
-    color: #fff; background: rgba(0,0,0,.16); border-color: rgba(255,255,255,.35);
+  /* the card = nav links (top part) + login row (bottom part), one solid colour */
+  .nav.nav-open nav,
+  .nav.nav-open > .right {
+    --card: #c8191f;
+    grid-column: 1 / -1; justify-self: end; width: min(272px, calc(100vw - 28px));
+    margin-right: 12px; box-sizing: border-box; background: var(--card);
+    transform-origin: top right; animation: ep-pop .24s cubic-bezier(.2,.8,.2,1) both;
   }
-  .nav.nav-open > .nav-toggle:hover { background: rgba(0,0,0,.28); color: #fff; border-color: #fff; box-shadow: none; }
-  .nav.nav-open > .brand { grid-column: 2; grid-row: 1; margin: 18px 0 0 6px; padding-right: 16px; align-self: center; min-width: 0; }
-  .nav.nav-open > .brand b { color: #fff; font-size: 16px; }
-  .nav.nav-open > .brand small { display: none; }
-  .nav.nav-open > .brand .logo { background: #fff; color: #b9171e; width: 40px; height: 40px; border-radius: 12px; }
-
-  /* Row 2: cascading tiles, each one a step further in and a shade darker */
   .nav.nav-open nav {
-    grid-column: 1 / 3; grid-row: 2; display: flex; flex-direction: column; gap: 7px;
-    margin: 22px 0 0; padding: 0; border: 0;
+    grid-row: 2; display: flex; flex-direction: column; gap: 5px;
+    margin-top: 22px; padding: 12px 0 8px 12px; border: 0; border-radius: 20px 20px 0 0;
+    margin-bottom: -1px;
   }
   .nav.nav-open nav a {
     --i: 0;
-    display: flex; align-items: center; min-height: 44px;
-    margin: 0 0 0 calc(16px + var(--i) * 5px); padding: 0 26px 0 16px;
-    font-size: 15px; font-weight: 700; letter-spacing: .01em; text-decoration: none;
-    color: #fff !important; border: 0; border-radius: 12px 0 0 12px;
+    display: flex; align-items: center; min-height: 36px;
+    margin: 0 0 0 calc(var(--i) * 4px); padding: 0 24px 0 14px;
+    font-size: 14px; font-weight: 700; letter-spacing: .01em; text-decoration: none;
+    color: #fff !important; border: 0; border-radius: 11px 0 0 11px;
     background: rgba(0, 0, 0, .16);
-    clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+    clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
     transition: background .18s ease, padding-left .18s ease;
-    animation: ep-tile-in .42s cubic-bezier(.2,.8,.2,1) both;
-    animation-delay: calc(var(--i) * 45ms + 90ms);
+    animation: ep-tile-in .34s cubic-bezier(.2,.8,.2,1) both;
+    animation-delay: calc(var(--i) * 35ms + 60ms);
   }
   .nav.nav-open nav a:nth-child(1) { --i: 0; }
   .nav.nav-open nav a:nth-child(2) { --i: 1; }
@@ -83,27 +83,25 @@
   .nav.nav-open nav a:nth-child(5) { --i: 4; }
   .nav.nav-open nav a:nth-child(6) { --i: 5; }
   .nav.nav-open nav a:nth-child(7) { --i: 6; }
-  .nav.nav-open nav a:nth-child(8) { --i: 7; }
-  .nav.nav-open nav a:nth-child(n+9) { --i: 8; }
+  .nav.nav-open nav a:nth-child(n+8) { --i: 7; }
   .nav.nav-open nav a:hover,
   .nav.nav-open nav a:focus-visible,
-  .nav.nav-open nav a.active { background: rgba(0,0,0,.30); padding-left: 22px; outline: none; }
+  .nav.nav-open nav a.active { background: rgba(0,0,0,.30); padding-left: 19px; outline: none; }
 
-  /* Row 3: Login + settings */
   .nav.nav-open > .right {
-    grid-column: 1 / 3; grid-row: 3; display: flex; align-items: center; gap: 10px;
-    margin: 0; padding: 22px 16px calc(24px + env(safe-area-inset-bottom, 0px));
-    animation: ep-tile-in .42s cubic-bezier(.2,.8,.2,1) .5s both;
+    grid-row: 3; display: flex; align-items: center; gap: 10px;
+    padding: 4px 12px 12px; border-radius: 0 0 20px 20px;
+    box-shadow: 0 26px 40px -14px rgba(0,0,0,.7);
   }
   .nav.nav-open > .right > #loginBtn,
   .nav.nav-open > .right > #logoutBtn,
   .nav.nav-open > .right > .btn {
-    flex: 1 1 auto; justify-content: center; height: 44px; border-radius: 12px; font-size: 14px; font-weight: 800;
+    flex: 1 1 auto; justify-content: center; height: 40px; border-radius: 11px; font-size: 14px; font-weight: 800;
     background: #fff !important; color: #b9171e !important; border: 0 !important;
   }
-  .nav.nav-open > .right > #epSettingsWrap { flex: 0 0 44px; width: 44px; }
+  .nav.nav-open > .right > #epSettingsWrap { flex: 0 0 42px; width: 42px; }
   .nav.nav-open > .right > #epSettingsWrap .ep-icon-button {
-    width: 44px; height: 44px; border-radius: 12px; color: #fff;
+    width: 42px; height: 42px; border-radius: 11px; color: #fff;
     background: rgba(0,0,0,.16); border: 1px solid rgba(255,255,255,.35);
   }
 }
@@ -113,12 +111,12 @@
 }
 
 @keyframes ep-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes ep-drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes ep-pop { from { opacity: 0; transform: translateY(-8px) scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes ep-tile-in { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
 
 
-/* Stop the page behind the open menu from scrolling */
-body.ep-menu-open { overflow: hidden; }
+/* The header becomes fixed while the menu is open; keep its space so the page does not jump */
+body.ep-menu-open { padding-top: var(--ep-nav-h, 0px); }
 
 /* Mobile: theme switch lives in the settings panel, so hide the header sun button */
 @media (max-width: 950px) {
@@ -127,7 +125,7 @@ body.ep-menu-open { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav.nav-open, .nav.nav-open::before, .nav.nav-open nav a, .nav.nav-open > .right { animation: none; }
+  .nav.nav-open::after, .nav.nav-open nav, .nav.nav-open nav a, .nav.nav-open > .right { animation: none; }
 }
 
 /* Desktop & small laptops: keep the header on one clean line */

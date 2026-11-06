@@ -18,12 +18,23 @@
     if (e.target === header && header.classList.contains("nav-open")) setOpen(false);
   });
 
+  // Scrolling the page closes the dropdown (like a normal menu)
+  window.addEventListener("scroll", function () {
+    if (header.classList.contains("nav-open") && Math.abs(window.pageYOffset - openScrollY) > 30) setOpen(false);
+  }, { passive: true });
+
   // Close automatically if the window grows past the mobile breakpoint
   window.addEventListener("resize", function () {
     if (window.innerWidth > 950) setOpen(false);
   });
 
+  var openScrollY = 0;
   function setOpen(open) {
+    if (open) {
+      // keep the page in place: remember header height, close again if the user scrolls the page
+      document.body.style.setProperty("--ep-nav-h", header.offsetHeight + "px");
+      openScrollY = window.pageYOffset;
+    }
     header.classList.toggle("nav-open", open);
     document.body.classList.toggle("ep-menu-open", open);
     btn.setAttribute("aria-expanded", open ? "true" : "false");
