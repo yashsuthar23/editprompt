@@ -245,8 +245,8 @@
     modal.addEventListener("click", function (e) {
       if (!e.target.closest) return;
       if (e.target.closest("[data-ep-hire-close]")) close();
-      // Opening the mail app: close the panel behind it.
-      else if (e.target.closest('a[href^="mailto:"]')) close();
+      // Opening an email link: close the panel behind it.
+      else if (e.target.closest('.ep-hire-actions a, a[href^="mailto:"]')) close();
     });
 
     document.addEventListener("keydown", function (e) {
