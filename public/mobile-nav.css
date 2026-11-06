@@ -41,9 +41,9 @@
   .nav.nav-open::-webkit-scrollbar { display: none; }
   .nav.nav-open::before {
     content: ""; position: fixed; left: 0; top: 0; bottom: 0; width: var(--ep-drawer-w); z-index: 0;
-    background: linear-gradient(165deg, #ee2b31 0%, #c2181f 52%, #7a1216 100%);
+    background: linear-gradient(170deg, #d91f26 0%, #b9171e 55%, #9a1118 100%);
     border-radius: 0 30px 30px 0;
-    box-shadow: 18px 0 50px -12px rgba(0,0,0,.65), inset -1px 0 0 rgba(255,255,255,.12);
+    box-shadow: 18px 0 50px -12px rgba(0,0,0,.65);
     animation: ep-drawer-in .34s cubic-bezier(.2,.8,.2,1) both;
   }
   .nav.nav-open > * { position: relative; z-index: 1; }
@@ -51,13 +51,13 @@
   /* Row 1: close button (top-left) + brand */
   .nav.nav-open > .nav-toggle {
     grid-column: 1; grid-row: 1; margin: 18px 0 0 16px; width: 40px; height: 40px; min-width: 40px;
-    color: #fff; background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.5);
+    color: #fff; background: rgba(0,0,0,.16); border-color: rgba(255,255,255,.35);
   }
-  .nav.nav-open > .nav-toggle:hover { background: rgba(255,255,255,.26); color: #fff; border-color: #fff; box-shadow: none; }
+  .nav.nav-open > .nav-toggle:hover { background: rgba(0,0,0,.28); color: #fff; border-color: #fff; box-shadow: none; }
   .nav.nav-open > .brand { grid-column: 2; grid-row: 1; margin: 18px 0 0 6px; padding-right: 16px; align-self: center; min-width: 0; }
   .nav.nav-open > .brand b { color: #fff; font-size: 16px; }
   .nav.nav-open > .brand small { display: none; }
-  .nav.nav-open > .brand .logo { background: #fff; color: #c2181f; width: 40px; height: 40px; border-radius: 12px; }
+  .nav.nav-open > .brand .logo { background: #fff; color: #b9171e; width: 40px; height: 40px; border-radius: 12px; }
 
   /* Row 2: cascading tiles, each one a step further in and a shade darker */
   .nav.nav-open nav {
@@ -70,7 +70,7 @@
     margin: 0 0 0 calc(16px + var(--i) * 5px); padding: 0 26px 0 16px;
     font-size: 15px; font-weight: 700; letter-spacing: .01em; text-decoration: none;
     color: #fff !important; border: 0; border-radius: 12px 0 0 12px;
-    background: rgba(0, 0, 0, calc(.10 + var(--i) * .035));
+    background: rgba(0, 0, 0, .16);
     clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
     transition: background .18s ease, padding-left .18s ease;
     animation: ep-tile-in .42s cubic-bezier(.2,.8,.2,1) both;
@@ -87,7 +87,7 @@
   .nav.nav-open nav a:nth-child(n+9) { --i: 8; }
   .nav.nav-open nav a:hover,
   .nav.nav-open nav a:focus-visible,
-  .nav.nav-open nav a.active { background: rgba(255,255,255,.22); padding-left: 22px; outline: none; }
+  .nav.nav-open nav a.active { background: rgba(0,0,0,.30); padding-left: 22px; outline: none; }
 
   /* Row 3: Login + settings */
   .nav.nav-open > .right {
@@ -99,12 +99,12 @@
   .nav.nav-open > .right > #logoutBtn,
   .nav.nav-open > .right > .btn {
     flex: 1 1 auto; justify-content: center; height: 44px; border-radius: 12px; font-size: 14px; font-weight: 800;
-    background: #fff !important; color: #b3171d !important; border: 0 !important;
+    background: #fff !important; color: #b9171e !important; border: 0 !important;
   }
   .nav.nav-open > .right > #epSettingsWrap { flex: 0 0 44px; width: 44px; }
   .nav.nav-open > .right > #epSettingsWrap .ep-icon-button {
     width: 44px; height: 44px; border-radius: 12px; color: #fff;
-    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.4);
+    background: rgba(0,0,0,.16); border: 1px solid rgba(255,255,255,.35);
   }
 }
 
