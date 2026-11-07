@@ -44,8 +44,8 @@
   /* light dim over the page below the header */
   .nav.nav-open::after {
     content: ""; position: fixed; left: 0; right: 0; bottom: 0; z-index: 0;
-    top: var(--ep-nav-h, 72px); background: rgba(0,0,0,.42);
-    animation: ep-fade .2s ease both;
+    top: var(--ep-nav-h, 72px); background: rgba(0,0,0,.45);
+    animation: ep-fade .3s ease both;
   }
   .nav.nav-open > * { position: relative; z-index: 1; }
   .nav.nav-open > .brand { grid-column: 1; grid-row: 1; }
@@ -57,7 +57,7 @@
     --card: #c8191f;
     grid-column: 1 / -1; justify-self: end; width: min(272px, calc(100vw - 28px));
     margin-right: 12px; box-sizing: border-box; background: var(--card);
-    transform-origin: top right; animation: ep-pop .24s cubic-bezier(.2,.8,.2,1) both;
+    transform-origin: calc(100% - 28px) 0; animation: ep-pop .46s cubic-bezier(.16,1,.3,1) both; will-change: transform, opacity;
   }
   .nav.nav-open nav {
     grid-row: 2; display: flex; flex-direction: column; gap: 5px;
@@ -72,10 +72,28 @@
     color: #fff !important; border: 0; border-radius: 11px 0 0 11px;
     background: rgba(0, 0, 0, .16);
     clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-    transition: background .18s ease, padding-left .18s ease;
-    animation: ep-tile-in .34s cubic-bezier(.2,.8,.2,1) both;
-    animation-delay: calc(var(--i) * 35ms + 60ms);
+    position: relative; overflow: hidden;
+    transition: background .22s ease, padding-left .28s cubic-bezier(.16,1,.3,1), transform .15s ease;
+    animation: ep-tile-in .52s cubic-bezier(.16,1,.3,1) both;
+    animation-delay: calc(var(--i) * 48ms + 110ms);
   }
+  /* soft light sweep across the tile on hover / tap */
+  .nav.nav-open nav a::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.2) 50%, transparent 70%);
+    transform: translateX(-130%);
+  }
+  .nav.nav-open nav a:hover::after,
+  .nav.nav-open nav a:active::after { transform: translateX(130%); transition: transform .65s ease; }
+  /* little arrow that slides in */
+  .nav.nav-open nav a::before {
+    content: "\203A"; position: absolute; right: 30px; top: 50%; font-size: 20px; line-height: 1; font-weight: 700;
+    opacity: 0; transform: translate(-8px, -52%); transition: opacity .22s ease, transform .28s cubic-bezier(.16,1,.3,1);
+  }
+  .nav.nav-open nav a:hover::before,
+  .nav.nav-open nav a:focus-visible::before,
+  .nav.nav-open nav a.active::before { opacity: .9; transform: translate(0, -52%); }
+  .nav.nav-open nav a:active { transform: scale(.98); }
   .nav.nav-open nav a:nth-child(1) { --i: 0; }
   .nav.nav-open nav a:nth-child(2) { --i: 1; }
   .nav.nav-open nav a:nth-child(3) { --i: 2; }
@@ -106,13 +124,28 @@
   }
 }
 
+@media (max-width: 950px) {
+  /* closing: card folds back toward the button, dim fades out */
+  .nav.nav-open.nav-closing { pointer-events: none; }
+  .nav.nav-open.nav-closing nav,
+  .nav.nav-open.nav-closing > .right { animation: ep-pop-out .22s cubic-bezier(.4,0,1,1) both; }
+  .nav.nav-open.nav-closing nav a { animation: none; }
+  .nav.nav-open.nav-closing::after { animation: ep-fade-out .22s ease both; }
+  .nav.nav-open.nav-closing .nav-toggle { color: var(--text); border-color: var(--border); }
+  .nav.nav-open.nav-closing .nav-toggle span:nth-child(1),
+  .nav.nav-open.nav-closing .nav-toggle span:nth-child(3) { transform: none; }
+  .nav.nav-open.nav-closing .nav-toggle span:nth-child(2) { opacity: 1; }
+}
+
 @media (max-width: 560px) {
   .nav-toggle { width: 38px; height: 38px; min-width: 38px; }
 }
 
 @keyframes ep-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes ep-pop { from { opacity: 0; transform: translateY(-8px) scale(.96); } to { opacity: 1; transform: none; } }
-@keyframes ep-tile-in { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+@keyframes ep-pop { from { opacity: 0; transform: translateY(-14px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes ep-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-10px) scale(.94); } }
+@keyframes ep-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ep-tile-in { from { opacity: 0; transform: translateX(-24px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
 
 
 /* The header becomes fixed while the menu is open; keep its space so the page does not jump */

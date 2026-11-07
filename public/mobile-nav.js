@@ -29,20 +29,40 @@
   });
 
   var openScrollY = 0;
+  var closeTimer = null;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function finishClose() {
+    clearTimeout(closeTimer);
+    header.classList.remove("nav-open", "nav-closing");
+    document.body.classList.remove("ep-menu-open");
+  }
+
   function setOpen(open) {
     if (open) {
+      clearTimeout(closeTimer);
+      header.classList.remove("nav-closing");
       // keep the page in place: remember header height, close again if the user scrolls the page
       document.body.style.setProperty("--ep-nav-h", header.offsetHeight + "px");
       openScrollY = window.pageYOffset;
+      header.classList.add("nav-open");
+      document.body.classList.add("ep-menu-open");
+    } else {
+      if (!header.classList.contains("nav-open") || header.classList.contains("nav-closing")) return;
+      if (reduceMotion) {
+        finishClose();
+      } else {
+        // play the closing animation first, then remove the open state
+        header.classList.add("nav-closing");
+        closeTimer = setTimeout(finishClose, 230);
+      }
     }
-    header.classList.toggle("nav-open", open);
-    document.body.classList.toggle("ep-menu-open", open);
     btn.setAttribute("aria-expanded", open ? "true" : "false");
     btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
   }
 
   btn.addEventListener("click", function () {
-    setOpen(!header.classList.contains("nav-open"));
+    setOpen(!header.classList.contains("nav-open") || header.classList.contains("nav-closing"));
   });
 
   // Login opens its own dialog: close the menu first so the dialog is not hidden behind it
