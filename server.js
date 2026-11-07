@@ -1750,6 +1750,9 @@ app.get("/api/config", (req, res) => {
         ? process.env.POLLINATIONS_VIDEO_MODEL || "veo"
         : getVideoModel(),
 
+    // Public OAuth client id (safe to expose); the Google button works only when this is set.
+    googleClientId: String(process.env.GOOGLE_CLIENT_ID || "").trim(),
+
     loggedIn: Boolean(req.session.userId),
   });
 });
@@ -1786,19 +1789,32 @@ app.post(
         });
       }
 
-      if (!name || !name.trim()) {
-        return res.status(400).json({
-          error: "Enter your name.",
-        });
-      }
-
-      if (!email || !email.includes("@")) {
+      if (!email || !String(email).includes("@")) {
         return res.status(400).json({
           error: "Enter a valid email.",
         });
       }
 
-      const cleanEmail = email.trim().toLowerCase();
+      const cleanEmail = String(email).trim().toLowerCase();
+
+      // "Log in" sends no name: use the name saved on the existing account.
+      // "Sign up" sends a name: it creates the account when the code is verified.
+      let effectiveName = String(name || "").trim();
+
+      if (!effectiveName) {
+        const existing = db
+          .prepare("SELECT name FROM users WHERE email=?")
+          .get(cleanEmail);
+
+        if (existing && existing.name) {
+          effectiveName = existing.name;
+        } else {
+          return res.status(404).json({
+            code: "NO_ACCOUNT",
+            error: "No account found for this email. Please sign up first.",
+          });
+        }
+      }
 
       if (isEmailBlocked(cleanEmail)) {
         securityEvent("blocked_login_attempt", req, `email=${cleanEmail}`);
@@ -1841,9 +1857,9 @@ app.post(
         )
         VALUES(?,?,?,?,?)
         `,
-      ).run(cleanEmail, name.trim(), hashOtp(otp), now + 10 * 60 * 1000, now);
+      ).run(cleanEmail, effectiveName, hashOtp(otp), now + 10 * 60 * 1000, now);
 
-      await sendOtpEmail(cleanEmail, name.trim(), otp);
+      await sendOtpEmail(cleanEmail, effectiveName, otp);
 
       const payload = {
         sent: true,
@@ -2026,6 +2042,117 @@ app.post(
 
       res.status(500).json({
         error: "Verification failed.",
+      });
+    }
+  },
+);
+
+// ============================================================
+// GOOGLE LOGIN (Google Identity Services, access-token flow)
+// ============================================================
+
+app.post(
+  "/api/auth/google",
+
+  rateLimit({
+    windowMs: 60_000,
+    max: 20,
+
+    message: "Too many attempts. Please wait a minute.",
+  }),
+
+  async (req, res) => {
+    try {
+      const clientId = String(process.env.GOOGLE_CLIENT_ID || "").trim();
+
+      if (!clientId) {
+        return res.status(503).json({
+          error: "Google login is not set up yet. Please use email.",
+        });
+      }
+
+      const accessToken = String((req.body || {}).accessToken || "");
+
+      if (!accessToken || accessToken.length > 4096) {
+        return res.status(400).json({
+          error: "Google sign-in failed. Please try again.",
+        });
+      }
+
+      // 1) the token must have been issued for OUR client id
+      const infoRes = await fetch(
+        "https://oauth2.googleapis.com/tokeninfo?access_token=" +
+          encodeURIComponent(accessToken),
+      );
+      const info = await infoRes.json().catch(() => ({}));
+
+      if (!infoRes.ok || (info.aud !== clientId && info.azp !== clientId)) {
+        securityEvent("google_token_rejected", req, "aud mismatch");
+        return res.status(400).json({
+          error: "Google sign-in could not be verified.",
+        });
+      }
+
+      // 2) read the verified profile
+      const profRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      const g = await profRes.json().catch(() => ({}));
+
+      const verified = g.email_verified === true || g.email_verified === "true";
+
+      if (!profRes.ok || !g.email || !verified || (info.sub && g.sub && info.sub !== g.sub)) {
+        return res.status(400).json({
+          error: "Your Google email could not be verified.",
+        });
+      }
+
+      const cleanEmail = String(g.email).trim().toLowerCase();
+
+      if (isEmailBlocked(cleanEmail)) {
+        securityEvent("blocked_login_attempt", req, `email=${cleanEmail}`);
+        return res.status(403).json({
+          error: BLOCKED_MESSAGE,
+        });
+      }
+
+      let user = db.prepare("SELECT * FROM users WHERE email=?").get(cleanEmail);
+
+      if (!user) {
+        const displayName =
+          String(g.name || "").trim().slice(0, 100) ||
+          cleanEmail.split("@")[0];
+
+        const created = db
+          .prepare("INSERT INTO users (name,email) VALUES(?,?)")
+          .run(displayName, cleanEmail);
+
+        user = db.prepare("SELECT * FROM users WHERE id=?").get(created.lastInsertRowid);
+      }
+
+      req.session.userId = user.id;
+
+      req.session.save((saveError) => {
+        if (saveError) {
+          console.error("Session save error:", saveError);
+          return res.status(500).json({
+            error: "Login session could not be saved. Please try again.",
+          });
+        }
+
+        res.json({
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+        });
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        error: "Google login failed. Please try again.",
       });
     }
   },

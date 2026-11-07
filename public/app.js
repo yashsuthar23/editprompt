@@ -1122,6 +1122,10 @@ function openLoginModal(opts) {
 
   modal.classList.add("show");
 
+  window.epSetLoginMode?.("login");
+
+  if (config && config.googleClientId) loadGsi().catch(() => {});
+
   forceCustomer = false;
 
   $("loginStepAdmin")?.classList.add("hide");
@@ -1194,6 +1198,82 @@ document.addEventListener(
     }
   },
 );
+
+/* =========================================================
+   GOOGLE LOGIN
+========================================================= */
+
+let gsiPromise = null;
+
+function loadGsi() {
+  if (window.google?.accounts?.oauth2) return Promise.resolve();
+  if (gsiPromise) return gsiPromise;
+
+  gsiPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => {
+      gsiPromise = null;
+      reject(new Error("Could not load Google sign-in. Check your connection."));
+    };
+    document.head.appendChild(script);
+  });
+
+  return gsiPromise;
+}
+
+async function googleLogin() {
+  const button = $("googleLoginBtn");
+
+  try {
+    if (!config || !config.googleClientId) await loadConfig();
+
+    if (!config || !config.googleClientId) {
+      return toast("Google login is not set up yet. Please use email for now.");
+    }
+
+    await loadGsi();
+
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: config.googleClientId,
+      scope: "openid email profile",
+      callback: async (response) => {
+        if (!response || response.error || !response.access_token) {
+          return toast("Google sign-in was cancelled");
+        }
+
+        button?.classList.add("is-loading");
+
+        try {
+          await apiRequest("/api/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accessToken: response.access_token }),
+          });
+
+          closeLoginModal();
+          await refreshUser();
+          toast("Logged in ✓");
+        } catch (error) {
+          toast(error.message || "Google login failed");
+        } finally {
+          button?.classList.remove("is-loading");
+        }
+      },
+      error_callback: () => toast("Google sign-in was cancelled"),
+    });
+
+    client.requestAccessToken({ prompt: "select_account" });
+  } catch (error) {
+    toast(error.message || "Google login failed");
+  }
+}
+
+if ($("googleLoginBtn")) {
+  $("googleLoginBtn").onclick = googleLogin;
+}
 
 /* =========================================================
    SEND OTP
@@ -1271,8 +1351,18 @@ async function sendOtp({
   resend = false,
 } = {}) {
   if (!resend) {
-    pendingName =
-      $("name")?.value.trim() || "";
+    const loginMode =
+      (document.getElementById("loginCard")?.dataset.mode || "login") === "login";
+
+    // Log in sends no name (the server uses the saved one); Sign up needs a name.
+    pendingName = loginMode
+      ? ""
+      : $("name")?.value.trim() || "";
+
+    if (!loginMode && !pendingName) {
+      $("name")?.focus();
+      return toast("Enter your name");
+    }
 
     pendingEmail =
       $("email")
@@ -1357,6 +1447,11 @@ async function sendOtp({
           : "Code sent"),
     );
   } catch (error) {
+    if (error.code === "NO_ACCOUNT") {
+      window.epSetLoginMode?.("signup");
+      setTimeout(() => $("name")?.focus(), 350);
+    }
+
     toast(
       error.message ||
         "Could not send code",
