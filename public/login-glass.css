@@ -14,7 +14,7 @@
   isolation: isolate;
   overflow: hidden;
   width: min(390px, 92vw);
-  padding: 44px 26px 24px;
+  padding: 54px 26px 24px;
   text-align: center;
   color: #fff;
   border: 1px solid transparent;
@@ -42,8 +42,10 @@
 .lg-card .x:hover { background: rgba(255, 255, 255, .14); color: #fff; }
 
 .lg-title {
-  margin: 0 0 8px; padding: 0 30px;
-  font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15;
+  margin: 0 0 8px; padding: 0 4px;
+  /* one line: the size shrinks a little on narrow phones instead of wrapping */
+  font-size: clamp(21px, 6.6vw, 30px); white-space: nowrap;
+  font-weight: 700; letter-spacing: -.02em; line-height: 1.15;
   background: linear-gradient(180deg, #ffffff 30%, #a7aab3);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
@@ -170,7 +172,6 @@
 
 @media (max-width: 420px) {
   .lg-card { padding: 42px 18px 20px; border-radius: 32px; }
-  .lg-title { font-size: 27px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lg-card, .lg-go.is-loading::after { animation: none; }
