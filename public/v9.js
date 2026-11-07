@@ -209,7 +209,7 @@
 
   /* ---------- Mobile: one screen at a time + bottom tabs ---------- */
   var TABS = [
-    { id: "create", label: "Create", ico: "✨", ids: ["generator"], hero: true },
+    { id: "create", label: "Create", ico: "✨", ids: ["generator", "developer"], hero: true },
     { id: "media",  label: "Media",  ico: "🎬", ids: ["imageVideo"] },
     { id: "tools",  label: "Tools",  ico: "🧰", ids: ["categories", "tools"] },
     { id: "store",  label: "Store",  ico: "🛍️", ids: ["store"] },
