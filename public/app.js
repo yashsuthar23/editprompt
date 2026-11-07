@@ -1129,6 +1129,7 @@ function openLoginModal(opts) {
   forceCustomer = false;
 
   $("loginStepAdmin")?.classList.add("hide");
+  $("loginStepSupport")?.classList.add("hide");
 
   $("loginStep1")?.classList.remove(
     "hide",
@@ -1231,6 +1232,7 @@ async function googleLogin() {
     if (!config || !config.googleClientId) await loadConfig();
 
     if (!config || !config.googleClientId) {
+      window.epLastLoginError = "Google login is not set up yet";
       return toast("Google login is not set up yet. Please use email for now.");
     }
 
@@ -1257,6 +1259,7 @@ async function googleLogin() {
           await refreshUser();
           toast("Logged in ✓");
         } catch (error) {
+          window.epLastLoginError = error.message || "Google login failed";
           toast(error.message || "Google login failed");
         } finally {
           button?.classList.remove("is-loading");
@@ -1452,6 +1455,8 @@ async function sendOtp({
       setTimeout(() => $("name")?.focus(), 350);
     }
 
+    window.epLastLoginError = error.message || "Could not send code";
+
     toast(
       error.message ||
         "Could not send code",
@@ -1551,6 +1556,8 @@ if ($("verifyOtpBtn")) {
         pendingEmail = "";
         pendingName = "";
       } catch (error) {
+        window.epLastLoginError = error.message || "Verification failed";
+
         toast(
           error.message ||
             "Verification failed",

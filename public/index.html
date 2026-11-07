@@ -4355,10 +4355,79 @@
                 </p>
 
                 <p class="lg-legal">
-                    By continuing you agree to our
-                    <a href="/terms.html">Terms</a> &amp;
-                    <a href="/privacy.html">Privacy Policy</a>.
+                    By continuing you agree to our terms and privacy policy.
                 </p>
+
+                <p class="lg-links">
+                    <a href="/terms.html">Terms</a><span aria-hidden="true">·</span><a href="/privacy.html">Privacy Policy</a><span aria-hidden="true">·</span><a href="/contact.html" id="lgSupportLink">Support</a>
+                </p>
+
+            </div>
+
+            <!-- SUPPORT STEP (login / Google login / sign up problems go straight to the admin) -->
+
+            <div
+                id="loginStepSupport"
+                class="hide">
+
+                <h2 class="lg-title">
+                    <span>Need help?</span>
+                </h2>
+
+                <p class="lg-sub">
+                    Problem with login, Google login or sign up?
+                    Tell us what happened — it goes straight to our admin.
+                </p>
+
+                <div class="lg-field">
+                    <label for="supName">Name</label>
+                    <input
+                        id="supName"
+                        autocomplete="name"
+                        maxlength="80"
+                        placeholder="Your name">
+                </div>
+
+                <div class="lg-field">
+                    <label for="supEmail">Email</label>
+                    <input
+                        id="supEmail"
+                        type="email"
+                        autocomplete="email"
+                        maxlength="120"
+                        placeholder="username@gmail.com">
+                </div>
+
+                <div class="lg-field">
+                    <label for="supMsg">What happened?</label>
+                    <textarea
+                        id="supMsg"
+                        rows="3"
+                        maxlength="1200"
+                        placeholder="e.g. I did not get the code / Google login shows an error"></textarea>
+                </div>
+
+                <p class="lg-support-note" id="supNote" hidden></p>
+
+                <button
+                    id="supSendBtn"
+                    class="lg-primary"
+                    type="button">
+
+                    Send to admin
+
+                </button>
+
+                <p class="lg-support-status" id="supStatus" role="status"></p>
+
+                <button
+                    id="supBackBtn"
+                    class="lg-link"
+                    type="button">
+
+                    ← Back to login
+
+                </button>
 
             </div>
 
