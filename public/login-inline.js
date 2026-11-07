@@ -5,6 +5,12 @@
 
   function loadModal() {
     if (loaded) return loaded;
+    if (!document.querySelector('link[href^="/login-glass.css"]')) {
+      var css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = "/login-glass.css?v=1";
+      document.head.appendChild(css);
+    }
     loaded = fetch("/login-modal.html", { credentials: "same-origin" })
       .then(function (r) { return r.text(); })
       .then(function (html) {
@@ -16,7 +22,12 @@
         return new Promise(function (resolve, reject) {
           var s = document.createElement("script");
           s.src = "/app.js";
-          s.onload = resolve;
+          s.onload = function () {
+            var g = document.createElement("script");
+            g.src = "/login-glass.js";
+            document.body.appendChild(g);
+            resolve();
+          };
           s.onerror = reject;
           document.body.appendChild(s);
         });

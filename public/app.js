@@ -1114,7 +1114,8 @@ function resetLoginModal() {
   }
 }
 
-function openLoginModal() {
+function openLoginModal(opts) {
+  const auto = !!(opts && opts.auto === true);
   const modal = $("loginModal");
 
   if (!modal) return;
@@ -1142,15 +1143,18 @@ function openLoginModal() {
       "We'll send a 6-digit verification code.";
   }
 
-  setTimeout(() => {
-    $("name")?.focus();
-  }, 50);
+  if (!auto) {
+    setTimeout(() => {
+      $("name")?.focus();
+    }, 50);
+  }
 }
 
 function closeLoginModal() {
   $("loginModal")?.classList.remove(
     "show",
   );
+  try { sessionStorage.setItem("epLoginSeen", "1"); } catch (e) {}
 }
 
 if ($("loginBtn")) {
@@ -1300,13 +1304,8 @@ async function sendOtp({
 
   if (!button) return;
 
-  const originalText =
-    button.textContent;
-
   button.disabled = true;
-  button.textContent = resend
-    ? "Resending…"
-    : "Sending…";
+  button.classList.add("is-loading");
 
   try {
     const data =
@@ -1364,8 +1363,7 @@ async function sendOtp({
     );
   } finally {
     button.disabled = false;
-    button.textContent =
-      originalText || "Send Code";
+    button.classList.remove("is-loading");
   }
 }
 
@@ -3087,6 +3085,10 @@ document
    INITIALIZATION
 ========================================================= */
 
+function isHomePage() {
+  return location.pathname === "/" || /\/index\.html$/.test(location.pathname);
+}
+
 (async function init() {
   try {
     await loadConfig();
@@ -3098,6 +3100,11 @@ document
     ) {
       openLoginModal();
       history.replaceState(null, "", location.pathname + location.hash);
+    } else if (!currentUser && isHomePage()) {
+      // First thing a new visitor sees: the login card (once per browser session)
+      let seen = false;
+      try { seen = sessionStorage.getItem("epLoginSeen") === "1"; } catch (e) {}
+      if (!seen) openLoginModal({ auto: true });
     }
   } catch (error) {
     console.error(

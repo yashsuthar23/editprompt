@@ -5,7 +5,7 @@
         aria-modal="true"
         aria-labelledby="loginTitle">
 
-        <div class="modalbox">
+        <div class="modalbox lg-card">
 
             <button
                 class="x"
@@ -20,48 +20,69 @@
 
             <div id="loginStep1">
 
-                <h2 id="loginTitle">
-                    Login / Create Account
+                <h2 id="loginTitle" class="lg-title">
+                    Welcome back
                 </h2>
 
-                <p class="muted">
-                    We'll email you a 6-digit code —
-                    no password needed.
+                <p class="lg-sub">
+                    Sign in or create your account.<br>
+                    We'll email you a 6-digit code — no password needed.
                 </p>
 
-                <label
-                    for="name"
-                    class="hide">
-                    Name
-                </label>
+                <div class="lg-field">
+                    <label for="name">Name</label>
+                    <input
+                        id="name"
+                        autocomplete="name"
+                        maxlength="100"
+                        placeholder="Your full name">
+                </div>
 
-                <input
-                    id="name"
-                    autocomplete="name"
-                    maxlength="100"
-                    placeholder="Your name">
+                <div class="lg-field lg-field-go">
+                    <div class="lg-in">
+                        <label for="email">Email</label>
+                        <input
+                            id="email"
+                            type="email"
+                            autocomplete="email"
+                            maxlength="254"
+                            placeholder="username@gmail.com">
+                    </div>
 
-                <label
-                    for="email"
-                    class="hide">
-                    Email
-                </label>
+                    <button
+                        id="sendOtpBtn"
+                        class="lg-go"
+                        type="button"
+                        aria-label="Send login code">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
 
-                <input
-                    id="email"
-                    type="email"
-                    autocomplete="email"
-                    maxlength="254"
-                    placeholder="Email address">
+                <div class="lg-or"><span>OR</span></div>
 
                 <button
-                    id="sendOtpBtn"
-                    class="btn primary full"
+                    id="loginGuestBtn"
+                    class="lg-alt"
                     type="button">
-
-                    Send Code
-
+                    <span class="lg-alt-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
+                    </span>
+                    <span class="lg-alt-text">Continue browsing as guest</span>
+                    <span class="lg-alt-go" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </span>
                 </button>
+
+                <p class="lg-foot">
+                    New here? Just enter your name and email —
+                    your account is created automatically.
+                </p>
+
+                <p class="lg-legal">
+                    By continuing you agree to our
+                    <a href="/terms.html">Terms</a> &amp;
+                    <a href="/privacy.html">Privacy Policy</a>.
+                </p>
 
             </div>
 
@@ -71,30 +92,27 @@
                 id="loginStepAdmin"
                 class="hide">
 
-                <h2>
-                    Admin Login
+                <h2 class="lg-title">
+                    Admin login
                 </h2>
 
-                <p class="muted">
+                <p class="lg-sub">
                     Enter the admin password.
                 </p>
 
-                <label
-                    for="adminPass"
-                    class="hide">
-                    Admin password
-                </label>
-
-                <input
-                    id="adminPass"
-                    type="password"
-                    autocomplete="current-password"
-                    maxlength="200"
-                    placeholder="Password">
+                <div class="lg-field">
+                    <label for="adminPass">Admin password</label>
+                    <input
+                        id="adminPass"
+                        type="password"
+                        autocomplete="current-password"
+                        maxlength="200"
+                        placeholder="Password">
+                </div>
 
                 <button
                     id="adminLoginBtn"
-                    class="btn primary full"
+                    class="lg-primary"
                     type="button">
 
                     Login as Admin
@@ -103,7 +121,7 @@
 
                 <button
                     id="adminCustomerBtn"
-                    class="btn ghost full small"
+                    class="lg-link"
                     type="button">
 
                     Login as customer instead
@@ -119,12 +137,12 @@
                 id="loginStep2"
                 class="hide">
 
-                <h2>
-                    Enter Code
+                <h2 class="lg-title">
+                    Enter code
                 </h2>
 
                 <p
-                    class="muted"
+                    class="lg-sub"
                     id="otpHint">
 
                     Check your email for the
@@ -132,24 +150,21 @@
 
                 </p>
 
-                <label
-                    for="otp"
-                    class="hide">
-                    Verification code
-                </label>
-
-                <input
-                    id="otp"
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    maxlength="6"
-                    pattern="[0-9]{6}"
-                    placeholder="6-digit code">
+                <div class="lg-field">
+                    <label for="otp">Verification code</label>
+                    <input
+                        id="otp"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                        pattern="[0-9]{6}"
+                        placeholder="6-digit code">
+                </div>
 
                 <button
                     id="verifyOtpBtn"
-                    class="btn primary full"
+                    class="lg-primary"
                     type="button">
 
                     Verify &amp; Login
@@ -158,7 +173,7 @@
 
                 <button
                     id="resendOtpBtn"
-                    class="btn ghost full small"
+                    class="lg-link"
                     type="button">
 
                     Resend code
