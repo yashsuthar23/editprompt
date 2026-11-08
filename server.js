@@ -459,6 +459,15 @@ try {
   db.exec("ALTER TABLE users ADD COLUMN phone TEXT");
 } catch {}
 
+// Password sign-in (hash only, never the password itself)
+try {
+  db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
+} catch {}
+
+try {
+  db.exec("ALTER TABLE otps ADD COLUMN password_hash TEXT");
+} catch {}
+
 try {
   db.exec("ALTER TABLE users ADD COLUMN last_seen TEXT");
 } catch {}
@@ -1282,6 +1291,77 @@ function requireLogin(req, res, next) {
 // Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) in .env
 // ------------------------------------------------------------
 
+// ------------------------------------------------------------
+// Customer passwords (scrypt + random salt)
+// ------------------------------------------------------------
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(String(password), salt, 64);
+
+  return `scrypt$${salt.toString("hex")}$${key.toString("hex")}`;
+}
+
+function verifyPassword(password, stored) {
+  try {
+    const [scheme, saltHex, keyHex] = String(stored || "").split("$");
+
+    if (scheme !== "scrypt" || !saltHex || !keyHex) return false;
+
+    const expected = Buffer.from(keyHex, "hex");
+    const derived = crypto.scryptSync(
+      String(password),
+      Buffer.from(saltHex, "hex"),
+      expected.length,
+    );
+
+    return crypto.timingSafeEqual(derived, expected);
+  } catch {
+    return false;
+  }
+}
+
+// 8-128 characters with at least one letter and one number
+function passwordProblem(password) {
+  const p = String(password || "");
+
+  if (p.length < 8) return "Password must be at least 8 characters.";
+  if (p.length > 128) return "Password is too long (max 128 characters).";
+  if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) {
+    return "Password must include at least one letter and one number.";
+  }
+
+  return "";
+}
+
+// Per-email throttle for password attempts (in memory)
+const passwordFailures = new Map();
+const PASSWORD_MAX_FAILS = 8;
+const PASSWORD_LOCK_MS = 15 * 60 * 1000;
+
+function passwordLocked(email) {
+  const rec = passwordFailures.get(email);
+
+  if (!rec) return false;
+  if (Date.now() > rec.until) {
+    passwordFailures.delete(email);
+    return false;
+  }
+
+  return rec.count >= PASSWORD_MAX_FAILS;
+}
+
+function passwordFailed(email) {
+  const rec = passwordFailures.get(email);
+  const now = Date.now();
+
+  if (!rec || now > rec.until) {
+    passwordFailures.set(email, { count: 1, until: now + PASSWORD_LOCK_MS });
+  } else {
+    rec.count += 1;
+  }
+}
+
 const ADMIN_SESSION_MS = 12 * 60 * 60 * 1000;
 
 function adminConfigured() {
@@ -1773,7 +1853,7 @@ app.post(
 
   async (req, res) => {
     try {
-      const { name, email, customer } = req.body || {};
+      const { name, email, customer, password } = req.body || {};
 
       // The site owner types the admin email in the normal login box:
       // instead of emailing a code, ask the popup for the admin password.
@@ -1841,6 +1921,23 @@ app.post(
         });
       }
 
+      // Sign up (a name was sent) must come with a valid password.
+      // Log in with an email code sends no name and no password.
+      let passwordHashValue = null;
+
+      if (String(name || "").trim() && !customer) {
+        const problem = passwordProblem(password);
+
+        if (problem) {
+          return res.status(400).json({
+            code: "BAD_PASSWORD",
+            error: problem,
+          });
+        }
+
+        passwordHashValue = hashPassword(password);
+      }
+
       const otp = String(crypto.randomInt(100000, 1000000));
 
       const now = Date.now();
@@ -1853,11 +1950,19 @@ app.post(
           name,
           otp_hash,
           expires_at,
-          created_at
+          created_at,
+          password_hash
         )
-        VALUES(?,?,?,?,?)
+        VALUES(?,?,?,?,?,?)
         `,
-      ).run(cleanEmail, effectiveName, hashOtp(otp), now + 10 * 60 * 1000, now);
+      ).run(
+        cleanEmail,
+        effectiveName,
+        hashOtp(otp),
+        now + 10 * 60 * 1000,
+        now,
+        passwordHashValue,
+      );
 
       await sendOtpEmail(cleanEmail, effectiveName, otp);
 
@@ -2019,6 +2124,14 @@ app.post(
         };
       }
 
+      // The email is now verified: store the password chosen at sign up
+      if (row.password_hash) {
+        db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(
+          row.password_hash,
+          user.id,
+        );
+      }
+
       req.session.userId = user.id;
 
       req.session.save((saveError) => {
@@ -2042,6 +2155,111 @@ app.post(
 
       res.status(500).json({
         error: "Verification failed.",
+      });
+    }
+  },
+);
+
+// ============================================================
+// PASSWORD LOGIN
+// ============================================================
+
+app.post(
+  "/api/auth/login",
+
+  rateLimit({
+    windowMs: 15 * 60_000,
+    max: 30,
+
+    message: "Too many login attempts. Please try again in a few minutes.",
+  }),
+
+  (req, res) => {
+    try {
+      const { email, password, customer } = req.body || {};
+
+      if (!email || !String(email).includes("@") || !password) {
+        return res.status(400).json({
+          error: "Enter your email and password.",
+        });
+      }
+
+      const cleanEmail = String(email).trim().toLowerCase();
+
+      // The site owner uses the separate admin password step
+      if (
+        !customer &&
+        adminConfigured() &&
+        cleanEmail === process.env.ADMIN_EMAIL.trim().toLowerCase()
+      ) {
+        return res.json({ admin: true });
+      }
+
+      if (isEmailBlocked(cleanEmail)) {
+        securityEvent("blocked_login_attempt", req, `email=${cleanEmail}`);
+        return res.status(403).json({
+          error: BLOCKED_MESSAGE,
+        });
+      }
+
+      if (passwordLocked(cleanEmail)) {
+        return res.status(429).json({
+          error: "Too many wrong attempts. Try again in 15 minutes or log in with an email code.",
+        });
+      }
+
+      const user = db
+        .prepare("SELECT * FROM users WHERE email=?")
+        .get(cleanEmail);
+
+      if (user && !user.password_hash) {
+        return res.status(400).json({
+          code: "NO_PASSWORD",
+          error: "This account has no password yet. Log in with an email code instead.",
+        });
+      }
+
+      // run the hash even for unknown emails so timing does not reveal accounts
+      const ok = verifyPassword(
+        password,
+        user ? user.password_hash : "scrypt$00$00",
+      );
+
+      if (!user || !ok) {
+        passwordFailed(cleanEmail);
+        securityEvent("password_failed", req, `email=${cleanEmail}`);
+
+        return res.status(400).json({
+          code: "BAD_CREDENTIALS",
+          error: "Incorrect email or password.",
+        });
+      }
+
+      passwordFailures.delete(cleanEmail);
+
+      req.session.userId = user.id;
+
+      req.session.save((saveError) => {
+        if (saveError) {
+          console.error("Session save error:", saveError);
+          return res.status(500).json({
+            error: "Login session could not be saved. Please try again.",
+          });
+        }
+
+        res.json({
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+          },
+        });
+      });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        error: "Login failed. Please try again.",
       });
     }
   },

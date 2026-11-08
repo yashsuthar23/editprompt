@@ -1,37 +1,113 @@
-/* Login card helpers: Log in / Sign up switch (with animation) and Enter key. */
+/* Login card helpers: Log in / Sign up switch, password field (eye + strength meter), Support form. */
 (function () {
+  function $(id) { return document.getElementById(id); }
+
   var COPY = {
-    login:  ["Welcome back", "Sign in to your account \u2014 we'll email you a 6-digit code, no password needed."],
-    signup: ["Create your account", "Join EditPrompt in seconds \u2014 we'll email you a 6-digit code to verify."]
+    "login-password": ["Welcome back", "Sign in with your email and password."],
+    "login-code":     ["Welcome back", "We'll email you a 6-digit code \u2014 no password needed."],
+    "signup":         ["Create your account", "Join EditPrompt in seconds \u2014 create a password, then verify your email."]
   };
+  var METHOD_LABEL = { password: "Email me a code instead", code: "Use password instead" };
 
-  function setMode(mode) {
-    var card = document.getElementById("loginCard");
-    if (!card || (mode !== "login" && mode !== "signup") || card.dataset.mode === mode) return;
-    card.dataset.mode = mode;
+  function card() { return $("loginCard"); }
+  function copyKey(c) { return c.dataset.mode === "signup" ? "signup" : "login-" + (c.dataset.method || "password"); }
 
-    card.querySelectorAll(".lg-tab").forEach(function (t) {
-      t.setAttribute("aria-selected", t.dataset.mode === mode ? "true" : "false");
-    });
-
-    var title = document.getElementById("lgTitleText");
-    var sub = document.getElementById("lgSubText");
+  function render(c, animate) {
+    var key = copyKey(c);
+    var title = $("lgTitleText");
+    var sub = $("lgSubText");
+    var apply = function () {
+      if (title) { title.textContent = COPY[key][0]; title.classList.remove("is-swap"); }
+      if (sub) { sub.textContent = COPY[key][1]; sub.classList.remove("is-swap"); }
+    };
+    if (!animate) return apply();
     if (title) title.classList.add("is-swap");
     if (sub) sub.classList.add("is-swap");
-    setTimeout(function () {
-      if (title) { title.textContent = COPY[mode][0]; title.classList.remove("is-swap"); }
-      if (sub) { sub.textContent = COPY[mode][1]; sub.classList.remove("is-swap"); }
-    }, 150);
+    setTimeout(apply, 150);
+
+    var pw = $("password");
+    if (pw) pw.setAttribute("autocomplete", c.dataset.mode === "signup" ? "new-password" : "current-password");
+    var mb = $("lgMethodBtn");
+    if (mb) mb.textContent = METHOD_LABEL[c.dataset.method || "password"];
+  }
+
+  function resetPassword() {
+    var pw = $("password");
+    if (pw) { pw.value = ""; pw.type = "password"; }
+    var eye = $("lgEyeBtn");
+    if (eye) { eye.setAttribute("aria-pressed", "false"); eye.setAttribute("aria-label", "Show password"); }
+    updateMeter();
+  }
+
+  function setMode(mode) {
+    var c = card();
+    if (!c || (mode !== "login" && mode !== "signup") || c.dataset.mode === mode) return;
+    c.dataset.mode = mode;
+    c.querySelectorAll(".lg-tab").forEach(function (t) {
+      t.setAttribute("aria-selected", t.dataset.mode === mode ? "true" : "false");
+    });
+    resetPassword();
+    render(c, true);
   }
   window.epSetLoginMode = setMode;
 
-  document.addEventListener("click", function (e) {
-    var t = e.target.closest && e.target.closest("[data-mode]");
-    if (t && t.closest("#loginCard")) setMode(t.dataset.mode);
+  function setMethod(method) {
+    var c = card();
+    if (!c || (method !== "password" && method !== "code") || c.dataset.method === method) return;
+    c.dataset.method = method;
+    resetPassword();
+    render(c, true);
+  }
+  window.epSetLoginMethod = setMethod;
+
+  /* ---- password strength (shown while signing up) ---- */
+  var LEVELS = ["", "Weak", "Fair", "Good", "Strong"];
+  function strength(p) {
+    if (!p) return 0;
+    var score = 0;
+    if (p.length >= 8) score++;
+    if (p.length >= 12) score++;
+    if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score++;
+    if (/\d/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    if (p.length < 8) return 1;
+    return Math.min(4, Math.max(2, score - 1));
+  }
+  function updateMeter() {
+    var m = $("lgMeter"), t = $("lgMeterText"), pw = $("password");
+    if (!m || !pw) return;
+    var lvl = strength(pw.value);
+    m.setAttribute("data-level", String(lvl));
+    if (t) t.textContent = LEVELS[lvl];
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.id === "password") updateMeter();
   });
 
-  /* ---- Support: send a login / sign-up problem to the admin (shows in Admin > Notifications) ---- */
-  function $(id) { return document.getElementById(id); }
+  /* ---- clicks: tabs, inline links, eye, method switch ---- */
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest && e.target.closest("[data-mode]:not(#loginCard)");
+    if (t && t.closest("#loginCard")) { setMode(t.dataset.mode); return; }
+
+    if (e.target.closest && e.target.closest("#lgMethodBtn")) {
+      var c = card();
+      if (c) setMethod(c.dataset.method === "password" ? "code" : "password");
+      return;
+    }
+
+    var eye = e.target.closest && e.target.closest("#lgEyeBtn");
+    if (eye) {
+      var pw = $("password");
+      if (!pw) return;
+      var show = pw.type === "password";
+      pw.type = show ? "text" : "password";
+      eye.setAttribute("aria-pressed", show ? "true" : "false");
+      eye.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      pw.focus();
+    }
+  });
+
+/* ---- Support: send a login / sign-up problem to the admin (shows in Admin > Notifications) ---- */
   function show(id, on) { var el = $(id); if (el) el.classList.toggle("hide", !on); }
 
   function openSupport() {
@@ -109,8 +185,16 @@
     var id = e.target && e.target.id;
     if (id === "name" || id === "email") {
       e.preventDefault();
-      var go = document.getElementById("sendOtpBtn");
+      var c = card();
+      var passOpen = c && (c.dataset.mode === "signup" || c.dataset.method === "password");
+      if (id === "email" && passOpen) { var p = $("password"); if (p) p.focus(); return; }
+      if (id === "name") { var em = $("email"); if (em) em.focus(); return; }
+      var go = $("sendOtpBtn");
       if (go && !go.disabled) go.click();
+    } else if (id === "password") {
+      e.preventDefault();
+      var pg = $("passGoBtn");
+      if (pg && !pg.disabled) pg.click();
     }
   });
 })();

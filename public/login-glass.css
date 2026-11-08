@@ -213,8 +213,10 @@
   display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
   transition: grid-template-rows .38s cubic-bezier(.3, 1, .4, 1), opacity .3s ease, visibility 0s linear .38s;
 }
-.lg-collapse-in { min-height: 0; overflow: hidden; }
-.lg-card[data-mode="signup"] .lg-collapse {
+.lg-collapse-in { min-height: 0; overflow: hidden; margin: 0 -6px; padding: 0 6px; }
+.lg-card[data-mode="signup"] #lgNameWrap,
+.lg-card[data-mode="signup"] #lgPassWrap,
+.lg-card[data-mode="login"][data-method="password"] #lgPassWrap {
   grid-template-rows: 1fr; opacity: 1; visibility: visible;
   transition: grid-template-rows .38s cubic-bezier(.3, 1, .4, 1), opacity .3s ease .08s, visibility 0s;
 }
@@ -259,3 +261,44 @@
 .lg-support-status { min-height: 18px; margin: 10px 0 0; font-size: 12.5px; line-height: 1.4; }
 .lg-support-status[data-state="ok"] { color: #6ee7a0; }
 .lg-support-status[data-state="err"] { color: #ff7a7e; }
+
+
+/* ---------- Password field, eye toggle, strength meter ---------- */
+/* the round arrow moves to the last field when the password row is open */
+.lg-card[data-mode="signup"] #sendOtpBtn,
+.lg-card[data-mode="login"][data-method="password"] #sendOtpBtn { display: none; }
+.lg-card[data-mode="signup"] #lgEmailField,
+.lg-card[data-mode="login"][data-method="password"] #lgEmailField { padding-right: 20px; }
+
+.lg-pass-field .lg-eye {
+  flex: none; width: 34px; height: 34px; padding: 0; min-width: 0; min-height: 0;
+  display: grid; place-items: center; cursor: pointer;
+  color: #9a9ea8; background: none; border: 0; border-radius: 50%;
+  transition: color .18s ease, background .18s ease;
+}
+.lg-pass-field .lg-eye:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.lg-eye svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.lg-eye .eye-off { display: none; }
+.lg-eye[aria-pressed="true"] .eye-on { display: none; }
+.lg-eye[aria-pressed="true"] .eye-off { display: block; }
+.lg-pass-field { gap: 4px; }
+.lg-pass-field .lg-go { margin-left: 2px; }
+
+.lg-meter { display: none; margin: -2px 6px 12px; text-align: left; opacity: 0; transition: opacity .25s ease; }
+.lg-card[data-mode="signup"] .lg-meter { display: block; }
+.lg-meter:not([data-level="0"]) { opacity: 1; }
+.lg-meter-track { display: block; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.lg-meter-track i { display: block; height: 100%; width: 0; border-radius: 3px; background: #ef4444; transition: width .3s ease, background .3s ease; }
+.lg-meter-text { display: block; margin-top: 5px; min-height: 16px; font-size: 12px; font-weight: 600; color: #ef4444; transition: color .3s ease; }
+.lg-meter[data-level="1"] i { width: 25%; background: #ef4444; }
+.lg-meter[data-level="2"] i { width: 50%; background: #f59e0b; }
+.lg-meter[data-level="3"] i { width: 75%; background: #84cc16; }
+.lg-meter[data-level="4"] i { width: 100%; background: #22c55e; }
+.lg-meter[data-level="1"] .lg-meter-text { color: #ef4444; }
+.lg-meter[data-level="2"] .lg-meter-text { color: #f59e0b; }
+.lg-meter[data-level="3"] .lg-meter-text { color: #84cc16; }
+.lg-meter[data-level="4"] .lg-meter-text { color: #22c55e; }
+
+/* "Email me a code instead" / "Use password instead" (Log in only) */
+.lg-method { display: block; margin: 2px auto 0; font-size: 13px; }
+.lg-card[data-mode="signup"] .lg-method { display: none; }

@@ -584,6 +584,7 @@ Object.defineProperty(window.__editPromptState, "mediaState", { get: () => media
 
 let pendingEmail = "";
 let pendingName = "";
+let pendingPassword = "";
 
 /* =========================================================
    PROMPT CLEANUP
@@ -1123,6 +1124,12 @@ function openLoginModal(opts) {
   modal.classList.add("show");
 
   window.epSetLoginMode?.("login");
+  window.epSetLoginMethod?.("password");
+
+  if ($("password")) {
+    $("password").value = "";
+    $("password").type = "password";
+  }
 
   if (config && config.googleClientId) loadGsi().catch(() => {});
 
@@ -1367,6 +1374,21 @@ async function sendOtp({
       return toast("Enter your name");
     }
 
+    // Sign up needs a password; an email-code login does not
+    pendingPassword = "";
+
+    if (!loginMode) {
+      const pw = $("password")?.value || "";
+      const problem = passwordProblem(pw);
+
+      if (problem) {
+        $("password")?.focus();
+        return toast(problem);
+      }
+
+      pendingPassword = pw;
+    }
+
     pendingEmail =
       $("email")
         ?.value.trim()
@@ -1392,8 +1414,14 @@ async function sendOtp({
     );
   }
 
+  const card = document.getElementById("loginCard");
+  const passwordRowOpen =
+    card &&
+    (card.dataset.mode === "signup" || card.dataset.method === "password");
+
+  // the round arrow lives on the password row while that row is open
   const button =
-    $("sendOtpBtn");
+    (passwordRowOpen && $("passGoBtn")) || $("sendOtpBtn");
 
   if (!button) return;
 
@@ -1414,6 +1442,7 @@ async function sendOtp({
             name: pendingName,
             email: pendingEmail,
             customer: forceCustomer,
+            password: pendingPassword || undefined,
           }),
         },
       );
@@ -1455,6 +1484,10 @@ async function sendOtp({
       setTimeout(() => $("name")?.focus(), 350);
     }
 
+    if (error.code === "BAD_PASSWORD") {
+      $("password")?.focus();
+    }
+
     window.epLastLoginError = error.message || "Could not send code";
 
     toast(
@@ -1470,6 +1503,88 @@ async function sendOtp({
 if ($("sendOtpBtn")) {
   $("sendOtpBtn").onclick =
     () => sendOtp();
+}
+
+/* =========================================================
+   PASSWORD (sign up + password login)
+========================================================= */
+
+// 8-128 characters with at least one letter and one number (same rule as the server)
+function passwordProblem(password) {
+  const p = String(password || "");
+
+  if (!p) return "Create a password (at least 8 characters)";
+  if (p.length < 8) return "Password must be at least 8 characters";
+  if (p.length > 128) return "Password is too long (max 128 characters)";
+  if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) {
+    return "Password needs at least one letter and one number";
+  }
+
+  return "";
+}
+
+async function passwordLogin() {
+  const email = ($("email")?.value || "").trim().toLowerCase();
+  const password = $("password")?.value || "";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    $("email")?.focus();
+    return toast("Enter a valid email address");
+  }
+
+  if (!password) {
+    $("password")?.focus();
+    return toast("Enter your password");
+  }
+
+  const button = $("passGoBtn");
+
+  if (button) {
+    button.disabled = true;
+    button.classList.add("is-loading");
+  }
+
+  try {
+    const data = await apiRequest("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, customer: forceCustomer }),
+    });
+
+    // admin email: ask for the admin password instead
+    if (data.admin) {
+      pendingEmail = email;
+      showAdminStep();
+      return;
+    }
+
+    closeLoginModal();
+    await refreshUser();
+    toast("Logged in ✓");
+  } catch (error) {
+    window.epLastLoginError = error.message || "Login failed";
+
+    if (error.code === "NO_PASSWORD") {
+      // older account without a password: switch to the email-code login
+      window.epSetLoginMethod?.("code");
+    }
+
+    toast(error.message || "Login failed");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove("is-loading");
+    }
+  }
+}
+
+if ($("passGoBtn")) {
+  $("passGoBtn").onclick = () => {
+    const mode = document.getElementById("loginCard")?.dataset.mode || "login";
+
+    if (mode === "signup") sendOtp();
+    else passwordLogin();
+  };
 }
 
 /* =========================================================
