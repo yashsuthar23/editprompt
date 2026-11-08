@@ -8,6 +8,7 @@
     <title>Creator Software Hub — EditPrompt.in</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/software.css">
+    <link rel="stylesheet" href="/software-discover.css?v=1">
     <link rel="stylesheet" href="/light-fixes.css?v=1">
     <link rel="stylesheet" href="/mobile-nav.css">
     <link rel="stylesheet" href="/animated-borders.css?v=1" />
@@ -87,8 +88,45 @@
         </aside>
     </div>
 
+    <section class="sd" id="discover" aria-labelledby="sdTitle">
+        <div class="sd-head">
+            <div>
+                <span class="sd-pill">SOFTWARE DISCOVERY</span>
+                <h2 id="sdTitle">Explore More Software</h2>
+                <p class="sd-sub">Find tools for video editing, photo editing, design, audio and everyday PC work.</p>
+            </div>
+            <a class="sd-cta" href="https://getintopc.com/" target="_blank" rel="noopener noreferrer nofollow">
+                Explore GetIntoPC
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>
+            </a>
+        </div>
+
+        <label class="sd-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="sdQ" type="search" placeholder="Search software or category…" aria-label="Search software or category">
+        </label>
+
+        <div class="sd-chips" role="group" aria-label="Software categories">
+            <button type="button" class="sd-chip" data-cat="all" aria-pressed="true">All</button>
+            <button type="button" class="sd-chip" data-cat="video" aria-pressed="false">Video Editing</button>
+            <button type="button" class="sd-chip" data-cat="photo" aria-pressed="false">Photo Editing</button>
+            <button type="button" class="sd-chip" data-cat="design" aria-pressed="false">Graphic Design</button>
+            <button type="button" class="sd-chip" data-cat="audio" aria-pressed="false">Audio</button>
+            <button type="button" class="sd-chip" data-cat="utilities" aria-pressed="false">Utilities</button>
+        </div>
+
+        <div class="sd-grid" id="sdGrid" aria-live="polite"></div>
+        <p class="sd-empty" id="sdEmpty" hidden>No software found. Try another word or category.</p>
+
+        <div class="sd-note" role="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M11 10h2v7h-2zM11 7h2v2h-2z"/></svg>
+            <p><b>Third-party source:</b> GetIntoPC is an external website, not part of EditPrompt.<br>
+            We do not host or verify its installers. Prefer official publisher downloads and check files before installing.</p>
+        </div>
+    </section>
+
     <p class="hub-foot muted hb-sm">
-        All download links go to the official website of each app, so you always get the latest, unmodified version.
+        All download links in the software list go to the official website of each app, so you always get the latest, unmodified version. The separate “Explore More Software” block links to an external third-party website and is labelled as such.
         Some apps may be unavailable in certain countries (for example, CapCut is blocked in India, so it is not listed). EditPrompt does not host third-party installers. Names and logos belong to their owners.
     </p>
 
@@ -121,6 +159,7 @@
 <script src="/software-data.js"></script>
 <script src="/software-info.js"></script>
 <script src="/software.js"></script>
+<script src="/software-discover.js" defer></script>
 <script src="/nav.js" defer></script>
 <script src="/site-status.js" defer></script>
   <script src="/theme.js"></script>
