@@ -3,15 +3,10 @@
   function $(id) { return document.getElementById(id); }
 
   var COPY = {
-    "login-password": ["Log in", "Sign in with your email and password."],
-    "login-code":     ["Log in", "We'll email you a 6-digit code \u2014 no password needed."],
-    "signup":         ["Sign up", "Join EditPrompt in seconds \u2014 create a password, then verify your email."]
+    "login-password": ["Welcome back", "Sign in with your email and password."],
+    "login-code":     ["Welcome back", "We'll email you a 6-digit code \u2014 no password needed."],
+    "signup":         ["Create your account", "Join EditPrompt in seconds \u2014 create a password, then verify your email."]
   };
-  var PANEL = {
-    login:  ["WELCOME BACK!", "We're happy to have you with us again. If you need anything, we are here to help."],
-    signup: ["WELCOME!", "We're delighted to have you here. If you need any assistance, feel free to reach out."]
-  };
-  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var METHOD_LABEL = { password: "Email me a code instead", code: "Use password instead" };
 
   function card() { return $("loginCard"); }
@@ -44,47 +39,15 @@
     updateMeter();
   }
 
-  function applyMode(c, mode) {
-    c.dataset.mode = mode;
-    c.dataset.pill = mode;
-    c.querySelectorAll(".lg-tab").forEach(function (t) {
-      t.setAttribute("aria-selected", t.dataset.mode === mode ? "true" : "false");
-    });
-    var pt = $("lgPanelTitle"), px = $("lgPanelText");
-    if (pt) pt.textContent = PANEL[mode][0];
-    if (px) px.textContent = PANEL[mode][1];
-    resetPassword();
-    render(c, false);
-  }
-
-  var sweepTimer = null;
-
-  /* Switch Log in <-> Sign up. Normally the diagonal panel sweeps across the card (like the
-     reference animation): the form side flips while the panel covers everything. */
-  function setMode(mode, opts) {
+  function setMode(mode) {
     var c = card();
-    if (!c || (mode !== "login" && mode !== "signup")) return;
-    var instant = !!(opts && opts.instant);
-
-    if (instant || reduceMotion || !c.offsetParent) {
-      clearTimeout(sweepTimer);
-      c.classList.remove("is-sweeping");
-      if (c.dataset.mode !== mode) applyMode(c, mode);
-      return;
-    }
-
-    if (c.dataset.mode === mode && c.dataset.pill === mode) return;
-    if (c.classList.contains("is-sweeping")) return;
-
-    c.dataset.pill = mode;                       // tab pill moves right away
-    c.dataset.dir = mode === "signup" ? "forward" : "back";
-    c.classList.add("is-sweeping");
+    if (!c || (mode !== "login" && mode !== "signup") || c.dataset.mode === mode) return;
+    c.dataset.mode = mode;
     c.querySelectorAll(".lg-tab").forEach(function (t) {
       t.setAttribute("aria-selected", t.dataset.mode === mode ? "true" : "false");
     });
-
-    setTimeout(function () { applyMode(c, mode); }, 470);   // panel fully covers the card here
-    sweepTimer = setTimeout(function () { c.classList.remove("is-sweeping"); }, 960);
+    resetPassword();
+    render(c, true);
   }
   window.epSetLoginMode = setMode;
 

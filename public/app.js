@@ -1123,7 +1123,7 @@ function openLoginModal(opts) {
 
   modal.classList.add("show");
 
-  window.epSetLoginMode?.("login", { instant: true });
+  window.epSetLoginMode?.("login");
   window.epSetLoginMethod?.("password");
 
   if ($("password")) {

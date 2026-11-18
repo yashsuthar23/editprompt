@@ -193,7 +193,7 @@
   box-shadow: 0 8px 18px -8px rgba(229, 35, 41, .9);
   transition: transform .38s cubic-bezier(.3, 1.3, .4, 1);
 }
-.lg-card[data-pill="signup"] .lg-tab-pill { transform: translateX(100%); }
+.lg-card[data-mode="signup"] .lg-tab-pill { transform: translateX(100%); }
 .lg-tab {
   position: relative; z-index: 1; height: 36px; padding: 0;
   font: inherit; font-size: 13.5px; font-weight: 700; letter-spacing: .02em;
@@ -201,8 +201,8 @@
   transition: color .25s ease;
 }
 .lg-tab:hover { color: #d6d8dd; }
-.lg-card[data-pill="login"]  .lg-tab[data-mode="login"],
-.lg-card[data-pill="signup"] .lg-tab[data-mode="signup"] { color: #fff; }
+.lg-card[data-mode="login"]  .lg-tab[data-mode="login"],
+.lg-card[data-mode="signup"] .lg-tab[data-mode="signup"] { color: #fff; }
 
 /* title / subtitle cross-fade when the mode changes */
 .lg-title span, .lg-sub { display: inline-block; transition: opacity .15s ease, transform .15s ease; }
@@ -302,86 +302,3 @@
 /* "Email me a code instead" / "Use password instead" (Log in only) */
 .lg-method { display: block; margin: 2px auto 0; font-size: 13px; }
 .lg-card[data-mode="signup"] .lg-method { display: none; }
-
-
-/* =====================================================================
-   Split card with a diagonal panel that sweeps across when you switch
-   between Log in and Sign up (panel left / right, form on the other side)
-   ===================================================================== */
-.lg-card {
-  --poly-login:  polygon(50% 0, 100% 0, 100% 100%, 70% 100%);
-  --poly-signup: polygon(0 0, 50% 0, 30% 100%, 0 100%);
-  --poly-full:   polygon(0 0, 100% 0, 100% 100%, 0 100%);
-  width: min(860px, 94vw); min-height: 560px; padding: 0; text-align: center;
-  background: linear-gradient(180deg, rgba(24, 25, 31, .98), rgba(11, 12, 16, .99));
-  border: 1px solid rgba(229, 35, 41, .6);
-  box-shadow: 0 0 0 1px rgba(229, 35, 41, .25), 0 0 54px -8px rgba(229, 35, 41, .5), 0 40px 90px -24px rgba(0, 0, 0, .85);
-}
-.lg-form { position: relative; z-index: 1; width: 48%; padding: 44px 40px 26px; box-sizing: border-box; }
-.lg-card[data-mode="signup"] .lg-form { margin-left: auto; }
-
-.lg-panel {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(70% 60% at 85% 20%, rgba(255, 140, 90, .45), transparent 70%),
-    linear-gradient(135deg, #8f1319 0%, #d91f26 48%, #ff5a3c 100%);
-  clip-path: var(--poly-login);
-}
-.lg-card[data-mode="signup"] .lg-panel { clip-path: var(--poly-signup); }
-
-.lg-panel-copy {
-  position: absolute; top: 50%; width: 27%; transform: translateY(-50%); color: #fff;
-  right: 5%; text-align: right;
-}
-.lg-card[data-mode="signup"] .lg-panel-copy { right: auto; left: 5%; text-align: left; }
-.lg-panel-copy h3 { margin: 0 0 10px; font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; line-height: 1.1; letter-spacing: .01em; }
-.lg-panel-copy p { margin: 0; font-size: 13.5px; line-height: 1.55; color: rgba(255, 255, 255, .88); }
-
-/* the sweep: panel grows over the whole card, form blurs out, sides swap, panel settles on the other side */
-.lg-card.is-sweeping[data-dir="forward"] .lg-panel { animation: lgSweepFwd .95s cubic-bezier(.65, 0, .35, 1) both; }
-.lg-card.is-sweeping[data-dir="back"] .lg-panel { animation: lgSweepBack .95s cubic-bezier(.65, 0, .35, 1) both; }
-.lg-card.is-sweeping .lg-form,
-.lg-card.is-sweeping .lg-panel-copy { animation: lgSwap .95s ease both; }
-.lg-card.is-sweeping .lg-panel-copy { animation-name: lgSwapCopy; }
-@keyframes lgSweepFwd  { 0% { clip-path: var(--poly-login); }  48% { clip-path: var(--poly-full); } 100% { clip-path: var(--poly-signup); } }
-@keyframes lgSweepBack { 0% { clip-path: var(--poly-signup); } 48% { clip-path: var(--poly-full); } 100% { clip-path: var(--poly-login); } }
-@keyframes lgSwap {
-  0%   { opacity: 1; filter: blur(0); transform: none; }
-  30%  { opacity: 0; filter: blur(8px); transform: translateY(8px); }
-  62%  { opacity: 0; filter: blur(8px); transform: translateY(8px); }
-  100% { opacity: 1; filter: blur(0); transform: none; }
-}
-@keyframes lgSwapCopy {
-  0%   { opacity: 1; filter: blur(0); transform: translateY(-50%); }
-  30%  { opacity: 0; filter: blur(8px); transform: translateY(-46%); }
-  62%  { opacity: 0; filter: blur(8px); transform: translateY(-54%); }
-  100% { opacity: 1; filter: blur(0); transform: translateY(-50%); }
-}
-
-/* phones: panel becomes a diagonal banner on top of the form */
-@media (max-width: 760px) {
-  .lg-card {
-    --poly-login:  polygon(0 0, 100% 0, 100% 120px, 0 156px);
-    --poly-signup: polygon(0 0, 100% 0, 100% 156px, 0 120px);
-    width: min(420px, 92vw); min-height: 0;
-  }
-  .lg-form { width: 100%; padding: 160px 22px 20px; }
-  .lg-card[data-mode="signup"] .lg-form { margin-left: 0; }
-  .lg-panel-copy { top: 36px; right: 0; left: 0; width: auto; padding: 0 56px; transform: none; text-align: center; }
-  .lg-card[data-mode="signup"] .lg-panel-copy { left: 0; right: 0; text-align: center; }
-  .lg-panel-copy h3 { margin: 0; font-size: 26px; }
-  .lg-panel-copy p { display: none; }
-  @keyframes lgSwapCopy {
-    0%   { opacity: 1; filter: blur(0); }
-    30%  { opacity: 0; filter: blur(8px); }
-    62%  { opacity: 0; filter: blur(8px); }
-    100% { opacity: 1; filter: blur(0); }
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lg-card.is-sweeping .lg-panel, .lg-card.is-sweeping .lg-form, .lg-card.is-sweeping .lg-panel-copy { animation: none; }
-}
-
-/* tall card (Sign up) on a short screen: start at the top and scroll instead of being cut off */
-#loginModal { place-items: start center; }
-#loginModal .lg-card { margin: auto; }
