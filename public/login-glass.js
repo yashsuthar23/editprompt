@@ -7,7 +7,7 @@
     "login-code":     ["Welcome back", "We'll email you a 6-digit code \u2014 no password needed."],
     "signup":         ["Create your account", "Join EditPrompt in seconds \u2014 create a password, then verify your email."]
   };
-  var METHOD_LABEL = { password: "Email me a code instead", code: "Use password instead" };
+  var METHOD_LABEL = { password: "Forgot password? Email me a code", code: "Use password instead" };
 
   function card() { return $("loginCard"); }
   function copyKey(c) { return c.dataset.mode === "signup" ? "signup" : "login-" + (c.dataset.method || "password"); }
@@ -91,13 +91,17 @@
 
     if (e.target.closest && e.target.closest("#lgMethodBtn")) {
       var c = card();
-      if (c) setMethod(c.dataset.method === "password" ? "code" : "password");
+      if (c) {
+        var toCode = c.dataset.method === "password";
+        window.epWantNewPassword = toCode;      // "Forgot password?" -> offer a new password after the code login
+        setMethod(toCode ? "code" : "password");
+      }
       return;
     }
 
-    var eye = e.target.closest && e.target.closest("#lgEyeBtn");
+    var eye = e.target.closest && e.target.closest(".lg-eye");
     if (eye) {
-      var pw = $("password");
+      var pw = $(eye.getAttribute("data-target") || "password");
       if (!pw) return;
       var show = pw.type === "password";
       pw.type = show ? "text" : "password";
@@ -111,7 +115,7 @@
   function show(id, on) { var el = $(id); if (el) el.classList.toggle("hide", !on); }
 
   function openSupport() {
-    ["loginStep1", "loginStep2", "loginStepAdmin"].forEach(function (id) { show(id, false); });
+    ["loginStep1", "loginStep2", "loginStepAdmin", "loginStepSetPw"].forEach(function (id) { show(id, false); });
     show("loginStepSupport", true);
     var status = $("supStatus"); if (status) { status.textContent = ""; status.removeAttribute("data-state"); }
     if ($("supName") && !$("supName").value) $("supName").value = ($("name") && $("name").value) || "";

@@ -1137,6 +1137,8 @@ function openLoginModal(opts) {
 
   $("loginStepAdmin")?.classList.add("hide");
   $("loginStepSupport")?.classList.add("hide");
+  $("loginStepSetPw")?.classList.add("hide");
+  window.epWantNewPassword = false;
 
   $("loginStep1")?.classList.remove(
     "hide",
@@ -1302,6 +1304,23 @@ function showAdminStep() {
   }
 }
 
+async function adminLoginRequest(email, password) {
+  const response = await fetch("/api/admin/login", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Incorrect admin password.");
+  }
+
+  return data;
+}
+
 async function adminLogin() {
   const button = $("adminLoginBtn");
   const password = $("adminPass")?.value || "";
@@ -1314,16 +1333,7 @@ async function adminLogin() {
   button.textContent = "Signing in…";
 
   try {
-    await apiRequest("/api/admin/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: pendingEmail,
-        password,
-      }),
-    });
+    await adminLoginRequest(pendingEmail, password);
 
     location.href = "/admin.html";
   } catch (error) {
@@ -1506,6 +1516,58 @@ if ($("sendOtpBtn")) {
 }
 
 /* =========================================================
+   SET PASSWORD STEP (after an email-code login)
+========================================================= */
+
+function showSetPasswordStep() {
+  ["loginStep1", "loginStep2", "loginStepAdmin", "loginStepSupport"].forEach(
+    (id) => $(id)?.classList.add("hide"),
+  );
+  $("loginStepSetPw")?.classList.remove("hide");
+
+  if ($("newPassword")) {
+    $("newPassword").value = "";
+    $("newPassword").focus();
+  }
+}
+
+async function saveNewPassword() {
+  const password = $("newPassword")?.value || "";
+  const problem = passwordProblem(password);
+
+  if (problem) {
+    $("newPassword")?.focus();
+    return toast(problem);
+  }
+
+  const button = $("setPassBtn");
+  button.disabled = true;
+
+  try {
+    await apiRequest("/api/auth/set-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+
+    closeLoginModal();
+    toast("Password saved ✓ Next time you can log in directly");
+  } catch (error) {
+    toast(error.message || "Could not save the password");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+if ($("setPassBtn")) $("setPassBtn").onclick = saveNewPassword;
+if ($("skipPassBtn")) $("skipPassBtn").onclick = () => closeLoginModal();
+if ($("newPassword")) {
+  $("newPassword").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") saveNewPassword();
+  });
+}
+
+/* =========================================================
    PASSWORD (sign up + password login)
 ========================================================= */
 
@@ -1551,10 +1613,13 @@ async function passwordLogin() {
       body: JSON.stringify({ email, password, customer: forceCustomer }),
     });
 
-    // admin email: ask for the admin password instead
+    // admin email: the password typed here is the admin password (no second prompt)
     if (data.admin) {
       pendingEmail = email;
-      showAdminStep();
+
+      await adminLoginRequest(email, password);
+
+      location.href = "/admin.html";
       return;
     }
 
@@ -1647,7 +1712,7 @@ if ($("verifyOtpBtn")) {
         "Verifying…";
 
       try {
-        await apiRequest(
+        const verified = await apiRequest(
           "/api/auth/verify-otp",
           {
             method: "POST",
@@ -1662,14 +1727,20 @@ if ($("verifyOtpBtn")) {
           },
         );
 
-        closeLoginModal();
-
         await refreshUser();
-
-        toast("Logged in ✓");
 
         pendingEmail = "";
         pendingName = "";
+
+        // no password yet (or "Forgot password"): offer one so next login needs no email code
+        if (verified.hasPassword === false || window.epWantNewPassword) {
+          window.epWantNewPassword = false;
+          showSetPasswordStep();
+          toast("Logged in ✓");
+        } else {
+          closeLoginModal();
+          toast("Logged in ✓");
+        }
       } catch (error) {
         window.epLastLoginError = error.message || "Verification failed";
 

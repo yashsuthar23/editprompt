@@ -2148,6 +2148,7 @@ app.post(
             name: user.name,
             email: user.email,
           },
+          hasPassword: Boolean(row.password_hash || user.password_hash),
         });
       });
     } catch (err) {
@@ -2260,6 +2261,53 @@ app.post(
 
       res.status(500).json({
         error: "Login failed. Please try again.",
+      });
+    }
+  },
+);
+
+// ============================================================
+// SET / RESET PASSWORD (for a user who is already logged in, e.g. right after an email-code login)
+// ============================================================
+
+app.post(
+  "/api/auth/set-password",
+
+  rateLimit({
+    windowMs: 15 * 60_000,
+    max: 20,
+
+    message: "Too many attempts. Please try again in a few minutes.",
+  }),
+
+  (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(400).json({
+          error: "Please log in first.",
+        });
+      }
+
+      const problem = passwordProblem((req.body || {}).password);
+
+      if (problem) {
+        return res.status(400).json({
+          code: "BAD_PASSWORD",
+          error: problem,
+        });
+      }
+
+      db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(
+        hashPassword((req.body || {}).password),
+        req.session.userId,
+      );
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error(err);
+
+      res.status(500).json({
+        error: "Could not save the password. Please try again.",
       });
     }
   },
