@@ -8,7 +8,7 @@
     if (!document.querySelector('link[href^="/login-glass.css"]')) {
       var css = document.createElement("link");
       css.rel = "stylesheet";
-      css.href = "/login-glass.css?v=1";
+      css.href = "/login-glass.css?v=17";
       document.head.appendChild(css);
     }
     loaded = fetch("/login-modal.html", { credentials: "same-origin" })
@@ -21,10 +21,10 @@
         }
         return new Promise(function (resolve, reject) {
           var s = document.createElement("script");
-          s.src = "/app.js";
+          s.src = "/app.js?v=17";
           s.onload = function () {
             var g = document.createElement("script");
-            g.src = "/login-glass.js";
+            g.src = "/login-glass.js?v=17";
             document.body.appendChild(g);
             resolve();
           };

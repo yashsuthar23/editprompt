@@ -57,6 +57,23 @@
   .sx-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,35,41,.15)}
   .sx-input[readonly]{color:var(--muted)}
   .sx-hint{color:var(--muted);font-size:0.85rem;margin-top:0.4rem}
+  .sx-pw{position:relative}
+  .sx-pw .sx-input{padding-right:3rem}
+  .sx-eye{position:absolute;right:0.45rem;top:50%;transform:translateY(-50%);width:2.2rem;height:2.2rem;min-height:0;padding:0;display:grid;place-items:center;background:none;border:0;border-radius:50%;color:var(--muted);cursor:pointer}
+  .sx-eye:hover{color:var(--text);background:rgba(127,127,127,.15)}
+  .sx-eye svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .sx-eye .eye-off{display:none}
+  .sx-eye[aria-pressed="true"] .eye-on{display:none}
+  .sx-eye[aria-pressed="true"] .eye-off{display:block}
+  .sx-meter{margin-top:0.5rem;opacity:0;transition:opacity .25s ease}
+  .sx-meter:not([data-level="0"]){opacity:1}
+  .sx-meter-track{display:block;height:3px;border-radius:3px;background:rgba(127,127,127,.25);overflow:hidden}
+  .sx-meter-track i{display:block;height:100%;width:0;border-radius:3px;background:#ef4444;transition:width .3s ease,background .3s ease}
+  .sx-meter-text{display:block;margin-top:0.3rem;min-height:1rem;font-size:0.8rem;font-weight:600}
+  .sx-meter[data-level="1"] i{width:25%;background:#ef4444}.sx-meter[data-level="1"] .sx-meter-text{color:#ef4444}
+  .sx-meter[data-level="2"] i{width:50%;background:#f59e0b}.sx-meter[data-level="2"] .sx-meter-text{color:#f59e0b}
+  .sx-meter[data-level="3"] i{width:75%;background:#84cc16}.sx-meter[data-level="3"] .sx-meter-text{color:#84cc16}
+  .sx-meter[data-level="4"] i{width:100%;background:#22c55e}.sx-meter[data-level="4"] .sx-meter-text{color:#22c55e}
   .sx-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;margin-top:1rem;gap:0.6rem;align-items:center}
   .sx-actions.left{justify-content:flex-start}
   .sx-actions .btn{min-height:2.6rem}
@@ -299,8 +316,29 @@
           <div><h2>Security</h2><p>Where your account is signed in</p></div>
         </div>
         <div class="sx-card card">
-          <div class="sx-hd"><div><h3>Signing in</h3><p>Sign-in uses your email and a one-time code. Sign out here to end this session.</p></div></div>
+          <div class="sx-hd"><div><h3>Signing in</h3><p>Log in with your email and password, or with a one-time email code. Sign out here to end this session.</p></div></div>
           <div class="sx-actions left"><button class="btn primary" type="button" id="secLogout">Sign out of this device</button></div>
+        </div>
+
+        <div class="sx-card card" id="pwCard">
+          <div class="sx-hd"><div><h3 id="pwTitle">Change password</h3><p id="pwSub">Use your password to log in directly, without an email code.</p></div></div>
+          <form id="pwForm" novalidate autocomplete="off">
+            <div id="pwCurrentWrap">
+              <label class="sx-label" for="pwCurrent">Current password</label>
+              <div class="sx-pw"><input class="sx-input" type="password" id="pwCurrent" autocomplete="current-password" maxlength="128"><button type="button" class="sx-eye" data-target="pwCurrent" aria-label="Show password" aria-pressed="false"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            </div>
+            <label class="sx-label" for="pwNew">New password</label>
+            <div class="sx-pw"><input class="sx-input" type="password" id="pwNew" autocomplete="new-password" maxlength="128" placeholder="At least 8 characters"><button type="button" class="sx-eye" data-target="pwNew" aria-label="Show password" aria-pressed="false"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            <div class="sx-meter" id="pwMeter" data-level="0" aria-live="polite"><span class="sx-meter-track"><i></i></span><span class="sx-meter-text" id="pwMeterText"></span></div>
+            <label class="sx-label" for="pwConfirm">Confirm new password</label>
+            <div class="sx-pw"><input class="sx-input" type="password" id="pwConfirm" autocomplete="new-password" maxlength="128"><button type="button" class="sx-eye" data-target="pwConfirm" aria-label="Show password" aria-pressed="false"><svg class="eye-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7c1.8 0 3.4-.5 4.8-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            <p class="sx-hint">8+ characters with at least one letter and one number.</p>
+            <p class="sx-hint" id="pwForgot" hidden>Forgot your current password? Sign out, log in with “Forgot password? Email me a code”, then set a new password here without the old one.</p>
+            <div class="sx-actions">
+              <span class="sx-msg" id="pwMsg" role="status"></span>
+              <button class="btn primary" type="submit" id="pwSave">Update password</button>
+            </div>
+          </form>
         </div>
       </section>
     </div>
@@ -390,6 +428,7 @@
       document.getElementById("sinceBox").textContent = since;
       document.getElementById("fName").value = user.name;
       document.getElementById("fEmail").value = user.email;
+      setupPassword();
     })
     .catch(function () { document.getElementById("signedOut").hidden = false; setSignedIn(false); });
 
@@ -410,6 +449,83 @@
         msg.textContent = "Profile updated."; msg.className = "sx-msg ok";
       })
       .catch(function (err) { msg.textContent = err.message; msg.className = "sx-msg err"; saveBtn.disabled = false; });
+  });
+
+  /* Password: set (no password yet) or change. Eye toggles + strength meter. */
+  var LEVEL_TEXT = ["", "Weak", "Fair", "Good", "Strong"];
+  function pwStrength(p) {
+    if (!p) return 0;
+    if (p.length < 8) return 1;
+    var score = 1;
+    if (p.length >= 12) score++;
+    if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score++;
+    if (/\d/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    return Math.min(4, Math.max(2, score - 1));
+  }
+  function pwProblem(p) {
+    if (!p) return "Enter a new password.";
+    if (p.length < 8) return "Password must be at least 8 characters.";
+    if (p.length > 128) return "Password is too long (max 128 characters).";
+    if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) return "Password needs at least one letter and one number.";
+    return "";
+  }
+  function setupPassword() {
+    var has = !!(user && user.has_password);
+    var needCurrent = !!(user && user.has_password && user.needs_current_password);
+    document.getElementById("pwTitle").textContent = has ? "Change password" : "Set a password";
+    document.getElementById("pwSub").textContent = has
+      ? "Use your password to log in directly, without an email code."
+      : "You do not have a password yet. Set one to log in directly with email and password.";
+    document.getElementById("pwCurrentWrap").hidden = !needCurrent;
+    document.getElementById("pwForgot").hidden = !needCurrent;
+    document.getElementById("pwSave").textContent = has ? "Update password" : "Save password";
+  }
+  document.querySelectorAll(".sx-eye").forEach(function (eye) {
+    eye.addEventListener("click", function () {
+      var input = document.getElementById(eye.getAttribute("data-target"));
+      if (!input) return;
+      var show = input.type === "password";
+      input.type = show ? "text" : "password";
+      eye.setAttribute("aria-pressed", show ? "true" : "false");
+      eye.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+  });
+  var pwNew = document.getElementById("pwNew"), pwConfirm = document.getElementById("pwConfirm"),
+      pwCurrent = document.getElementById("pwCurrent"), pwMsg = document.getElementById("pwMsg"),
+      pwSave = document.getElementById("pwSave");
+  function pwSay(t, cls) { pwMsg.textContent = t; pwMsg.className = "sx-msg" + (cls ? " " + cls : ""); }
+  pwNew.addEventListener("input", function () {
+    var lvl = pwStrength(pwNew.value);
+    document.getElementById("pwMeter").setAttribute("data-level", String(lvl));
+    document.getElementById("pwMeterText").textContent = LEVEL_TEXT[lvl];
+    pwSay("");
+  });
+  document.getElementById("pwForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!user) return;
+    var needCurrent = !!(user.has_password && user.needs_current_password);
+    if (needCurrent && !pwCurrent.value) return pwSay("Enter your current password.", "err");
+    var problem = pwProblem(pwNew.value);
+    if (problem) return pwSay(problem, "err");
+    if (pwNew.value !== pwConfirm.value) return pwSay("The new passwords do not match.", "err");
+    pwSave.disabled = true; pwSay("Saving…");
+    fetch("/api/auth/change-password", {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword: pwCurrent.value, newPassword: pwNew.value })
+    })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.error || "Could not save the password.");
+        user.has_password = true;
+        pwCurrent.value = ""; pwNew.value = ""; pwConfirm.value = "";
+        document.getElementById("pwMeter").setAttribute("data-level", "0");
+        document.getElementById("pwMeterText").textContent = "";
+        setupPassword();
+        pwSay("Password updated ✓", "ok");
+      })
+      .catch(function (err) { pwSay(err.message, "err"); })
+      .then(function () { pwSave.disabled = false; });
   });
 
   /* Preferences: same storage keys theme.js reads, applied immediately */

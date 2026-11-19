@@ -92,9 +92,7 @@
     if (e.target.closest && e.target.closest("#lgMethodBtn")) {
       var c = card();
       if (c) {
-        var toCode = c.dataset.method === "password";
-        window.epWantNewPassword = toCode;      // "Forgot password?" -> offer a new password after the code login
-        setMethod(toCode ? "code" : "password");
+        setMethod(c.dataset.method === "password" ? "code" : "password");
       }
       return;
     }
@@ -115,7 +113,7 @@
   function show(id, on) { var el = $(id); if (el) el.classList.toggle("hide", !on); }
 
   function openSupport() {
-    ["loginStep1", "loginStep2", "loginStepAdmin", "loginStepSetPw"].forEach(function (id) { show(id, false); });
+    ["loginStep1", "loginStep2", "loginStepAdmin"].forEach(function (id) { show(id, false); });
     show("loginStepSupport", true);
     var status = $("supStatus"); if (status) { status.textContent = ""; status.removeAttribute("data-state"); }
     if ($("supName") && !$("supName").value) $("supName").value = ($("name") && $("name").value) || "";

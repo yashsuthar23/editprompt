@@ -228,6 +228,14 @@ app.use(
 app.use(
   express.static(path.join(__dirname, "public"), {
     maxAge: isProduction ? "1h" : 0,
+
+    // Pages, scripts and styles are always re-checked (cheap 304 via ETag),
+    // so a new deploy shows up immediately instead of after the 1h cache.
+    setHeaders(res, filePath) {
+      if (/\.(html|js|css)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
   }),
 );
 
@@ -2133,6 +2141,7 @@ app.post(
       }
 
       req.session.userId = user.id;
+      req.session.freshCodeLoginAt = Date.now();
 
       req.session.save((saveError) => {
         if (saveError) {
@@ -2148,7 +2157,6 @@ app.post(
             name: user.name,
             email: user.email,
           },
-          hasPassword: Boolean(row.password_hash || user.password_hash),
         });
       });
     } catch (err) {
@@ -2239,6 +2247,7 @@ app.post(
       passwordFailures.delete(cleanEmail);
 
       req.session.userId = user.id;
+      req.session.freshCodeLoginAt = 0;
 
       req.session.save((saveError) => {
         if (saveError) {
@@ -2267,11 +2276,24 @@ app.post(
 );
 
 // ============================================================
-// SET / RESET PASSWORD (for a user who is already logged in, e.g. right after an email-code login)
+// CHANGE / SET PASSWORD (Settings > Security)
 // ============================================================
+// - account without a password (older / Google accounts): set one directly
+// - right after an email-code or Google login ("Forgot password"): set a new one without the old one (30 min)
+// - otherwise the current password is required
+
+const FRESH_LOGIN_MS = 30 * 60 * 1000;
+
+function canSetWithoutCurrent(req, user) {
+  if (!user || !user.password_hash) return true;
+
+  const at = Number(req.session.freshCodeLoginAt || 0);
+
+  return at > 0 && Date.now() - at < FRESH_LOGIN_MS;
+}
 
 app.post(
-  "/api/auth/set-password",
+  "/api/auth/change-password",
 
   rateLimit({
     windowMs: 15 * 60_000,
@@ -2288,7 +2310,40 @@ app.post(
         });
       }
 
-      const problem = passwordProblem((req.body || {}).password);
+      const user = db
+        .prepare("SELECT * FROM users WHERE id=?")
+        .get(req.session.userId);
+
+      if (!user) {
+        return res.status(400).json({
+          error: "Account not found.",
+        });
+      }
+
+      const { currentPassword, newPassword } = req.body || {};
+
+      if (!canSetWithoutCurrent(req, user)) {
+        const key = `pw:${user.email}`;
+
+        if (passwordLocked(key)) {
+          return res.status(429).json({
+            error: "Too many wrong attempts. Try again in 15 minutes.",
+          });
+        }
+
+        if (!currentPassword || !verifyPassword(currentPassword, user.password_hash)) {
+          passwordFailed(key);
+
+          return res.status(400).json({
+            code: "BAD_CURRENT",
+            error: "Your current password is incorrect.",
+          });
+        }
+
+        passwordFailures.delete(key);
+      }
+
+      const problem = passwordProblem(newPassword);
 
       if (problem) {
         return res.status(400).json({
@@ -2298,8 +2353,8 @@ app.post(
       }
 
       db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(
-        hashPassword((req.body || {}).password),
-        req.session.userId,
+        hashPassword(newPassword),
+        user.id,
       );
 
       res.json({ ok: true });
@@ -2397,6 +2452,7 @@ app.post(
       }
 
       req.session.userId = user.id;
+      req.session.freshCodeLoginAt = Date.now();
 
       req.session.save((saveError) => {
         if (saveError) {
@@ -2477,12 +2533,19 @@ app.get("/api/me", (req, res) => {
           id,
           name,
           email,
-          created_at
+          created_at,
+          password_hash
         FROM users
         WHERE id=?
         `,
     )
     .get(req.session.userId);
+
+  if (user) {
+    user.has_password = Boolean(user.password_hash);
+    user.needs_current_password = !canSetWithoutCurrent(req, user);
+    delete user.password_hash;
+  }
 
   res.json({
     user,

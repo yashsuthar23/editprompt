@@ -1137,8 +1137,6 @@ function openLoginModal(opts) {
 
   $("loginStepAdmin")?.classList.add("hide");
   $("loginStepSupport")?.classList.add("hide");
-  $("loginStepSetPw")?.classList.add("hide");
-  window.epWantNewPassword = false;
 
   $("loginStep1")?.classList.remove(
     "hide",
@@ -1516,58 +1514,6 @@ if ($("sendOtpBtn")) {
 }
 
 /* =========================================================
-   SET PASSWORD STEP (after an email-code login)
-========================================================= */
-
-function showSetPasswordStep() {
-  ["loginStep1", "loginStep2", "loginStepAdmin", "loginStepSupport"].forEach(
-    (id) => $(id)?.classList.add("hide"),
-  );
-  $("loginStepSetPw")?.classList.remove("hide");
-
-  if ($("newPassword")) {
-    $("newPassword").value = "";
-    $("newPassword").focus();
-  }
-}
-
-async function saveNewPassword() {
-  const password = $("newPassword")?.value || "";
-  const problem = passwordProblem(password);
-
-  if (problem) {
-    $("newPassword")?.focus();
-    return toast(problem);
-  }
-
-  const button = $("setPassBtn");
-  button.disabled = true;
-
-  try {
-    await apiRequest("/api/auth/set-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    closeLoginModal();
-    toast("Password saved ✓ Next time you can log in directly");
-  } catch (error) {
-    toast(error.message || "Could not save the password");
-  } finally {
-    button.disabled = false;
-  }
-}
-
-if ($("setPassBtn")) $("setPassBtn").onclick = saveNewPassword;
-if ($("skipPassBtn")) $("skipPassBtn").onclick = () => closeLoginModal();
-if ($("newPassword")) {
-  $("newPassword").addEventListener("keydown", (event) => {
-    if (event.key === "Enter") saveNewPassword();
-  });
-}
-
-/* =========================================================
    PASSWORD (sign up + password login)
 ========================================================= */
 
@@ -1712,7 +1658,7 @@ if ($("verifyOtpBtn")) {
         "Verifying…";
 
       try {
-        const verified = await apiRequest(
+        await apiRequest(
           "/api/auth/verify-otp",
           {
             method: "POST",
@@ -1732,15 +1678,9 @@ if ($("verifyOtpBtn")) {
         pendingEmail = "";
         pendingName = "";
 
-        // no password yet (or "Forgot password"): offer one so next login needs no email code
-        if (verified.hasPassword === false || window.epWantNewPassword) {
-          window.epWantNewPassword = false;
-          showSetPasswordStep();
-          toast("Logged in ✓");
-        } else {
-          closeLoginModal();
-          toast("Logged in ✓");
-        }
+        // the email code is the login: no extra screens
+        closeLoginModal();
+        toast("Logged in ✓");
       } catch (error) {
         window.epLastLoginError = error.message || "Verification failed";
 
