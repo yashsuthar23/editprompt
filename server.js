@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 
   res.setHeader(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
+    "camera=(), microphone=(self), geolocation=()",
   );
 
   // same-origin would cut the link to Razorpay's payment popup (bank / UPI / 3-D Secure page),
@@ -457,6 +457,19 @@ CREATE TABLE IF NOT EXISTS favorites(
   FOREIGN KEY(user_id) REFERENCES users(id),
   FOREIGN KEY(prompt_id) REFERENCES prompt_history(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS marketplace_prompts(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Other',
+  description TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  prompt TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_marketplace_prompts_created ON marketplace_prompts(id DESC);
 `);
 
 try {
@@ -3835,6 +3848,59 @@ app.get("/api/prompts/search", requireLogin, (req, res) => {
         .all(req.session.userId);
   res.json({ items: rows });
 });
+
+// ============================================================
+// PUBLIC PROMPT MARKETPLACE (V9.1)
+// ============================================================
+
+app.get("/api/marketplace/prompts", (req, res) => {
+  const q = String(req.query.q || "").trim().slice(0, 100);
+  const category = String(req.query.category || "").trim().slice(0, 40);
+  const like = `%${q}%`;
+  const where = [];
+  const args = [];
+  if (q) {
+    where.push("(mp.title LIKE ? OR mp.description LIKE ? OR mp.tags LIKE ? OR mp.prompt LIKE ?)");
+    args.push(like, like, like, like);
+  }
+  if (category) {
+    where.push("mp.category = ?");
+    args.push(category);
+  }
+  const sql = `
+    SELECT mp.id, mp.title, mp.category, mp.description, mp.tags, mp.prompt,
+           mp.created_at, COALESCE(u.name, 'EditPrompt creator') AS author
+    FROM marketplace_prompts mp
+    LEFT JOIN users u ON u.id = mp.user_id
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+    ORDER BY mp.id DESC LIMIT 60
+  `;
+  res.json({ items: db.prepare(sql).all(...args) });
+});
+
+app.post(
+  "/api/marketplace/prompts",
+  requireLogin,
+  rateLimit({ windowMs: 60_000, max: 5, message: "Please wait before publishing another prompt." }),
+  (req, res) => {
+  const title = String(req.body?.title || "").trim().slice(0, 80);
+  const category = String(req.body?.category || "Other").trim().slice(0, 40);
+  const description = String(req.body?.description || "").trim().slice(0, 240);
+  const tags = String(req.body?.tags || "").trim().slice(0, 160);
+  const prompt = String(req.body?.prompt || "").trim().slice(0, 12000);
+  if (!title || !prompt) {
+    return res.status(400).json({ error: "Title and prompt are required." });
+  }
+  if (prompt.length < 8) {
+    return res.status(400).json({ error: "Prompt is too short." });
+  }
+  const result = db.prepare(`
+    INSERT INTO marketplace_prompts(user_id, title, category, description, tags, prompt)
+    VALUES(?,?,?,?,?,?)
+  `).run(req.session.userId, title, category || "Other", description, tags, prompt);
+  res.status(201).json({ ok: true, id: Number(result.lastInsertRowid) });
+  },
+);
 
 // ============================================================
 // PROMPTS
