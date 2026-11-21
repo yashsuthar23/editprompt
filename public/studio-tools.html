@@ -1107,6 +1107,46 @@
           </div>
         </section>
 
+        <section class="tool-panel" id="audioSubtitleStudio">
+          <span class="pill">Audio & Subtitle Studio · Free browser tools</span>
+          <h2>Voice preview & subtitle maker</h2>
+          <p class="muted">Use voices already installed in your browser for a live preview, then create downloadable SRT or WebVTT captions. No paid API and no audio upload. Browser speech preview is not an audio-file export.</p>
+          <div class="pe-layout">
+            <div class="pe-controls">
+              <label class="status" for="ttsText">Voice-over script</label>
+              <textarea id="ttsText" maxlength="6000" rows="7" placeholder="Paste your reel narration or video script here..."></textarea>
+              <label class="status" for="ttsVoice">Available browser voice</label>
+              <select id="ttsVoice"><option value="">Default browser voice</option></select>
+              <label class="status" for="ttsRate">Speaking speed: <span id="ttsRateValue">1.0×</span></label>
+              <input id="ttsRate" type="range" min="0.6" max="1.4" step="0.1" value="1">
+              <label class="status" for="ttsPitch">Voice pitch: <span id="ttsPitchValue">1.0</span></label>
+              <input id="ttsPitch" type="range" min="0.6" max="1.4" step="0.1" value="1">
+              <div class="actions">
+                <button class="btn" id="ttsSpeak" type="button">▶ Preview voice</button>
+                <button class="btn ghost" id="ttsStop" type="button">Stop</button>
+              </div>
+              <div id="ttsStatus" class="status" role="status" aria-live="polite"></div>
+            </div>
+            <div class="pe-preview">
+              <label class="status" for="subtitleLines">Subtitle text · one caption per line</label>
+              <textarea id="subtitleLines" rows="9" placeholder="Paste text here. Each line becomes one subtitle cue."></textarea>
+              <div class="actions">
+                <label class="status" for="subtitleSeconds">Seconds per line</label>
+                <input id="subtitleSeconds" type="number" min="1" max="20" step="0.5" value="3" style="max-width:110px">
+                <button class="btn" id="subtitleBuild" type="button">Build subtitles</button>
+              </div>
+              <label class="status" for="subtitleOutput">Editable subtitle file content</label>
+              <textarea id="subtitleOutput" rows="10" spellcheck="false" placeholder="Your SRT / WebVTT output appears here..."></textarea>
+              <div class="actions">
+                <button class="btn ghost" id="subtitleSrt" type="button">Download SRT</button>
+                <button class="btn ghost" id="subtitleVtt" type="button">Download WebVTT</button>
+                <button class="btn ghost" id="subtitleCopy" type="button">Copy subtitles</button>
+              </div>
+              <div id="subtitleStatus" class="status" role="status" aria-live="polite"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="tool-panel">
           <span class="pill">Scene Builder</span>
           <h2>Turn an idea into a shot list</h2>

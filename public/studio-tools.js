@@ -2255,3 +2255,102 @@
   $("newScene").addEventListener("click", clearScene);
   $("clearReel").addEventListener("click", clearReel);
 })();
+
+
+/* ===== Free Audio & Subtitle Studio (browser-native; no API calls) ===== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const script = $('ttsText');
+  if (!script) return;
+  const voiceSelect = $('ttsVoice');
+  const status = $('ttsStatus');
+  const subtitleStatus = $('subtitleStatus');
+  const speech = window.speechSynthesis;
+  let voices = [];
+
+  function loadVoices() {
+    if (!speech || !voiceSelect) return;
+    const previous = voiceSelect.value;
+    voices = speech.getVoices();
+    voiceSelect.innerHTML = '<option value="">Default browser voice</option>';
+    voices.forEach((voice, index) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' · Default' : ''}`;
+      voiceSelect.appendChild(option);
+    });
+    if (previous) voiceSelect.value = previous;
+    if (!voices.length) status.textContent = 'No browser voices detected yet. Check your operating-system speech settings.';
+  }
+  if (speech) {
+    loadVoices();
+    speech.addEventListener?.('voiceschanged', loadVoices);
+  } else {
+    status.textContent = 'Speech preview is not supported in this browser. Subtitle downloads still work.';
+    $('ttsSpeak').disabled = true;
+  }
+
+  $('ttsRate').addEventListener('input', e => $('ttsRateValue').textContent = `${Number(e.target.value).toFixed(1)}×`);
+  $('ttsPitch').addEventListener('input', e => $('ttsPitchValue').textContent = Number(e.target.value).toFixed(1));
+  $('ttsSpeak').addEventListener('click', () => {
+    const text = script.value.trim();
+    if (!text) { status.textContent = 'Enter a voice-over script first.'; return; }
+    if (!speech || !window.SpeechSynthesisUtterance) { status.textContent = 'Speech preview is unavailable in this browser.'; return; }
+    speech.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const index = voiceSelect.value === '' ? -1 : Number(voiceSelect.value);
+    if (index >= 0 && voices[index]) utterance.voice = voices[index];
+    utterance.rate = Number($('ttsRate').value);
+    utterance.pitch = Number($('ttsPitch').value);
+    utterance.onstart = () => status.textContent = 'Playing browser voice preview…';
+    utterance.onend = () => status.textContent = 'Voice preview finished. This preview is not saved as an audio file.';
+    utterance.onerror = event => status.textContent = `Speech preview error: ${event.error || 'unknown error'}`;
+    speech.speak(utterance);
+  });
+  $('ttsStop').addEventListener('click', () => { speech?.cancel(); status.textContent = 'Voice preview stopped.'; });
+
+  function timestamp(seconds, comma) {
+    const ms = Math.max(0, Math.round(seconds * 1000));
+    const h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000), milli = ms % 1000;
+    const sep = comma ? ',' : '.';
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}${sep}${String(milli).padStart(3,'0')}`;
+  }
+  function cues() {
+    const lines = $('subtitleLines').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    const duration = Math.min(20, Math.max(1, Number($('subtitleSeconds').value) || 3));
+    return lines.map((text, i) => ({ index: i + 1, start: i * duration, end: (i + 1) * duration, text }));
+  }
+  function makeSrt(items) { return items.map(c => `${c.index}\n${timestamp(c.start,true)} --> ${timestamp(c.end,true)}\n${c.text}`).join('\n\n'); }
+  function makeVtt(items) { return `WEBVTT\n\n${items.map(c => `${timestamp(c.start,false)} --> ${timestamp(c.end,false)}\n${c.text}`).join('\n\n')}`; }
+  $('subtitleBuild').addEventListener('click', () => {
+    const items = cues();
+    if (!items.length) { subtitleStatus.textContent = 'Add at least one subtitle line.'; return; }
+    $('subtitleOutput').value = makeSrt(items);
+    subtitleStatus.textContent = `${items.length} subtitle cue(s) created. Timing is an estimate; review it against your video.`;
+  });
+  function download(text, name, type) {
+    const blob = new Blob([text], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $('subtitleSrt').addEventListener('click', () => {
+    const text = $('subtitleOutput').value.trim();
+    if (!text) { subtitleStatus.textContent = 'Build or enter subtitle content first.'; return; }
+    download(text, 'editprompt-subtitles.srt', 'application/x-subrip;charset=utf-8');
+    subtitleStatus.textContent = 'SRT file download started.';
+  });
+  $('subtitleVtt').addEventListener('click', () => {
+    const items = cues();
+    if (!items.length) { subtitleStatus.textContent = 'Add subtitle lines first.'; return; }
+    download(makeVtt(items), 'editprompt-subtitles.vtt', 'text/vtt;charset=utf-8');
+    subtitleStatus.textContent = 'WebVTT file download started.';
+  });
+  $('subtitleCopy').addEventListener('click', async () => {
+    const text = $('subtitleOutput').value;
+    if (!text.trim()) { subtitleStatus.textContent = 'Build or enter subtitle content first.'; return; }
+    try { await navigator.clipboard.writeText(text); subtitleStatus.textContent = 'Subtitles copied.'; }
+    catch { $('subtitleOutput').select(); subtitleStatus.textContent = 'Select the subtitle text and copy it manually.'; }
+  });
+  window.addEventListener('pagehide', () => speech?.cancel());
+})();

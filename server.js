@@ -9210,7 +9210,7 @@ app.get("/api/media/history", requireLogin, (req, res) => {
 app.get("/api/v8/status", (req, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
-    version: "8.1.0",
+    version: "9.0.0",
     freeOnly: freeOnlyMediaMode(),
     paidVideoEnabled: paidVideoEnabled(),
     providers: mediaProviderSummary(),
