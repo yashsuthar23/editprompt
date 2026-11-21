@@ -632,7 +632,6 @@
       <div class="right">
         <a class="btn ghost" href="/">AI Studio</a>
         <a class="btn ghost" href="/workspace.html">Projects</a>
-        <a class="btn ghost" href="/creator-lab-v91.html">V9.1 Creator Lab</a>
         <a class="btn ghost" href="/library.html">My Library</a>
         <button class="btn ghost" id="themeToggle" type="button" aria-label="Toggle theme"></button>
       </div>
@@ -640,10 +639,9 @@
     <main class="tool-wrap">
       <section class="tool-hero">
         <div class="eyebrow">CREATOR WORKSPACE • FREE-FIRST</div>
-        <h1>Creator Studio Tools</h1>
+        <h1>Creator Studio</h1>
         <p>
-          Plan scenes, prepare social ads, and edit images locally in your
-          browser. Your photo editor files are not uploaded by these tools.
+          Plan scenes, prepare social ads, edit images, remove backgrounds, transcribe audio, share prompts and arrange video clips — all in one creator workspace.
         </p>
       </section>
       <div class="tool-grid">
@@ -1279,8 +1277,57 @@
           </div>
         </section>
       </div>
+    
+      <section id="creatorLabTools" class="creator-lab-embed" aria-labelledby="creatorLabHeading">
+        <style>
+#creatorLabTools .lab{max-width:1180px;margin:28px auto;padding:0 18px 64px;color:var(--text,#f5f5f7)}
+#creatorLabTools .hero,#creatorLabTools .panel{background:var(--card,#17171d);border:1px solid var(--border,#34343d);border-radius:18px;padding:20px;margin-bottom:16px}
+#creatorLabTools .hero{background:linear-gradient(135deg,rgba(124,92,255,.2),rgba(229,35,58,.08))}
+#creatorLabTools .hero h1,#creatorLabTools .hero h2{margin:6px 0}
+#creatorLabTools .muted,#creatorLabTools .hint{color:var(--muted,#a4a4ad);font-size:13px;line-height:1.55}
+#creatorLabTools .pill{display:inline-block;border:1px solid var(--border,#444);border-radius:99px;padding:5px 10px;font-size:12px;color:var(--accent,#e5233a);font-weight:700}
+#creatorLabTools .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#creatorLabTools .panel h2{margin:9px 0}
+#creatorLabTools .panel label{display:block;font-size:13px;margin:10px 0 5px}
+#creatorLabTools .panel input:not([type=file]):not([type=checkbox]),#creatorLabTools .panel textarea,#creatorLabTools .panel select{width:100%;box-sizing:border-box;background:var(--input,#101015);color:var(--text,#fff);border:1px solid var(--border,#444);border-radius:9px;padding:10px}
+#creatorLabTools .panel textarea{min-height:100px;resize:vertical}
+#creatorLabTools .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#creatorLabTools .btn{border:1px solid var(--border,#444);border-radius:9px;padding:9px 13px;background:var(--accent,#e5233a);color:#fff;font-weight:700;cursor:pointer}
+#creatorLabTools .btn.ghost{background:transparent;color:var(--text,#fff)}
+#creatorLabTools .btn:disabled{opacity:.5;cursor:not-allowed}
+#creatorLabTools .preview{display:block;width:100%;max-height:420px;object-fit:contain;background:#08080a;border:1px dashed var(--border,#555);border-radius:12px;margin-top:10px}
+#creatorLabTools .status{min-height:20px;font-size:13px;color:var(--muted,#aaa);margin-top:8px}
+#creatorLabTools .market-item,#creatorLabTools .clip{border:1px solid var(--border,#393943);border-radius:12px;padding:12px;margin:8px 0}
+#creatorLabTools .market-item pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13px}
+#creatorLabTools .timeline{background:#0c0c10;border:1px solid #333;border-radius:12px;padding:12px;overflow:auto}
+#creatorLabTools .track{display:flex;gap:6px;align-items:stretch;min-height:55px;border-bottom:1px solid #333;padding:7px 0}
+#creatorLabTools .track:last-child{border:0}
+#creatorLabTools .track-label{width:72px;flex:0 0 72px;color:#aaa;font-size:12px;padding-top:8px}
+#creatorLabTools .clip-block{background:rgba(124,92,255,.25);border:1px solid #8b75ff;border-radius:7px;padding:7px;min-width:90px;max-width:250px;overflow:hidden;font-size:12px}
+#creatorLabTools .clip-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#creatorLabTools .clip-controls label{font-size:11px}
+#creatorLabTools .small{font-size:12px}
+#creatorLabTools .canvas-wrap{background:#08080a;border-radius:12px;overflow:auto;text-align:center;margin-top:10px}
+#creatorLabTools .canvas-wrap canvas{max-width:100%;height:auto;touch-action:none}
+#creatorLabTools .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#creatorLabTools .tag{font-size:11px;color:#bbb}
+#creatorLabTools .divider{height:1px;background:var(--border,#333);margin:14px 0}
+@media(max-width:760px){#creatorLabTools .grid,#creatorLabTools .two{grid-template-columns:1fr}#creatorLabTools .clip-controls{grid-template-columns:1fr 1fr}#creatorLabTools .lab{padding:0 12px 40px}}
+        </style>
+        <div class="lab">
+          <section class="hero"><span class="pill">V9.1 · FREE-FIRST TOOLS</span><h2 id="creatorLabHeading">More Creator Tools</h2><p class="muted">Background removal, object erasing, speech transcription, voice recording, prompt sharing and a lightweight video timeline. Local image/audio processing stays in your browser where supported.</p></section>
+    <section class="panel"><span class="pill">01 · AI Background Remover</span><h2>Remove image background</h2><p class="muted">Uses the open-source IMG.LY browser model. First use downloads model files; processing can be memory-intensive. Review the library licence before commercial deployment.</p><input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><button class="btn" id="bgRemove">Remove background</button><button class="btn ghost" id="bgDownload" disabled>Download transparent PNG</button></div><img id="bgPreview" class="preview" alt="Background removal preview"><div id="bgStatus" class="status" role="status"></div></section>
+    <section class="panel"><span class="pill">02 · Object Remover</span><h2>Erase unwanted objects</h2><p class="muted">Local OpenCV inpainting (not generative AI). Paint over a small object, then apply. Results depend on the surrounding pixels; large objects may leave artifacts.</p><input id="objFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><label class="small">Brush <input id="objBrush" type="range" min="8" max="100" value="28"></label><button class="btn" id="objApply">Erase painted area</button><button class="btn ghost" id="objUndo">Reset image</button><button class="btn ghost" id="objDownload" disabled>Download PNG</button></div><div class="canvas-wrap"><canvas id="objCanvas"></canvas></div><div id="objStatus" class="status" role="status"></div></section>
+    <section class="panel"><span class="pill">03 · Automatic Speech-to-Text</span><h2>Transcribe your voice</h2><p class="muted">Uses the browser's Web Speech recognition engine. Availability and language support depend on your browser and operating system; some browsers may process audio through their own online service.</p><div class="two"><div><label for="sttLang">Recognition language</label><select id="sttLang"><option value="en-IN">English (India)</option><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-US">English (US)</option></select></div><div><label for="sttText">Transcript</label><textarea id="sttText" placeholder="Your transcript will appear here..."></textarea></div></div><div class="actions"><button class="btn" id="sttStart">Start listening</button><button class="btn ghost" id="sttStop" disabled>Stop</button><button class="btn ghost" id="sttCopy">Copy transcript</button><button class="btn ghost" id="sttDownload">Download TXT</button></div><div id="sttStatus" class="status" role="status"></div></section>
+    <section class="panel"><span class="pill">04 · MP3 Voice Export</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally using a browser MP3 encoder. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
+  </div>
+  <section class="panel"><span class="pill">05 · Public Prompt Marketplace</span><h2>Discover and share prompts</h2><p class="muted">Browse prompts published by EditPrompt users. Publishing requires login. Do not post private, copyrighted, or sensitive content.</p><div class="two"><div><label for="marketSearch">Search marketplace</label><input id="marketSearch" placeholder="Search title, category, tags or prompt"><label for="marketCategory">Category</label><select id="marketCategory"><option value="">All categories</option><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><button class="btn" id="marketLoad">Search prompts</button><div id="marketStatus" class="status"></div><div id="marketList"></div></div><div><h3>Publish a prompt</h3><label for="marketTitle">Title</label><input id="marketTitle" maxlength="80" placeholder="e.g. Cinematic product photography"><label for="marketPublishCategory">Category</label><select id="marketPublishCategory"><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><label for="marketDescription">Short description</label><input id="marketDescription" maxlength="240" placeholder="What does this prompt create?"><label for="marketTags">Tags (comma separated)</label><input id="marketTags" maxlength="160" placeholder="cinematic, product, studio"><label for="marketPrompt">Prompt</label><textarea id="marketPrompt" maxlength="12000" placeholder="Paste your original prompt..."></textarea><button class="btn" id="marketPublish">Publish prompt</button><div id="publishStatus" class="status"></div></div></div></section>
+  <section class="panel"><span class="pill">06 · Advanced Video Timeline</span><h2>Arrange media clips</h2><p class="muted">A lightweight browser timeline for arranging, trimming and previewing local video, audio and image clips. Export a project JSON to continue editing elsewhere. This is not yet a rendered MP4 exporter.</p><input id="timelineFiles" type="file" accept="video/*,audio/*,image/*" multiple><div class="actions"><button class="btn" id="timelineAdd">Add selected media</button><button class="btn ghost" id="timelinePlay">Play preview</button><button class="btn ghost" id="timelineStop">Stop</button><button class="btn ghost" id="timelineExport">Export project JSON</button><button class="btn ghost" id="timelineClear">Clear timeline</button></div><div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div><div id="timelineClips"></div><div id="timelinePreview"></div><div id="timelineStatus" class="status" role="status"></div></section>
+        </div>
+      </section>
     </main>
     <script src="/studio-tools.js" defer></script>
+    <script src="/creator-lab-v91.js" defer></script>
     <script src="/theme.js"></script>
       <script src="/mobile-nav.js" defer></script>
 </body>

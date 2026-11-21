@@ -27,7 +27,52 @@
   $('objFile').addEventListener('change', () => { const f=$('objFile').files[0]; if(!f)return; const im=new Image(); im.onload=()=>{ const scale=Math.min(1,1500/Math.max(im.width,im.height)); canvas.width=Math.round(im.width*scale); canvas.height=Math.round(im.height*scale); maskCanvas.width=canvas.width; maskCanvas.height=canvas.height; ctx.drawImage(im,0,0,canvas.width,canvas.height); originalImage=ctx.getImageData(0,0,canvas.width,canvas.height); maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height); $('objDownload').disabled=false; say('objStatus','Paint over the object to erase. Use a small brush for better results.'); URL.revokeObjectURL(im.src); }; im.src=URL.createObjectURL(f); });
   canvas.addEventListener('pointerdown',e=>{if(!originalImage)return; painting=true;canvas.setPointerCapture(e.pointerId);paintMask(e);}); canvas.addEventListener('pointermove',e=>{if(painting)paintMask(e);}); ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>painting=false));
   $('objUndo').addEventListener('click',()=>{if(!originalImage)return;ctx.putImageData(originalImage,0,0);maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);say('objStatus','Original image restored.');});
-  $('objApply').addEventListener('click',async()=>{if(!originalImage)return say('objStatus','Choose an image first.');say('objStatus','Loading OpenCV image inpainting engine...');try{await loadScript('https://docs.opencv.org/4.x/opencv.js');await new Promise((resolve,reject)=>{if(window.cv?.Mat)return resolve();const t=Date.now();const timer=setInterval(()=>{if(window.cv?.Mat){clearInterval(timer);resolve();}else if(Date.now()-t>25000){clearInterval(timer);reject(new Error('OpenCV did not finish loading.'));}},100);});const cv=window.cv;const src=cv.imread(canvas),mask=cv.imread(maskCanvas),dst=new cv.Mat();cv.cvtColor(mask,mask,cv.COLOR_RGBA2GRAY);cv.threshold(mask,mask,10,255,cv.THRESH_BINARY);cv.inpaint(src,mask,dst,5,cv.INPAINT_TELEA);cv.imshow(canvas,dst);src.delete();mask.delete();dst.delete();say('objStatus','Inpainting complete. Review the result; complex backgrounds may need more retouching.');}catch(e){say('objStatus',`Could not run inpainting: ${e.message||e}`);}});
+  $('objApply').addEventListener('click', async () => {
+    if (!originalImage) return say('objStatus', 'Choose an image first.');
+    const btn = $('objApply');
+    btn.disabled = true;
+    say('objStatus', 'Loading OpenCV image inpainting engine...');
+    let srcRgba, srcRgb, maskRgba, maskGray, dstRgb, dstRgba;
+    try {
+      await loadScript('https://docs.opencv.org/4.x/opencv.js');
+      const started = Date.now();
+      let cv = window.cv;
+      if (cv && typeof cv.then === 'function') cv = await cv;
+      while (!cv || typeof cv.Mat !== 'function' || typeof cv.inpaint !== 'function') {
+        if (Date.now() - started > 30000) throw new Error('OpenCV did not finish initializing. Refresh the page and try again.');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        cv = window.cv;
+        if (cv && typeof cv.then === 'function') cv = await cv;
+      }
+
+      srcRgba = cv.imread(canvas);
+      maskRgba = cv.imread(maskCanvas);
+      srcRgb = new cv.Mat();
+      maskGray = new cv.Mat();
+      dstRgb = new cv.Mat();
+      dstRgba = new cv.Mat();
+
+      // OpenCV inpaint accepts an 8-bit 1- or 3-channel source, not canvas RGBA.
+      cv.cvtColor(srcRgba, srcRgb, cv.COLOR_RGBA2RGB);
+      cv.cvtColor(maskRgba, maskGray, cv.COLOR_RGBA2GRAY);
+      cv.threshold(maskGray, maskGray, 10, 255, cv.THRESH_BINARY);
+      if (cv.countNonZero(maskGray) === 0) throw new Error('Paint over the unwanted object first, then click Erase painted area.');
+
+      cv.inpaint(srcRgb, maskGray, dstRgb, 5, cv.INPAINT_TELEA);
+      cv.cvtColor(dstRgb, dstRgba, cv.COLOR_RGB2RGBA);
+      cv.imshow(canvas, dstRgba);
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      say('objStatus', 'Inpainting complete. Review the result; complex backgrounds may need more retouching.');
+    } catch (e) {
+      const detail = e && e.message ? e.message : String(e);
+      say('objStatus', `Could not run inpainting: ${detail}`);
+    } finally {
+      [srcRgba, srcRgb, maskRgba, maskGray, dstRgb, dstRgba].forEach(mat => {
+        if (mat && typeof mat.delete === 'function') mat.delete();
+      });
+      btn.disabled = false;
+    }
+  });
   $('objDownload').addEventListener('click',()=>canvas.toBlob(b=>b&&downloadBlob(b,'editprompt-object-erased.png'),'image/png'));
 
   // Browser speech recognition.
@@ -43,7 +88,7 @@
   $('recStart').addEventListener('click',async()=>{try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onstop=()=>{recordedBlob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});$('recPreview').src=URL.createObjectURL(recordedBlob);$('mp3Export').disabled=false;stream?.getTracks().forEach(t=>t.stop());say('recStatus','Recording ready. Preview it or export an MP3.');};recorder.start();$('recStart').disabled=true;$('recStop').disabled=false;say('recStatus','Recording...');}catch(e){say('recStatus',`Microphone unavailable: ${e.message||e}. Allow microphone access and use HTTPS.`);}});
   $('recStop').addEventListener('click',()=>{if(recorder?.state==='recording'){recorder.stop();$('recStart').disabled=false;$('recStop').disabled=true;}});
   $('mp3Export').addEventListener('click',async()=>{if(!recordedBlob)return;const b=$('mp3Export');b.disabled=true;say('recStatus','Preparing MP3 encoder...');try{await loadScript('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');if(!window.lamejs?.Mp3Encoder)throw new Error('MP3 encoder could not be loaded.');const array=await recordedBlob.arrayBuffer();const AudioCtx=window.AudioContext||window.webkitAudioContext;const ac=new AudioCtx();const decoded=await ac.decodeAudioData(array.slice(0));const mono=new Float32Array(decoded.length);for(let c=0;c<decoded.numberOfChannels;c++){const d=decoded.getChannelData(c);for(let i=0;i<d.length;i++)mono[i]+=d[i]/decoded.numberOfChannels;}const sampleRate=decoded.sampleRate;const pcm=new Int16Array(mono.length);for(let i=0;i<mono.length;i++){const s=Math.max(-1,Math.min(1,mono[i]));pcm[i]=s<0?s*32768:s*32767;}const encoder=new window.lamejs.Mp3Encoder(1,sampleRate,128);const chunks=[];for(let i=0;i<pcm.length;i+=1152){const part=encoder.encodeBuffer(pcm.subarray(i,i+1152));if(part.length)chunks.push(new Uint8Array(part));}const end=encoder.flush();if(end.length)chunks.push(new Uint8Array(end));downloadBlob(new Blob(chunks,{type:'audio/mpeg'}),'editprompt-voice.mp3');await ac.close();say('recStatus','MP3 export complete.');}catch(e){say('recStatus',`MP3 export failed: ${e.message||e}`);}finally{b.disabled=false;}});
-  $('ttsPlay').addEventListener('click',()=>{if(!('speechSynthesis'in window))return say('ttsStatus','Text-to-speech is not supported in this browser.');const text=$('ttsText').value.trim();if(!text)return say('ttsStatus','Enter text first.');speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(text));say('ttsStatus','Playing system voice preview.');});$('ttsStop').addEventListener('click',()=>{speechSynthesis.cancel();say('ttsStatus','Voice preview stopped.');});
+  $('ttsPlay').addEventListener('click',()=>{if(!('speechSynthesis'in window))return say('ttsStatus','Text-to-speech is not supported in this browser.');const text=$('labTtsText').value.trim();if(!text)return say('ttsStatus','Enter text first.');speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(text));say('ttsStatus','Playing system voice preview.');});$('labTtsStop').addEventListener('click',()=>{speechSynthesis.cancel();say('ttsStatus','Voice preview stopped.');});
 
   // Public prompt marketplace API.
   async function loadMarket(){say('marketStatus','Loading marketplace...');try{const q=new URLSearchParams({q:$('marketSearch').value.trim(),category:$('marketCategory').value});const r=await fetch(`/api/marketplace/prompts?${q}`);const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not load marketplace.');const list=$('marketList');list.replaceChildren();if(!data.items?.length){list.textContent='No public prompts found yet.';}else data.items.forEach(item=>{const card=document.createElement('article');card.className='market-item';const h=document.createElement('b');h.textContent=item.title;const meta=document.createElement('div');meta.className='tag';meta.textContent=`${item.category} · by ${item.author} · ${item.created_at}`;const desc=document.createElement('p');desc.className='muted';desc.textContent=item.description||'';const pre=document.createElement('pre');pre.textContent=item.prompt;const actions=document.createElement('div');actions.className='actions';const copyBtn=document.createElement('button');copyBtn.className='btn ghost';copyBtn.textContent='Copy prompt';copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(item.prompt);say('marketStatus','Prompt copied.');}catch{say('marketStatus','Select the prompt text and copy it.');}});actions.append(copyBtn);card.append(h,meta,desc,pre,actions);list.append(card);});say('marketStatus',`${data.items?.length||0} prompt(s) found.`);}catch(e){say('marketStatus',e.message||'Marketplace is unavailable.');}}
