@@ -3821,6 +3821,29 @@
             </div>
 
 
+            <div class="tool-shortcuts" aria-label="Quick access to Creator Studio tools">
+                <a class="card tool-shortcut" href="/studio-tools.html#background-remover"><span class="tool-icon">✂️</span><h3>AI Background Remover</h3><p>Remove image backgrounds and export transparent PNGs.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#image-optimizer"><span class="tool-icon">🖼️</span><h3>Image Optimizer</h3><p>Resize, compress and convert JPG, PNG and WebP.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#object-remover"><span class="tool-icon">🪄</span><h3>Object Remover</h3><p>Erase unwanted objects by brushing over them.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#speech-to-text"><span class="tool-icon">🎙️</span><h3>Speech to Text</h3><p>Transcribe speech in Gujarati, Hindi or English.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#voice-recorder"><span class="tool-icon">🎧</span><h3>Voice Recorder & MP3</h3><p>Record voice, preview it and export an MP3.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#prompt-marketplace"><span class="tool-icon">💡</span><h3>Prompt Marketplace</h3><p>Discover, search and publish creative prompts.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html#video-timeline"><span class="tool-icon">🎬</span><h3>Video Timeline</h3><p>Arrange and preview local video, audio and image clips.</p><span class="tool-open">Open tool →</span></a>
+                <a class="card tool-shortcut" href="/studio-tools.html"><span class="tool-icon">✨</span><h3>Open Creator Studio</h3><p>Access all creator utilities in one workspace.</p><span class="tool-open">View all tools →</span></a>
+            </div>
+
+            <style>
+              .tool-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 24px}
+              .tool-shortcut{display:block;text-decoration:none;color:inherit;min-width:0;transition:transform .18s ease,border-color .18s ease}
+              .tool-shortcut:hover{transform:translateY(-3px);border-color:var(--accent,#e5233a)}
+              .tool-shortcut .tool-icon{font-size:24px}
+              .tool-shortcut h3{margin:9px 0 6px}
+              .tool-shortcut p{font-size:13px;line-height:1.5;color:var(--muted,#aaa);margin:0 0 12px}
+              .tool-shortcut .tool-open{font-size:12px;font-weight:700;color:var(--accent,#e5233a)}
+              @media(max-width:900px){.tool-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+              @media(max-width:480px){.tool-shortcuts{grid-template-columns:1fr}}
+            </style>
+
             <div class="three">
 
                 <!-- ASPECT RATIO -->

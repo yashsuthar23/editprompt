@@ -5,6 +5,22 @@
   const downloadBlob = (blob, name) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
   const loadScript = (src) => new Promise((resolve, reject) => { const old = [...document.scripts].find(s => s.src === src); if (old) { if (old.dataset.loaded === '1') return resolve(); old.addEventListener('load', resolve, {once:true}); old.addEventListener('error', reject, {once:true}); return; } const s = document.createElement('script'); s.src = src; s.async = true; s.onload = () => { s.dataset.loaded = '1'; resolve(); }; s.onerror = reject; document.head.appendChild(s); });
 
+  // Background removal: open-source client-side model; no server upload.
+  let bgBlob = null;
+  $('bgRemove').addEventListener('click', async () => {
+    const file = $('bgFile').files[0]; if (!file) return say('bgStatus', 'Choose an image first.');
+    const btn = $('bgRemove'); btn.disabled = true; say('bgStatus', 'Loading the browser model. First use may download model files...');
+    try {
+      const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
+      const removeBackground = mod.removeBackground || mod.default;
+      if (typeof removeBackground !== 'function') throw new Error('Background-removal module did not load correctly.');
+      bgBlob = await removeBackground(file, { progress: (key, current, total) => { if (total) say('bgStatus', `Processing ${key}: ${Math.round(current / total * 100)}%`); } });
+      $('bgPreview').src = URL.createObjectURL(bgBlob); $('bgDownload').disabled = false; say('bgStatus', 'Background removed. Download the transparent PNG.');
+    } catch (e) { say('bgStatus', `Could not remove background: ${e.message || e}. Check your internet connection and try again.`); }
+    finally { btn.disabled = false; }
+  });
+  $('bgDownload').addEventListener('click', () => { if (bgBlob) downloadBlob(bgBlob, 'editprompt-background-removed.png'); });
+
   // OpenCV inpainting object eraser. This is classical image inpainting, not generative AI.
   const canvas = $('objCanvas'), ctx = canvas.getContext('2d', {willReadFrequently:true}); let originalImage = null, painting = false, maskCanvas = document.createElement('canvas'), maskCtx = maskCanvas.getContext('2d');
   function paintMask(e) { const r = canvas.getBoundingClientRect(); const sx = canvas.width / r.width, sy = canvas.height / r.height; const x = (e.clientX-r.left)*sx, y=(e.clientY-r.top)*sy; const size = Number($('objBrush').value) * sx; maskCtx.fillStyle = '#fff'; maskCtx.beginPath(); maskCtx.arc(x,y,size/2,0,Math.PI*2); maskCtx.fill(); ctx.save(); ctx.globalAlpha=.5; ctx.fillStyle='#ff3155'; ctx.beginPath(); ctx.arc(x,y,size/2,0,Math.PI*2); ctx.fill(); ctx.restore(); }
