@@ -1219,19 +1219,9 @@
             ><button class="btn ghost" id="printScene">Print</button>
           </div>
         </section>
-        <section class="tool-panel">
-          <span class="pill">Project Library</span>
-          <h2>Organize generated media</h2>
-          <p class="muted">
-            Open the app's existing media library and project workspace. This
-            tools page does not create a duplicate media database.
-          </p>
-          <div class="actions">
-            <a class="btn" href="/library.html">Open My Library</a
-            ><a class="btn ghost" href="/workspace.html">Open Projects</a>
-          </div>
+        <section class="tool-panel" aria-label="Brand kit and recent items">
           <div class="pe-group">
-            <div class="status pe-title">Brand kit (saved in this browser)</div>
+            <div class="status pe-title">Brand Kit & Recent Items</div>
             <label for="brandKitName" class="status">Brand name</label>
             <input
               id="brandKitName"
@@ -1269,11 +1259,6 @@
               </select>
             </div>
             <div id="recentList" class="recent-list"></div>
-          </div>
-          <div class="status">
-            Your saved storyboards, reel briefs and photo exports appear in
-            Recent items above. Open My Library to browse all of your generated
-            media.
           </div>
         </section>
       </div>
@@ -1313,149 +1298,12 @@
 #creatorLabTools .tag{font-size:11px;color:#bbb}
 #creatorLabTools .divider{height:1px;background:var(--border,#333);margin:14px 0}
 @media(max-width:760px){#creatorLabTools .grid,#creatorLabTools .two{grid-template-columns:1fr}#creatorLabTools .clip-controls{grid-template-columns:1fr 1fr}#creatorLabTools .lab{padding:0 12px 40px}}
-        
-
-/* V9.1 Creator Studio layout consistency + Audio/Subtitle overflow fix */
-#creatorLabTools .hero {
-  display: block !important;
-  position: relative;
-  width: 100%;
-  min-height: 0 !important;
-  height: auto !important;
-  box-sizing: border-box;
-  padding: clamp(18px, 3vw, 30px) !important;
-  margin: 0 0 16px !important;
-  text-align: left !important;
-  overflow: visible !important;
-}
-#creatorLabTools .hero .pill {
-  display: inline-flex;
-  width: auto !important;
-  max-width: 100%;
-  align-items: center;
-  margin: 0 0 10px;
-  white-space: normal;
-}
-#creatorLabTools .hero h1,
-#creatorLabTools .hero h2 {
-  display: block !important;
-  width: 100%;
-  margin: 0 0 8px !important;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-#creatorLabTools .hero p {
-  display: block !important;
-  width: 100%;
-  max-width: 850px;
-  margin: 0 !important;
-  line-height: 1.6;
-}
-#creatorLabTools .lab,
-#creatorLabTools .panel,
-#creatorLabTools .tool-panel,
-#creatorLabTools #audioSubtitleStudio {
-  box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
-}
-#creatorLabTools #audioSubtitleStudio {
-  display: block;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  padding: clamp(16px, 2.5vw, 24px);
-}
-#creatorLabTools #audioSubtitleStudio .pe-layout {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  align-items: start;
-  gap: clamp(14px, 2vw, 24px);
-  width: 100%;
-  height: auto !important;
-  min-height: 0;
-  overflow: visible !important;
-}
-#creatorLabTools #audioSubtitleStudio .pe-controls,
-#creatorLabTools #audioSubtitleStudio .pe-preview {
-  position: static !important;
-  display: block !important;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  align-self: start;
-}
-#creatorLabTools #audioSubtitleStudio label {
-  display: block;
-  max-width: 100%;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-#creatorLabTools #audioSubtitleStudio textarea,
-#creatorLabTools #audioSubtitleStudio select,
-#creatorLabTools #audioSubtitleStudio input:not([type="range"]):not([type="checkbox"]) {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-#creatorLabTools #audioSubtitleStudio textarea {
-  min-height: 112px;
-  height: auto;
-  resize: vertical;
-  overflow: auto;
-}
-#creatorLabTools #audioSubtitleStudio #subtitleOutput {
-  min-height: 190px;
-}
-#creatorLabTools #audioSubtitleStudio .actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-}
-#creatorLabTools #audioSubtitleStudio .actions button {
-  max-width: 100%;
-  white-space: normal;
-}
-#creatorLabTools #audioSubtitleStudio .status {
-  overflow-wrap: anywhere;
-}
-@media (max-width: 900px) {
-  #creatorLabTools .hero {
-    padding: 18px !important;
-  }
-  #creatorLabTools #audioSubtitleStudio .pe-layout {
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 18px;
-  }
-  #creatorLabTools #audioSubtitleStudio .pe-controls,
-  #creatorLabTools #audioSubtitleStudio .pe-preview {
-    display: block !important;
-    position: static !important;
-  }
-}
-@media (max-width: 480px) {
-  #creatorLabTools #audioSubtitleStudio {
-    padding: 14px;
-  }
-  #creatorLabTools #audioSubtitleStudio .actions button {
-    flex: 1 1 140px;
-  }
-}
-
-</style>
+        </style>
         <div class="lab">
           <section class="hero"><span class="pill">V9.1 · FREE-FIRST TOOLS</span><h2 id="creatorLabHeading">More Creator Tools</h2><p class="muted">Background removal, object erasing, speech transcription, voice recording, prompt sharing and a lightweight video timeline. Local image/audio processing stays in your browser where supported.</p></section>
     <section class="panel" id="background-remover"><span class="pill">01 · AI Background Remover</span><h2>Remove image background</h2><p class="muted">Uses the open-source IMG.LY browser model. First use downloads model files; processing can be memory-intensive. Review the library licence before commercial deployment.</p><input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><button class="btn" id="bgRemove">Remove background</button><button class="btn ghost" id="bgDownload" disabled>Download transparent PNG</button></div><img id="bgPreview" class="preview" alt="Background removal preview"><div id="bgStatus" class="status" role="status"></div></section>
     <section class="panel" id="image-optimizer"><span class="pill">02 · Image Optimizer</span><h2>Resize, compress & convert images</h2><p class="muted">Resize images by width, choose an output format and adjust quality to reduce file size. Processing stays in your browser.</p><input id="optFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="two"><div><label for="optWidth">Output width (px)</label><input id="optWidth" type="number" min="1" max="12000" placeholder="Original width"><label for="optFormat">Output format</label><select id="optFormat"><option value="image/webp">WebP (smaller files)</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select><label for="optQuality">Quality <span id="optQualityValue">85%</span></label><input id="optQuality" type="range" min="10" max="100" value="85"></div><div><img id="optPreview" class="preview" alt="Optimized image preview" hidden><div id="optStatus" class="status" role="status">Choose an image to begin.</div></div></div><div class="actions"><button class="btn" id="optProcess">Optimize image</button><button class="btn ghost" id="optDownload" disabled>Download optimized image</button></div></section>
-    <section class="panel" id="object-remover"><span class="pill">03 · Object Remover</span><h2>Erase unwanted objects</h2><p class="muted">Local OpenCV inpainting (not generative AI). Paint over a small object, then apply. Results depend on the surrounding pixels; large objects may leave artifacts.</p><input id="objFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><label class="small">Brush <input id="objBrush" type="range" min="8" max="100" value="28"></label><button class="btn" id="objApply">Erase painted area</button><button class="btn ghost" id="objUndo">Reset image</button><button class="btn ghost" id="objDownload" disabled>Download PNG</button></div><div class="canvas-wrap"><canvas id="objCanvas"></canvas></div><div id="objStatus" class="status" role="status"></div></section>
+    <section class="panel" id="object-remover"><span class="pill">03 · Object Remover</span><h2>Erase unwanted objects</h2><p class="muted">Local OpenCV inpainting (not generative AI). Processing runs in the background so the page stays responsive. Paint over a small object, then apply. Large objects may leave artifacts.</p><input id="objFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><label class="small">Brush <input id="objBrush" type="range" min="8" max="100" value="28"></label><button class="btn" id="objApply">Erase painted area</button><button class="btn ghost" id="objUndo">Reset image</button><button class="btn ghost" id="objDownload" disabled>Download PNG</button></div><div class="canvas-wrap"><canvas id="objCanvas"></canvas></div><div id="objStatus" class="status" role="status"></div></section>
     <section class="panel" id="speech-to-text"><span class="pill">04 · Automatic Speech-to-Text</span><h2>Transcribe your voice</h2><p class="muted">Uses the browser's Web Speech recognition engine. Availability and language support depend on your browser and operating system; some browsers may process audio through their own online service.</p><div class="two"><div><label for="sttLang">Recognition language</label><select id="sttLang"><option value="en-IN">English (India)</option><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-US">English (US)</option></select></div><div><label for="sttText">Transcript</label><textarea id="sttText" placeholder="Your transcript will appear here..."></textarea></div></div><div class="actions"><button class="btn" id="sttStart">Start listening</button><button class="btn ghost" id="sttStop" disabled>Stop</button><button class="btn ghost" id="sttCopy">Copy transcript</button><button class="btn ghost" id="sttDownload">Download TXT</button></div><div id="sttStatus" class="status" role="status"></div></section>
     <section class="panel" id="voice-recorder"><span class="pill">05 · MP3 Voice Export</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally using a browser MP3 encoder. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
   </div>
