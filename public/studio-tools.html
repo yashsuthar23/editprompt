@@ -1313,7 +1313,144 @@
 #creatorLabTools .tag{font-size:11px;color:#bbb}
 #creatorLabTools .divider{height:1px;background:var(--border,#333);margin:14px 0}
 @media(max-width:760px){#creatorLabTools .grid,#creatorLabTools .two{grid-template-columns:1fr}#creatorLabTools .clip-controls{grid-template-columns:1fr 1fr}#creatorLabTools .lab{padding:0 12px 40px}}
-        </style>
+        
+
+/* V9.1 Creator Studio layout consistency + Audio/Subtitle overflow fix */
+#creatorLabTools .hero {
+  display: block !important;
+  position: relative;
+  width: 100%;
+  min-height: 0 !important;
+  height: auto !important;
+  box-sizing: border-box;
+  padding: clamp(18px, 3vw, 30px) !important;
+  margin: 0 0 16px !important;
+  text-align: left !important;
+  overflow: visible !important;
+}
+#creatorLabTools .hero .pill {
+  display: inline-flex;
+  width: auto !important;
+  max-width: 100%;
+  align-items: center;
+  margin: 0 0 10px;
+  white-space: normal;
+}
+#creatorLabTools .hero h1,
+#creatorLabTools .hero h2 {
+  display: block !important;
+  width: 100%;
+  margin: 0 0 8px !important;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+#creatorLabTools .hero p {
+  display: block !important;
+  width: 100%;
+  max-width: 850px;
+  margin: 0 !important;
+  line-height: 1.6;
+}
+#creatorLabTools .lab,
+#creatorLabTools .panel,
+#creatorLabTools .tool-panel,
+#creatorLabTools #audioSubtitleStudio {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+#creatorLabTools #audioSubtitleStudio {
+  display: block;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: clamp(16px, 2.5vw, 24px);
+}
+#creatorLabTools #audioSubtitleStudio .pe-layout {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: start;
+  gap: clamp(14px, 2vw, 24px);
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  overflow: visible !important;
+}
+#creatorLabTools #audioSubtitleStudio .pe-controls,
+#creatorLabTools #audioSubtitleStudio .pe-preview {
+  position: static !important;
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  align-self: start;
+}
+#creatorLabTools #audioSubtitleStudio label {
+  display: block;
+  max-width: 100%;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+#creatorLabTools #audioSubtitleStudio textarea,
+#creatorLabTools #audioSubtitleStudio select,
+#creatorLabTools #audioSubtitleStudio input:not([type="range"]):not([type="checkbox"]) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+#creatorLabTools #audioSubtitleStudio textarea {
+  min-height: 112px;
+  height: auto;
+  resize: vertical;
+  overflow: auto;
+}
+#creatorLabTools #audioSubtitleStudio #subtitleOutput {
+  min-height: 190px;
+}
+#creatorLabTools #audioSubtitleStudio .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+#creatorLabTools #audioSubtitleStudio .actions button {
+  max-width: 100%;
+  white-space: normal;
+}
+#creatorLabTools #audioSubtitleStudio .status {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 900px) {
+  #creatorLabTools .hero {
+    padding: 18px !important;
+  }
+  #creatorLabTools #audioSubtitleStudio .pe-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 18px;
+  }
+  #creatorLabTools #audioSubtitleStudio .pe-controls,
+  #creatorLabTools #audioSubtitleStudio .pe-preview {
+    display: block !important;
+    position: static !important;
+  }
+}
+@media (max-width: 480px) {
+  #creatorLabTools #audioSubtitleStudio {
+    padding: 14px;
+  }
+  #creatorLabTools #audioSubtitleStudio .actions button {
+    flex: 1 1 140px;
+  }
+}
+
+</style>
         <div class="lab">
           <section class="hero"><span class="pill">V9.1 · FREE-FIRST TOOLS</span><h2 id="creatorLabHeading">More Creator Tools</h2><p class="muted">Background removal, object erasing, speech transcription, voice recording, prompt sharing and a lightweight video timeline. Local image/audio processing stays in your browser where supported.</p></section>
     <section class="panel" id="background-remover"><span class="pill">01 · AI Background Remover</span><h2>Remove image background</h2><p class="muted">Uses the open-source IMG.LY browser model. First use downloads model files; processing can be memory-intensive. Review the library licence before commercial deployment.</p><input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><button class="btn" id="bgRemove">Remove background</button><button class="btn ghost" id="bgDownload" disabled>Download transparent PNG</button></div><img id="bgPreview" class="preview" alt="Background removal preview"><div id="bgStatus" class="status" role="status"></div></section>
