@@ -1,0 +1,315 @@
+/* Creator Studio — professional workspace layer.
+   Loaded after the page's inline styles; relies only on the shared theme variables
+   (--panel, --text, --muted, --border, --input, --accent) so dark / light / accent themes keep working. */
+
+.tool-wrap {
+  --sp-radius: 16px;
+  --sp-gap: 20px;
+  --sp-accent: var(--accent, #e5233a);
+  --sp-surface: var(--panel, #181818);
+  --sp-tint: color-mix(in srgb, var(--sp-accent) 12%, transparent);
+  --sp-line: var(--border, #303030);
+  max-width: 1320px;
+  margin: 18px auto 0;
+  padding: 0 clamp(14px, 3vw, 28px) 56px;
+}
+
+/* ---------- Hero ---------- */
+.sp-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: clamp(20px, 3vw, 32px);
+  margin-bottom: var(--sp-gap);
+  background:
+    radial-gradient(900px 260px at 0% 0%, var(--sp-tint), transparent 70%),
+    var(--sp-surface);
+}
+body[data-ep-theme="light"] .sp-hero {
+  background:
+    radial-gradient(900px 260px at 0% 0%, var(--sp-tint), transparent 70%),
+    #fff;
+}
+.sp-hero-copy { max-width: 760px; }
+.sp-hero h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.sp-hero p { margin: 0; font-size: 15px; line-height: 1.65; max-width: 680px; }
+.sp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--sp-accent) 40%, var(--sp-line));
+  border-radius: 999px;
+  background: var(--sp-tint);
+  color: var(--text, #f5f2ec);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.sp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sp-accent); box-shadow: 0 0 0 3px var(--sp-tint); }
+.sp-trust { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted, #9f9990); }
+.sp-trust li::before { content: "✓"; margin-right: 6px; color: var(--sp-accent); font-weight: 800; }
+.sp-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Layout ---------- */
+.sp-layout { display: block; }
+.sp-layout.sp-js {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: var(--sp-gap);
+  align-items: start;
+}
+.sp-main { min-width: 0; }
+
+/* ---------- Sidebar ---------- */
+.sp-side {
+  position: sticky;
+  top: calc(var(--nav-h, 68px) + 14px);
+  max-height: calc(100vh - var(--nav-h, 68px) - 28px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--sp-line);
+  border-radius: var(--sp-radius);
+  background: var(--sp-surface);
+  scrollbar-width: thin;
+}
+.sp-group { margin: 0 0 6px; }
+.sp-group-label {
+  margin: 12px 10px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted, #9f9990);
+}
+.sp-group:first-child .sp-group-label { margin-top: 4px; }
+.sp-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text, #f5f2ec);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.sp-item:hover { background: color-mix(in srgb, var(--text, #fff) 6%, transparent); }
+.sp-item:focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
+.sp-item[aria-current="true"] {
+  background: var(--sp-tint);
+  border-color: color-mix(in srgb, var(--sp-accent) 45%, transparent);
+}
+.sp-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text, #fff) 7%, transparent);
+  color: var(--muted, #9f9990);
+}
+.sp-item[aria-current="true"] .sp-ico { background: var(--sp-accent); color: #fff; }
+.sp-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sp-txt { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.sp-txt b { font-size: 13.5px; font-weight: 650; display: flex; align-items: center; gap: 6px; }
+.sp-txt small { font-size: 11.5px; color: var(--muted, #9f9990); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--sp-accent);
+  color: #fff;
+}
+
+/* ---------- Tool panels ---------- */
+.sp-js [data-tool] { display: none !important; }
+.sp-js [data-tool].sp-active { display: block !important; }
+.sp-js .tool-grid { display: block; }
+
+.tool-panel,
+body #creatorLabTools .panel {
+  position: relative;
+  margin: 0;
+  padding: clamp(16px, 2.4vw, 26px);
+  border: 1px solid var(--sp-line);
+  border-radius: var(--sp-radius);
+  background: var(--sp-surface);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+body[data-ep-theme="light"] .tool-panel,
+body[data-ep-theme="light"] body #creatorLabTools .panel {
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(26, 34, 51, 0.07);
+}
+.tool-panel::before { display: none; } /* calmer: no travelling border on tool panels */
+body #creatorLabTools { margin: 0; }
+body #creatorLabTools .lab { max-width: none; margin: 0; padding: 0; }
+body #creatorLabTools .panel { margin-bottom: 0; }
+body #creatorLabTools .hero { display: none; }
+
+.tool-panel > h2,
+body #creatorLabTools .panel > h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(20px, 2.4vw, 26px);
+  letter-spacing: -0.015em;
+}
+.pill,
+body #creatorLabTools .pill {
+  display: inline-block;
+  margin: 0;
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--sp-accent) 35%, var(--sp-line));
+  border-radius: 999px;
+  background: var(--sp-tint);
+  color: var(--text, #f5f2ec);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tool-panel .muted,
+body #creatorLabTools .muted { max-width: 780px; font-size: 13.5px; line-height: 1.6; }
+
+/* ---------- Controls ---------- */
+.tool-wrap .btn,
+body #creatorLabTools .btn {
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 11px;
+  font-weight: 650;
+  font-size: 14px;
+  background: var(--sp-accent);
+  color: #fff;
+  border: 1px solid transparent;
+}
+.tool-wrap .btn.ghost,
+body #creatorLabTools .btn.ghost {
+  background: transparent;
+  color: var(--text, #f5f2ec);
+  border-color: var(--sp-line);
+}
+.tool-wrap .btn.ghost:hover,
+body #creatorLabTools .btn.ghost:hover { background: color-mix(in srgb, var(--text, #fff) 7%, transparent); border-color: color-mix(in srgb, var(--text, #fff) 22%, var(--sp-line)); }
+.tool-wrap .btn:disabled,
+body #creatorLabTools .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.tool-wrap .btn:focus-visible,
+.tool-wrap input:focus-visible,
+.tool-wrap select:focus-visible,
+.tool-wrap textarea:focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
+
+.tool-panel input:not([type="range"]):not([type="checkbox"]):not([type="file"]),
+.tool-panel select,
+.tool-panel textarea,
+body #creatorLabTools .panel input:not([type="range"]):not([type="checkbox"]):not([type="file"]),
+body #creatorLabTools .panel select,
+body #creatorLabTools .panel textarea {
+  border-radius: 10px;
+  border: 1px solid var(--sp-line);
+  background: var(--input, #101010);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.tool-panel input:focus,
+.tool-panel select:focus,
+.tool-panel textarea:focus,
+body #creatorLabTools .panel input:focus,
+body #creatorLabTools .panel select:focus,
+body #creatorLabTools .panel textarea:focus {
+  border-color: var(--sp-accent);
+  box-shadow: 0 0 0 3px var(--sp-tint);
+}
+.tool-wrap input[type="range"] { accent-color: var(--sp-accent); width: 100%; }
+.tool-wrap input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--text, #fff) 28%, var(--sp-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text, #fff) 3%, transparent);
+  color: var(--muted, #9f9990);
+  font-size: 13px;
+}
+.tool-wrap input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--sp-accent);
+  color: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+.sp-field { margin: 12px 0 4px; max-width: 420px; }
+.sp-field label { display: block; font-size: 13px; margin-bottom: 4px; }
+.status,
+body #creatorLabTools .status { min-height: 20px; font-size: 13px; line-height: 1.5; }
+.status:not(:empty) { color: var(--muted, #9f9990); }
+.preview,
+body #creatorLabTools .preview { border-radius: 12px; }
+
+/* Previews: transparent PNGs get a checkerboard so cut-outs are obvious */
+#bgPreview {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #d9d9d9 25%, transparent 25%, transparent 75%, #d9d9d9 75%),
+    linear-gradient(45deg, #d9d9d9 25%, transparent 25%, transparent 75%, #d9d9d9 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+  border-style: solid;
+}
+#bgPreview:not([src]) { display: none; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1240px) {
+  .tool-panel .pe-layout { grid-template-columns: minmax(0, 1fr); }
+  .tool-panel .pe-preview { position: static; }
+}
+@media (max-width: 900px) {
+  .sp-layout.sp-js { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .sp-side {
+    position: sticky;
+    top: var(--nav-h, 60px);
+    z-index: 20;
+    display: flex;
+    gap: 8px;
+    max-height: none;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--sp-surface) 94%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    scroll-snap-type: x proximity;
+  }
+  .sp-group { display: contents; }
+  .sp-group-label { display: none; }
+  .sp-item { flex: none; width: auto; padding: 7px 12px 7px 8px; scroll-snap-align: start; }
+  .sp-txt small { display: none; }
+  .sp-ico { width: 28px; height: 28px; border-radius: 8px; }
+  .sp-ico svg { width: 16px; height: 16px; }
+  .sp-hero-cta { width: 100%; }
+  .sp-hero-cta .btn { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-item, .tool-wrap .btn, .tool-panel input, .tool-panel select, .tool-panel textarea { transition: none; }
+}
+
+/* keep the empty preview image hidden (beats the lab's inline .preview rule) */
+body #creatorLabTools #bgPreview:not([src]),
+body #creatorLabTools #recPreview:not([src]) { display: none; }

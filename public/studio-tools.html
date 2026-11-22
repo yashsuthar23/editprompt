@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Creator Studio Tools — EditPrompt</title>
+    <title>Creator Studio — EditPrompt</title>
+    <meta name="description" content="Free-first creator workspace: photo editor, background remover, object eraser, subtitles, speech-to-text, shot lists and more." />
     <link rel="stylesheet" href="/styles.css" />
     <style>
       .tool-wrap {
@@ -654,6 +655,7 @@
     <link rel="stylesheet" href="/light-fixes.css?v=1" />
       <link rel="stylesheet" href="/mobile-nav.css">
 <link rel="stylesheet" href="/mobile-pro.css?v=1" />
+<link rel="stylesheet" href="/studio-pro.css?v=1" />
 </head>
   <body>
     <header class="nav">
@@ -669,15 +671,30 @@
       </div>
     </header>
     <main class="tool-wrap">
-      <section class="tool-hero">
-        <div class="eyebrow">CREATOR WORKSPACE • FREE-FIRST</div>
-        <h1>Creator Studio</h1>
-        <p>
-          Plan scenes, prepare social ads, edit images, remove backgrounds, transcribe audio, share prompts and arrange video clips — all in one creator workspace.
-        </p>
+      <section class="tool-hero sp-hero">
+        <div class="sp-hero-copy">
+          <div class="eyebrow sp-badge"><span class="sp-dot" aria-hidden="true"></span>Creator Workspace · Free-first</div>
+          <h1>Creator Studio</h1>
+          <p>
+            Edit images, remove backgrounds and objects, plan reels and shot lists, add subtitles,
+            record and transcribe audio, and share prompts &mdash; one focused workspace, no sign-up needed to start.
+          </p>
+          <ul class="sp-trust" aria-label="Highlights">
+            <li>Most tools run in your browser</li>
+            <li>Offline-safe fallbacks</li>
+            <li>No watermarks</li>
+          </ul>
+        </div>
+        <div class="sp-hero-cta">
+          <a class="btn" href="/#imageVideo">AI Image &rarr; Video</a>
+          <a class="btn ghost" href="/library.html">Open My Library</a>
+        </div>
       </section>
+      <div class="sp-layout" id="spLayout">
+      <aside class="sp-side" id="spSide" aria-label="Creator tools"></aside>
+      <div class="sp-main">
       <div class="tool-grid">
-        <section class="tool-panel pe-panel">
+        <section class="tool-panel pe-panel" id="photo-editor" data-tool="photo-editor" data-title="Photo Editor" data-group="Image" data-desc="Filters, crop, rotate, colour and export">
           <span class="pill">Photo Editor Pro</span>
           <h2>Quick image adjustments</h2>
           <p class="muted">
@@ -1013,7 +1030,7 @@
             </div>
           </div>
         </section>
-        <section class="tool-panel pe-panel">
+        <section class="tool-panel pe-panel" id="social-brief" data-tool="social-brief" data-title="Social Brief" data-group="Video &amp; Social" data-desc="Reel and ad briefs, captions, hashtags">
           <span class="pill">Reel & Ad Maker</span>
           <h2>Write a social video brief</h2>
           <p class="muted">
@@ -1133,7 +1150,7 @@
           </div>
         </section>
 
-        <section class="tool-panel pe-panel" id="audioSubtitleStudio">
+        <section class="tool-panel pe-panel" id="audioSubtitleStudio" data-tool="voice-subtitles" data-title="Voice &amp; Subtitles" data-group="Audio" data-desc="Preview a voice and build SRT / VTT">
           <span class="pill">Audio & Subtitle Studio · Free browser tools</span>
           <h2>Voice preview & subtitle maker</h2>
           <p class="muted">Use voices already installed in your browser for a live preview, then create downloadable SRT or WebVTT captions. No paid API and no audio upload. Browser speech preview is not an audio-file export.</p>
@@ -1173,7 +1190,7 @@
           </div>
         </section>
 
-        <section class="tool-panel">
+        <section class="tool-panel" id="shot-list" data-tool="shot-list" data-title="Shot List" data-group="Video &amp; Social" data-desc="Storyboard, CSV and PDF export">
           <span class="pill">Scene Builder</span>
           <h2>Turn an idea into a shot list</h2>
           <p class="muted">
@@ -1251,7 +1268,7 @@
             ><button class="btn ghost" id="printScene">Print</button>
           </div>
         </section>
-        <section class="tool-panel">
+        <section class="tool-panel" id="library" data-tool="library" data-title="Media Library" data-group="Library" data-desc="Recent exports and brand kit">
           <span class="pill">Project Library</span>
           <h2>Organize generated media</h2>
           <p class="muted">
@@ -1348,19 +1365,22 @@
         </style>
         <div class="lab">
           
-    <section class="panel" id="background-remover"><span class="pill">01 · AI Background Remover</span><h2>Remove image background</h2><p class="muted">Uses the open-source IMG.LY browser model. First use downloads model files; processing can be memory-intensive. Review the library licence before commercial deployment.</p><input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><button class="btn" id="bgRemove">Remove background</button><button class="btn ghost" id="bgDownload" disabled>Download transparent PNG</button></div><img id="bgPreview" class="preview" alt="Background removal preview"><div id="bgStatus" class="status" role="status"></div></section>
-    <section class="panel" id="image-optimizer"><span class="pill">02 · Image Optimizer</span><h2>Resize, compress & convert images</h2><p class="muted">Resize images by width, choose an output format and adjust quality to reduce file size. Processing stays in your browser.</p><input id="optFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="two"><div><label for="optWidth">Output width (px)</label><input id="optWidth" type="number" min="1" max="12000" placeholder="Original width"><label for="optFormat">Output format</label><select id="optFormat"><option value="image/webp">WebP (smaller files)</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select><label for="optQuality">Quality <span id="optQualityValue">85%</span></label><input id="optQuality" type="range" min="10" max="100" value="85"></div><div><img id="optPreview" class="preview" alt="Optimized image preview" hidden><div id="optStatus" class="status" role="status">Choose an image to begin.</div></div></div><div class="actions"><button class="btn" id="optProcess">Optimize image</button><button class="btn ghost" id="optDownload" disabled>Download optimized image</button></div></section>
-    <section class="panel" id="object-remover"><span class="pill">03 · Object Remover</span><h2>Erase unwanted objects</h2><p class="muted">Local OpenCV inpainting (not generative AI). Paint over a small object, then apply. Results depend on the surrounding pixels; large objects may leave artifacts.</p><input id="objFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><label class="small">Brush <input id="objBrush" type="range" min="8" max="100" value="28"></label><button class="btn" id="objApply">Erase painted area</button><button class="btn ghost" id="objUndo">Reset image</button><button class="btn ghost" id="objDownload" disabled>Download PNG</button></div><div class="canvas-wrap"><canvas id="objCanvas"></canvas></div><div id="objStatus" class="status" role="status"></div></section>
-    <section class="panel" id="speech-to-text"><span class="pill">04 · Automatic Speech-to-Text</span><h2>Transcribe your voice</h2><p class="muted">Uses the browser's Web Speech recognition engine. Availability and language support depend on your browser and operating system; some browsers may process audio through their own online service.</p><div class="two"><div><label for="sttLang">Recognition language</label><select id="sttLang"><option value="en-IN">English (India)</option><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-US">English (US)</option></select></div><div><label for="sttText">Transcript</label><textarea id="sttText" placeholder="Your transcript will appear here..."></textarea></div></div><div class="actions"><button class="btn" id="sttStart">Start listening</button><button class="btn ghost" id="sttStop" disabled>Stop</button><button class="btn ghost" id="sttCopy">Copy transcript</button><button class="btn ghost" id="sttDownload">Download TXT</button></div><div id="sttStatus" class="status" role="status"></div></section>
-    <section class="panel" id="voice-recorder"><span class="pill">05 · MP3 Voice Export</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally using a browser MP3 encoder. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
+    <section class="panel" id="background-remover" data-tool="background-remover" data-title="Background Remover" data-group="Image" data-desc="Transparent PNG in one click" data-badge="AI"><span class="pill">AI · Image</span><h2>Remove image background</h2><p class="muted">Uses the open-source IMG.LY AI model in your browser. First use downloads the model files and can be memory-intensive. If the model cannot load (offline or blocked network), a built-in colour-based remover takes over automatically and works best on plain backgrounds. Review the library licence before commercial use.</p><input id="bgFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="sp-field"><label for="bgTolerance">Fallback sensitivity <span id="bgTolValue">42</span></label><input id="bgTolerance" type="range" min="10" max="120" value="42"><small class="muted">Only used when the AI model cannot load. Higher removes more of the background colour.</small></div><div class="actions"><button class="btn" id="bgRemove">Remove background</button><button class="btn ghost" id="bgDownload" disabled>Download transparent PNG</button></div><img id="bgPreview" class="preview" alt="Background removal preview"><div id="bgStatus" class="status" role="status"></div></section>
+    <section class="panel" id="image-optimizer" data-tool="image-optimizer" data-title="Image Optimizer" data-group="Image" data-desc="Resize, compress, convert"><span class="pill">Image</span><h2>Resize, compress & convert images</h2><p class="muted">Resize images by width, choose an output format and adjust quality to reduce file size. Processing stays in your browser.</p><input id="optFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="two"><div><label for="optWidth">Output width (px)</label><input id="optWidth" type="number" min="1" max="12000" placeholder="Original width"><label for="optFormat">Output format</label><select id="optFormat"><option value="image/webp">WebP (smaller files)</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select><label for="optQuality">Quality <span id="optQualityValue">85%</span></label><input id="optQuality" type="range" min="10" max="100" value="85"></div><div><img id="optPreview" class="preview" alt="Optimized image preview" hidden><div id="optStatus" class="status" role="status">Choose an image to begin.</div></div></div><div class="actions"><button class="btn" id="optProcess">Optimize image</button><button class="btn ghost" id="optDownload" disabled>Download optimized image</button></div></section>
+    <section class="panel" id="object-remover" data-tool="object-remover" data-title="Object Eraser" data-group="Image" data-desc="Paint over unwanted objects" data-badge="AI"><span class="pill">Image · Local engine</span><h2>Erase unwanted objects</h2><p class="muted">Classic inpainting, not generative AI. Uses OpenCV when it can be loaded and a built-in offline eraser otherwise, so it always works. Paint over a small object, then erase. Results depend on the surrounding pixels; large objects may leave artifacts.</p><input id="objFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="actions"><label class="small">Brush <input id="objBrush" type="range" min="8" max="100" value="28"></label><button class="btn" id="objApply">Erase painted area</button><button class="btn ghost" id="objUndo">Reset image</button><button class="btn ghost" id="objDownload" disabled>Download PNG</button></div><div class="canvas-wrap"><canvas id="objCanvas"></canvas></div><div id="objStatus" class="status" role="status"></div></section>
+    <section class="panel" id="speech-to-text" data-tool="speech-to-text" data-title="Speech to Text" data-group="Audio" data-desc="Dictate in English, Hindi, Gujarati"><span class="pill">Audio</span><h2>Transcribe your voice</h2><p class="muted">Uses the browser's Web Speech recognition engine. Availability and language support depend on your browser and operating system; some browsers may process audio through their own online service.</p><div class="two"><div><label for="sttLang">Recognition language</label><select id="sttLang"><option value="en-IN">English (India)</option><option value="gu-IN">Gujarati</option><option value="hi-IN">Hindi</option><option value="en-US">English (US)</option></select></div><div><label for="sttText">Transcript</label><textarea id="sttText" placeholder="Your transcript will appear here..."></textarea></div></div><div class="actions"><button class="btn" id="sttStart">Start listening</button><button class="btn ghost" id="sttStop" disabled>Stop</button><button class="btn ghost" id="sttCopy">Copy transcript</button><button class="btn ghost" id="sttDownload">Download TXT</button></div><div id="sttStatus" class="status" role="status"></div></section>
+    <section class="panel" id="voice-recorder" data-tool="voice-recorder" data-title="Voice Recorder" data-group="Audio" data-desc="Record and export MP3"><span class="pill">Audio</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally in your browser. If the MP3 encoder cannot be downloaded, the recording is saved as WAV instead. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
   </div>
-  <section class="panel" id="prompt-marketplace"><span class="pill">06 · Public Prompt Marketplace</span><h2>Discover and share prompts</h2><p class="muted">Browse prompts published by EditPrompt users. Publishing requires login. Do not post private, copyrighted, or sensitive content.</p><div class="two"><div><label for="marketSearch">Search marketplace</label><input id="marketSearch" placeholder="Search title, category, tags or prompt"><label for="marketCategory">Category</label><select id="marketCategory"><option value="">All categories</option><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><button class="btn" id="marketLoad">Search prompts</button><div id="marketStatus" class="status"></div><div id="marketList"></div></div><div><h3>Publish a prompt</h3><label for="marketTitle">Title</label><input id="marketTitle" maxlength="80" placeholder="e.g. Cinematic product photography"><label for="marketPublishCategory">Category</label><select id="marketPublishCategory"><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><label for="marketDescription">Short description</label><input id="marketDescription" maxlength="240" placeholder="What does this prompt create?"><label for="marketTags">Tags (comma separated)</label><input id="marketTags" maxlength="160" placeholder="cinematic, product, studio"><label for="marketPrompt">Prompt</label><textarea id="marketPrompt" maxlength="12000" placeholder="Paste your original prompt..."></textarea><button class="btn" id="marketPublish">Publish prompt</button><div id="publishStatus" class="status"></div></div></div></section>
-  <section class="panel" id="video-timeline"><span class="pill">07 · Advanced Video Timeline</span><h2>Arrange media clips</h2><p class="muted">A lightweight browser timeline for arranging, trimming and previewing local video, audio and image clips. Export a project JSON to continue editing elsewhere. This is not yet a rendered MP4 exporter.</p><input id="timelineFiles" type="file" accept="video/*,audio/*,image/*" multiple><div class="actions"><button class="btn" id="timelineAdd">Add selected media</button><button class="btn ghost" id="timelinePlay">Play preview</button><button class="btn ghost" id="timelineStop">Stop</button><button class="btn ghost" id="timelineExport">Export project JSON</button><button class="btn ghost" id="timelineClear">Clear timeline</button></div><div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div><div id="timelineClips"></div><div id="timelinePreview"></div><div id="timelineStatus" class="status" role="status"></div></section>
+  <section class="panel" id="prompt-marketplace" data-tool="prompt-marketplace" data-title="Prompt Marketplace" data-group="Library" data-desc="Browse and share prompts"><span class="pill">Community</span><h2>Discover and share prompts</h2><p class="muted">Browse prompts published by EditPrompt users. Publishing requires login. Do not post private, copyrighted, or sensitive content.</p><div class="two"><div><label for="marketSearch">Search marketplace</label><input id="marketSearch" placeholder="Search title, category, tags or prompt"><label for="marketCategory">Category</label><select id="marketCategory"><option value="">All categories</option><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><button class="btn" id="marketLoad">Search prompts</button><div id="marketStatus" class="status"></div><div id="marketList"></div></div><div><h3>Publish a prompt</h3><label for="marketTitle">Title</label><input id="marketTitle" maxlength="80" placeholder="e.g. Cinematic product photography"><label for="marketPublishCategory">Category</label><select id="marketPublishCategory"><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><label for="marketDescription">Short description</label><input id="marketDescription" maxlength="240" placeholder="What does this prompt create?"><label for="marketTags">Tags (comma separated)</label><input id="marketTags" maxlength="160" placeholder="cinematic, product, studio"><label for="marketPrompt">Prompt</label><textarea id="marketPrompt" maxlength="12000" placeholder="Paste your original prompt..."></textarea><button class="btn" id="marketPublish">Publish prompt</button><div id="publishStatus" class="status"></div></div></div></section>
+  <section class="panel" id="video-timeline" data-tool="video-timeline" data-title="Video Timeline" data-group="Video &amp; Social" data-desc="Arrange and trim clips"><span class="pill">Video</span><h2>Arrange media clips</h2><p class="muted">A lightweight browser timeline for arranging, trimming and previewing local video, audio and image clips. Export a project JSON to continue editing elsewhere. This is not yet a rendered MP4 exporter.</p><input id="timelineFiles" type="file" accept="video/*,audio/*,image/*" multiple><div class="actions"><button class="btn" id="timelineAdd">Add selected media</button><button class="btn ghost" id="timelinePlay">Play preview</button><button class="btn ghost" id="timelineStop">Stop</button><button class="btn ghost" id="timelineExport">Export project JSON</button><button class="btn ghost" id="timelineClear">Clear timeline</button></div><div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div><div id="timelineClips"></div><div id="timelinePreview"></div><div id="timelineStatus" class="status" role="status"></div></section>
         </div>
       </section>
+      </div>
+      </div>
     </main>
     <script src="/studio-tools.js" defer></script>
     <script src="/creator-lab-v91.js" defer></script>
+    <script src="/studio-pro.js" defer></script>
     <script src="/theme.js"></script>
       <script src="/mobile-nav.js" defer></script>
 </body>

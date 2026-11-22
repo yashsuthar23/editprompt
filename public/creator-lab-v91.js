@@ -5,18 +5,73 @@
   const downloadBlob = (blob, name) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500); };
   const loadScript = (src) => new Promise((resolve, reject) => { const old = [...document.scripts].find(s => s.src === src); if (old) { if (old.dataset.loaded === '1') return resolve(); old.addEventListener('load', resolve, {once:true}); old.addEventListener('error', reject, {once:true}); return; } const s = document.createElement('script'); s.src = src; s.async = true; s.onload = () => { s.dataset.loaded = '1'; resolve(); }; s.onerror = reject; document.head.appendChild(s); });
 
-  // Background removal: open-source client-side model; no server upload.
+  // ---- Robustness helpers: several CDN sources, safe JSON, WAV fallback ----
+  const loadAny = async (urls) => { let last; for (const u of urls) { try { await loadScript(u); return u; } catch (e) { last = e; document.querySelectorAll('script[src="' + u + '"]').forEach(n => n.remove()); } } throw last || new Error('Could not load script.'); };
+  const safeJson = async (r) => { try { return await r.json(); } catch { return { error: r.ok ? 'Unexpected server response.' : `Server returned ${r.status}. Please try again.` }; } };
+  const pcmToWav = (pcm, sampleRate) => { const buf = new ArrayBuffer(44 + pcm.length * 2); const v = new DataView(buf); const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); }; w(0, 'RIFF'); v.setUint32(4, 36 + pcm.length * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, pcm.length * 2, true); new Int16Array(buf, 44).set(pcm); return new Blob([buf], { type: 'audio/wav' }); };
+  const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+
+  // Background removal: IMG.LY AI model (browser-side) with automatic fallback to a built-in colour-based remover.
   let bgBlob = null;
+  const BG_SOURCES = ['https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm', 'https://esm.sh/@imgly/background-removal@1.5.5'];
+  async function loadBgModel() {
+    let last;
+    for (const url of BG_SOURCES) {
+      try { const mod = await withTimeout(import(url), 25000, 'Model download timed out.'); const fn = mod.removeBackground || mod.default; if (typeof fn === 'function') return fn; } catch (e) { last = e; }
+    }
+    throw last || new Error('Background-removal module did not load correctly.');
+  }
+  function colorKeyRemove(file, tol) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(); const url = URL.createObjectURL(file);
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not open this image.')); };
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const sc = Math.min(1, 2000 / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * sc)), h = Math.max(1, Math.round(img.height * sc));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+        const id = x.getImageData(0, 0, w, h), d = id.data;
+        const edge = []; const take = (px, py) => { const i = (py * w + px) * 4; edge.push([d[i], d[i + 1], d[i + 2]]); };
+        for (let i = 0; i < w; i++) { take(i, 0); take(i, h - 1); } for (let j = 0; j < h; j++) { take(0, j); take(w - 1, j); }
+        const med = (k) => { const a = edge.map(p => p[k]).sort((p, q) => p - q); return a[a.length >> 1]; };
+        const bg = [med(0), med(1), med(2)];
+        const dist = (i) => Math.hypot(d[i] - bg[0], d[i + 1] - bg[1], d[i + 2] - bg[2]);
+        const seen = new Uint8Array(w * h); const stack = [];
+        const push = (px, py) => { const p = py * w + px; if (!seen[p] && dist(p * 4) < tol) { seen[p] = 1; stack.push(p); } };
+        for (let i = 0; i < w; i++) { push(i, 0); push(i, h - 1); } for (let j = 0; j < h; j++) { push(0, j); push(w - 1, j); }
+        while (stack.length) { const p = stack.pop(); const px = p % w, py = (p / w) | 0; if (px > 0) push(px - 1, py); if (px < w - 1) push(px + 1, py); if (py > 0) push(px, py - 1); if (py < h - 1) push(px, py + 1); }
+        const soft = tol * 1.7;
+        for (let p = 0; p < w * h; p++) {
+          const i = p * 4;
+          if (seen[p]) { d[i + 3] = 0; continue; }
+          const px = p % w, py = (p / w) | 0;
+          const near = (px > 0 && seen[p - 1]) || (px < w - 1 && seen[p + 1]) || (py > 0 && seen[p - w]) || (py < h - 1 && seen[p + w]);
+          if (near) { const dd = dist(i); if (dd < soft) d[i + 3] = Math.round(255 * Math.max(0, (dd - tol) / (soft - tol))); }
+        }
+        x.putImageData(id, 0, 0);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('Could not create PNG.')), 'image/png');
+      };
+      img.src = url;
+    });
+  }
   $('bgRemove').addEventListener('click', async () => {
     const file = $('bgFile').files[0]; if (!file) return say('bgStatus', 'Choose an image first.');
-    const btn = $('bgRemove'); btn.disabled = true; say('bgStatus', 'Loading the browser model. First use may download model files...');
+    const btn = $('bgRemove'); btn.disabled = true; say('bgStatus', 'Loading the AI model. First use may download model files...');
     try {
-      const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
-      const removeBackground = mod.removeBackground || mod.default;
-      if (typeof removeBackground !== 'function') throw new Error('Background-removal module did not load correctly.');
-      bgBlob = await removeBackground(file, { progress: (key, current, total) => { if (total) say('bgStatus', `Processing ${key}: ${Math.round(current / total * 100)}%`); } });
-      $('bgPreview').src = URL.createObjectURL(bgBlob); $('bgDownload').disabled = false; say('bgStatus', 'Background removed. Download the transparent PNG.');
-    } catch (e) { say('bgStatus', `Could not remove background: ${e.message || e}. Check your internet connection and try again.`); }
+      let usedFallback = false;
+      try {
+        const removeBackground = await loadBgModel();
+        bgBlob = await removeBackground(file, { model: 'isnet_quint8', progress: (key, current, total) => { if (total) say('bgStatus', `Processing ${key}: ${Math.round(current / total * 100)}%`); } });
+      } catch (aiError) {
+        usedFallback = true;
+        say('bgStatus', 'AI model unavailable here, using built-in colour-based remover...');
+        const tol = Number($('bgTolerance')?.value) || 42;
+        bgBlob = await colorKeyRemove(file, tol);
+      }
+      $('bgPreview').src = URL.createObjectURL(bgBlob); $('bgDownload').disabled = false;
+      say('bgStatus', usedFallback ? 'Done with the built-in remover (best on plain, even backgrounds). Adjust the tolerance and retry if needed, or check your internet connection to use the AI model.' : 'Background removed with the AI model. Download the transparent PNG.');
+    } catch (e) { say('bgStatus', `Could not remove background: ${e.message || e}`); }
     finally { btn.disabled = false; }
   });
   $('bgDownload').addEventListener('click', () => { if (bgBlob) downloadBlob(bgBlob, 'editprompt-background-removed.png'); });
@@ -114,7 +169,7 @@
         ctx.putImageData(output, 0, 0);
         originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
         maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-        say('objStatus', 'Done. Review the result; small objects on simple backgrounds work best.');
+        say('objStatus', event.data.engine === 'builtin' ? 'Done (built-in eraser, works offline). Review the result; small objects on simple backgrounds work best.' : 'Done (OpenCV). Review the result; small objects on simple backgrounds work best.');
         button.disabled = false;
         worker.removeEventListener('message', onMessage);
       }
@@ -156,13 +211,13 @@
   let recorder=null, recordedBlob=null, stream=null;
   $('recStart').addEventListener('click',async()=>{try{stream=await navigator.mediaDevices.getUserMedia({audio:true});const chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};recorder.onstop=()=>{recordedBlob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});$('recPreview').src=URL.createObjectURL(recordedBlob);$('mp3Export').disabled=false;stream?.getTracks().forEach(t=>t.stop());say('recStatus','Recording ready. Preview it or export an MP3.');};recorder.start();$('recStart').disabled=true;$('recStop').disabled=false;say('recStatus','Recording...');}catch(e){say('recStatus',`Microphone unavailable: ${e.message||e}. Allow microphone access and use HTTPS.`);}});
   $('recStop').addEventListener('click',()=>{if(recorder?.state==='recording'){recorder.stop();$('recStart').disabled=false;$('recStop').disabled=true;}});
-  $('mp3Export').addEventListener('click',async()=>{if(!recordedBlob)return;const b=$('mp3Export');b.disabled=true;say('recStatus','Preparing MP3 encoder...');try{await loadScript('https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js');if(!window.lamejs?.Mp3Encoder)throw new Error('MP3 encoder could not be loaded.');const array=await recordedBlob.arrayBuffer();const AudioCtx=window.AudioContext||window.webkitAudioContext;const ac=new AudioCtx();const decoded=await ac.decodeAudioData(array.slice(0));const mono=new Float32Array(decoded.length);for(let c=0;c<decoded.numberOfChannels;c++){const d=decoded.getChannelData(c);for(let i=0;i<d.length;i++)mono[i]+=d[i]/decoded.numberOfChannels;}const sampleRate=decoded.sampleRate;const pcm=new Int16Array(mono.length);for(let i=0;i<mono.length;i++){const s=Math.max(-1,Math.min(1,mono[i]));pcm[i]=s<0?s*32768:s*32767;}const encoder=new window.lamejs.Mp3Encoder(1,sampleRate,128);const chunks=[];for(let i=0;i<pcm.length;i+=1152){const part=encoder.encodeBuffer(pcm.subarray(i,i+1152));if(part.length)chunks.push(new Uint8Array(part));}const end=encoder.flush();if(end.length)chunks.push(new Uint8Array(end));downloadBlob(new Blob(chunks,{type:'audio/mpeg'}),'editprompt-voice.mp3');await ac.close();say('recStatus','MP3 export complete.');}catch(e){say('recStatus',`MP3 export failed: ${e.message||e}`);}finally{b.disabled=false;}});
+  $('mp3Export').addEventListener('click',async()=>{if(!recordedBlob)return;const b=$('mp3Export');b.disabled=true;say('recStatus','Preparing MP3 encoder...');try{let lameOk=true;try{await loadAny(['https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js','https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js']);if(!window.lamejs?.Mp3Encoder)throw new Error('x');}catch{lameOk=false;}const array=await recordedBlob.arrayBuffer();const AudioCtx=window.AudioContext||window.webkitAudioContext;const ac=new AudioCtx();const decoded=await ac.decodeAudioData(array.slice(0));const mono=new Float32Array(decoded.length);for(let c=0;c<decoded.numberOfChannels;c++){const d=decoded.getChannelData(c);for(let i=0;i<d.length;i++)mono[i]+=d[i]/decoded.numberOfChannels;}const sampleRate=decoded.sampleRate;const pcm=new Int16Array(mono.length);for(let i=0;i<mono.length;i++){const s=Math.max(-1,Math.min(1,mono[i]));pcm[i]=s<0?s*32768:s*32767;}if(!lameOk){downloadBlob(pcmToWav(pcm,sampleRate),'editprompt-voice.wav');await ac.close();say('recStatus','MP3 encoder could not load (offline or blocked), so your recording was saved as a WAV file instead.');return;}const encoder=new window.lamejs.Mp3Encoder(1,sampleRate,128);const chunks=[];for(let i=0;i<pcm.length;i+=1152){const part=encoder.encodeBuffer(pcm.subarray(i,i+1152));if(part.length)chunks.push(new Uint8Array(part));}const end=encoder.flush();if(end.length)chunks.push(new Uint8Array(end));downloadBlob(new Blob(chunks,{type:'audio/mpeg'}),'editprompt-voice.mp3');await ac.close();say('recStatus','MP3 export complete.');}catch(e){say('recStatus',`MP3 export failed: ${e.message||e}`);}finally{b.disabled=false;}});
   $('ttsPlay').addEventListener('click',()=>{if(!('speechSynthesis'in window))return say('ttsStatus','Text-to-speech is not supported in this browser.');const text=$('labTtsText').value.trim();if(!text)return say('ttsStatus','Enter text first.');speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(text));say('ttsStatus','Playing system voice preview.');});$('labTtsStop').addEventListener('click',()=>{speechSynthesis.cancel();say('ttsStatus','Voice preview stopped.');});
 
   // Public prompt marketplace API.
-  async function loadMarket(){say('marketStatus','Loading marketplace...');try{const q=new URLSearchParams({q:$('marketSearch').value.trim(),category:$('marketCategory').value});const r=await fetch(`/api/marketplace/prompts?${q}`);const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not load marketplace.');const list=$('marketList');list.replaceChildren();if(!data.items?.length){list.textContent='No public prompts found yet.';}else data.items.forEach(item=>{const card=document.createElement('article');card.className='market-item';const h=document.createElement('b');h.textContent=item.title;const meta=document.createElement('div');meta.className='tag';meta.textContent=`${item.category} · by ${item.author} · ${item.created_at}`;const desc=document.createElement('p');desc.className='muted';desc.textContent=item.description||'';const pre=document.createElement('pre');pre.textContent=item.prompt;const actions=document.createElement('div');actions.className='actions';const copyBtn=document.createElement('button');copyBtn.className='btn ghost';copyBtn.textContent='Copy prompt';copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(item.prompt);say('marketStatus','Prompt copied.');}catch{say('marketStatus','Select the prompt text and copy it.');}});actions.append(copyBtn);card.append(h,meta,desc,pre,actions);list.append(card);});say('marketStatus',`${data.items?.length||0} prompt(s) found.`);}catch(e){say('marketStatus',e.message||'Marketplace is unavailable.');}}
+  async function loadMarket(){say('marketStatus','Loading marketplace...');try{const q=new URLSearchParams({q:$('marketSearch').value.trim(),category:$('marketCategory').value});const r=await fetch(`/api/marketplace/prompts?${q}`);const data=await safeJson(r);if(!r.ok)throw new Error(data.error||'Could not load marketplace.');const list=$('marketList');list.replaceChildren();if(!data.items?.length){list.textContent='No public prompts found yet.';}else data.items.forEach(item=>{const card=document.createElement('article');card.className='market-item';const h=document.createElement('b');h.textContent=item.title;const meta=document.createElement('div');meta.className='tag';meta.textContent=`${item.category} · by ${item.author} · ${item.created_at}`;const desc=document.createElement('p');desc.className='muted';desc.textContent=item.description||'';const pre=document.createElement('pre');pre.textContent=item.prompt;const actions=document.createElement('div');actions.className='actions';const copyBtn=document.createElement('button');copyBtn.className='btn ghost';copyBtn.textContent='Copy prompt';copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(item.prompt);say('marketStatus','Prompt copied.');}catch{say('marketStatus','Select the prompt text and copy it.');}});actions.append(copyBtn);card.append(h,meta,desc,pre,actions);list.append(card);});say('marketStatus',`${data.items?.length||0} prompt(s) found.`);}catch(e){say('marketStatus',e.message||'Marketplace is unavailable.');}}
   $('marketLoad').addEventListener('click',loadMarket);loadMarket();
-  $('marketPublish').addEventListener('click',async()=>{const payload={title:$('marketTitle').value.trim(),category:$('marketPublishCategory').value,description:$('marketDescription').value.trim(),tags:$('marketTags').value.trim(),prompt:$('marketPrompt').value.trim()};if(!payload.title||!payload.prompt)return say('publishStatus','Title and prompt are required.');const b=$('marketPublish');b.disabled=true;say('publishStatus','Publishing...');try{const r=await fetch('/api/marketplace/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json();if(!r.ok)throw new Error(data.error||'Could not publish. Please log in.');say('publishStatus','Prompt published to the public marketplace.');$('marketTitle').value='';$('marketDescription').value='';$('marketTags').value='';$('marketPrompt').value='';loadMarket();}catch(e){say('publishStatus',`${e.message||e} If you are not logged in, sign in to EditPrompt first.`);}finally{b.disabled=false;}});
+  $('marketPublish').addEventListener('click',async()=>{const payload={title:$('marketTitle').value.trim(),category:$('marketPublishCategory').value,description:$('marketDescription').value.trim(),tags:$('marketTags').value.trim(),prompt:$('marketPrompt').value.trim()};if(!payload.title||!payload.prompt)return say('publishStatus','Title and prompt are required.');const b=$('marketPublish');b.disabled=true;say('publishStatus','Publishing...');try{const r=await fetch('/api/marketplace/prompts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await safeJson(r);if(!r.ok)throw new Error(data.error||'Could not publish. Please log in.');say('publishStatus','Prompt published to the public marketplace.');$('marketTitle').value='';$('marketDescription').value='';$('marketTags').value='';$('marketPrompt').value='';loadMarket();}catch(e){say('publishStatus',`${e.message||e} If you are not logged in, sign in to EditPrompt first.`);}finally{b.disabled=false;}});
 
   // Timeline: local-only media, basic sequential preview, trim and position controls.
   let clips=[];let activeUrl=null;
@@ -173,4 +228,44 @@
   $('timelinePlay').addEventListener('click',()=>{if(!clips.length)return say('timelineStatus','Add media first.');const first=clips.slice().sort((a,b)=>a.start-b.start)[0];previewClip(first);const el=$('timelinePreview').querySelector('video,audio');if(el)el.play().catch(()=>say('timelineStatus','Press play in the preview player to start playback.'));});$('timelineStop').addEventListener('click',()=>{$('timelinePreview').querySelectorAll('video,audio').forEach(x=>x.pause());say('timelineStatus','Preview stopped.');});
   $('timelineExport').addEventListener('click',()=>{const project={app:'EditPrompt',version:'9.1',createdAt:new Date().toISOString(),clips:clips.map(({name,type,start,duration,trimIn,trimOut})=>({name,type,start,duration,trimIn,trimOut}))};downloadBlob(new Blob([JSON.stringify(project,null,2)],{type:'application/json'}),'editprompt-timeline-project.json');say('timelineStatus','Timeline project JSON exported. Media files are not embedded; keep the originals.');});$('timelineClear').addEventListener('click',()=>{clips.forEach(c=>URL.revokeObjectURL(c.url));clips=[];$('timelinePreview').replaceChildren();renderTimeline();say('timelineStatus','Timeline cleared.');});
   window.addEventListener('pagehide',()=>{recognition?.stop();speechSynthesis?.cancel?.();stream?.getTracks().forEach(t=>t.stop());clips.forEach(c=>URL.revokeObjectURL(c.url));if(activeUrl)URL.revokeObjectURL(activeUrl);});
+
+  // Image optimizer: resize, convert and compress in the browser.
+  let optBlob = null, optUrl = null, optName = 'editprompt-optimized';
+  const fmtSize = n => n > 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+  if ($('optQuality')) $('optQuality').addEventListener('input', () => say('optQualityValue', $('optQuality').value + '%'));
+  if ($('optFile')) $('optFile').addEventListener('change', () => {
+    const f = $('optFile').files[0]; optBlob = null; $('optDownload').disabled = true;
+    if (f) { optName = f.name.replace(/\.[^.]+$/, '') + '-optimized'; say('optStatus', `${f.name} selected (${fmtSize(f.size)}). Click Optimize image.`); }
+  });
+  if ($('optProcess')) $('optProcess').addEventListener('click', async () => {
+    const file = $('optFile').files[0]; if (!file) return say('optStatus', 'Choose an image first.');
+    if (!file.type.startsWith('image/')) return say('optStatus', 'Choose a PNG, JPG or WebP image.');
+    const btn = $('optProcess'); btn.disabled = true; say('optStatus', 'Optimizing...');
+    try {
+      const bmp = await createImageBitmap(file);
+      const reqW = Number($('optWidth').value);
+      const w = Math.max(1, Math.min(12000, Math.round(reqW > 0 ? reqW : bmp.width)));
+      const h = Math.max(1, Math.round(bmp.height * w / bmp.width));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d');
+      const type = $('optFormat').value;
+      if (type === 'image/jpeg') { x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); }
+      x.imageSmoothingQuality = 'high'; x.drawImage(bmp, 0, 0, w, h); bmp.close?.();
+      const q = (Number($('optQuality').value) || 85) / 100;
+      const blob = await new Promise(res => c.toBlob(res, type, q));
+      if (!blob) throw new Error('This browser cannot export that format.');
+      optBlob = blob;
+      if (optUrl) URL.revokeObjectURL(optUrl);
+      optUrl = URL.createObjectURL(blob);
+      $('optPreview').src = optUrl; $('optPreview').hidden = false; $('optDownload').disabled = false;
+      const saved = Math.round((1 - blob.size / file.size) * 100);
+      say('optStatus', `${w} × ${h}px · ${fmtSize(file.size)} → ${fmtSize(blob.size)}` + (saved > 0 ? ` (${saved}% smaller).` : ' (larger; try lower quality, smaller width or WebP).'));
+    } catch (e) { say('optStatus', `Could not optimize: ${e.message || e}`); }
+    finally { btn.disabled = false; }
+  });
+  if ($('optDownload')) $('optDownload').addEventListener('click', () => {
+    if (!optBlob) return;
+    const ext = optBlob.type === 'image/png' ? 'png' : optBlob.type === 'image/jpeg' ? 'jpg' : 'webp';
+    downloadBlob(optBlob, `${optName}.${ext}`);
+  });
 })();
