@@ -11,8 +11,12 @@
   const pcmToWav = (pcm, sampleRate) => { const buf = new ArrayBuffer(44 + pcm.length * 2); const v = new DataView(buf); const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); }; w(0, 'RIFF'); v.setUint32(4, 36 + pcm.length * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, pcm.length * 2, true); new Int16Array(buf, 44).set(pcm); return new Blob([buf], { type: 'audio/wav' }); };
   const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
 
+  // ---- Progress bar helpers (0 -> 100%) ----
+  const prog = (id, pct, label) => { const el = $(id); if (!el) return; if (pct == null) { el.hidden = true; return; } el.hidden = false; const v = Math.max(0, Math.min(100, Math.round(pct))); el.setAttribute('aria-valuenow', v); const b = el.querySelector('.sp-progress-bar'); if (b) b.style.width = v + '%'; const l = el.querySelector('.sp-progress-label'); if (l) l.textContent = v + '%'; };
+  const creep = (id, from, to) => { let v = from; prog(id, v); const t = setInterval(() => { v += (to - v) * 0.06; prog(id, v); }, 250); return () => clearInterval(t); };
+
   // Background removal: IMG.LY AI model (browser-side) with automatic fallback to a built-in colour-based remover.
-  let bgBlob = null;
+  let bgBlob = null; let bgStop = () => {};
   const BG_SOURCES = ['https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm', 'https://esm.sh/@imgly/background-removal@1.5.5'];
   async function loadBgModel() {
     let last;
@@ -57,21 +61,34 @@
   }
   $('bgRemove').addEventListener('click', async () => {
     const file = $('bgFile').files[0]; if (!file) return say('bgStatus', 'Choose an image first.');
-    const btn = $('bgRemove'); btn.disabled = true; say('bgStatus', 'Loading the AI model. First use may download model files...');
+    const btn = $('bgRemove'); btn.disabled = true; prog('bgProgress', 0); say('bgStatus', 'Starting... loading the AI model (first use downloads model files).');
     try {
       let usedFallback = false;
       try {
-        const removeBackground = await loadBgModel();
-        bgBlob = await removeBackground(file, { model: 'isnet_quint8', progress: (key, current, total) => { if (total) say('bgStatus', `Processing ${key}: ${Math.round(current / total * 100)}%`); } });
+        let last = 0; const fetchP = {}, compP = {};
+        const ratio = o => { let c = 0, t = 0; for (const k in o) { c += o[k][0]; t += o[k][1]; } return t ? c / t : 0; };
+        bgStop = creep('bgProgress', 0, 8);
+        const removeBackground = await loadBgModel(); bgStop(); last = 8; prog('bgProgress', last);
+        bgBlob = await removeBackground(file, { model: 'isnet_quint8', progress: (key, current, total) => {
+          if (!total) return;
+          const isFetch = String(key).startsWith('fetch'); (isFetch ? fetchP : compP)[key] = [current, total];
+          const fr = Object.keys(fetchP).length ? ratio(fetchP) : (Object.keys(compP).length ? 1 : 0);
+          const pct = Math.min(99, Math.max(last, Math.round(8 + 57 * fr + 35 * ratio(compP)))); last = pct;
+          prog('bgProgress', pct);
+          say('bgStatus', fr < 1 ? `Downloading AI model... ${pct}%` : `Removing background... ${pct}%`);
+        } });
+        prog('bgProgress', 100);
       } catch (aiError) {
-        usedFallback = true;
+        bgStop(); usedFallback = true;
         say('bgStatus', 'AI model unavailable here, using built-in colour-based remover...');
+        const stop2 = creep('bgProgress', 10, 90);
         const tol = Number($('bgTolerance')?.value) || 42;
-        bgBlob = await colorKeyRemove(file, tol);
+        try { bgBlob = await colorKeyRemove(file, tol); } finally { stop2(); }
+        prog('bgProgress', 100);
       }
       $('bgPreview').src = URL.createObjectURL(bgBlob); $('bgDownload').disabled = false;
       say('bgStatus', usedFallback ? 'Done with the built-in remover (best on plain, even backgrounds). Adjust the tolerance and retry if needed, or check your internet connection to use the AI model.' : 'Background removed with the AI model. Download the transparent PNG.');
-    } catch (e) { say('bgStatus', `Could not remove background: ${e.message || e}`); }
+    } catch (e) { prog('bgProgress', null); say('bgStatus', `Could not remove background: ${e.message || e}`); }
     finally { btn.disabled = false; }
   });
   $('bgDownload').addEventListener('click', () => { if (bgBlob) downloadBlob(bgBlob, 'editprompt-background-removed.png'); });
@@ -158,6 +175,7 @@
     const button = $('objApply');
     button.disabled = true;
     const jobId = ++objJob;
+    const stopObj = creep('objProgress', 2, 92);
     const imageData = originalImage;
     const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
     const worker = ensureObjectWorker();
@@ -169,11 +187,13 @@
         ctx.putImageData(output, 0, 0);
         originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
         maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        stopObj(); prog('objProgress', 100);
         say('objStatus', event.data.engine === 'builtin' ? 'Done (built-in eraser, works offline). Review the result; small objects on simple backgrounds work best.' : 'Done (OpenCV). Review the result; small objects on simple backgrounds work best.');
         button.disabled = false;
         worker.removeEventListener('message', onMessage);
       }
       if (event.data.type === 'error') {
+        stopObj(); prog('objProgress', null);
         say('objStatus', `Could not run inpainting: ${event.data.message}`);
         button.disabled = false;
         worker.removeEventListener('message', onMessage);
@@ -181,6 +201,7 @@
     };
     worker.addEventListener('message', onMessage);
     worker.onerror = error => {
+      stopObj(); prog('objProgress', null);
       say('objStatus', `Background processing failed: ${error.message || 'Worker error'}. Check your connection and retry.`);
       button.disabled = false;
     };

@@ -313,3 +313,11 @@ body #creatorLabTools .preview { border-radius: 12px; }
 /* keep the empty preview image hidden (beats the lab's inline .preview rule) */
 body #creatorLabTools #bgPreview:not([src]),
 body #creatorLabTools #recPreview:not([src]) { display: none; }
+
+/* ---------- Progress bar (0-100%) ---------- */
+.sp-progress { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; }
+.sp-progress[hidden] { display: none; }
+.sp-progress-track { flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--text, #fff) 12%, transparent); }
+.sp-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--sp-accent), color-mix(in srgb, var(--sp-accent) 55%, #fff)); transition: width 0.25s ease; }
+.sp-progress-label { min-width: 44px; text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .sp-progress-bar { transition: none; } }
