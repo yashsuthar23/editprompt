@@ -93,60 +93,50 @@
   });
   $('bgDownload').addEventListener('click', () => { if (bgBlob) downloadBlob(bgBlob, 'editprompt-background-removed.png'); });
 
-  // Object eraser: OpenCV runs in a Web Worker so loading/processing cannot freeze the page.
+  // Object eraser: select with a brush or rectangle, then erase with the built-in patch-based engine (Web Worker, real progress).
   const canvas = $('objCanvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  let originalImage = null;
-  let painting = false;
   const maskCanvas = document.createElement('canvas');
   const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
-  let objWorker = null;
-  let objJob = 0;
+  const tintCanvas = document.createElement('canvas');
+  let originalImage = null, pristine = null, drawing = false, lastPt = null, rectStart = null, rectNow = null;
+  let objHistory = [], objWorker = null, objJob = 0, objWatch = null;
+  const objMode = () => ($('objMode') && $('objMode').value) || 'brush';
 
-  function ensureObjectWorker() {
-    if (!objWorker) objWorker = new Worker('/object-remover.worker.js');
-    return objWorker;
-  }
-
-  function paintMask(e) {
-    const rect = canvas.getBoundingClientRect();
-    const sx = canvas.width / rect.width;
-    const sy = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * sx;
-    const y = (e.clientY - rect.top) * sy;
-    const size = Number($('objBrush').value) * sx;
-    maskCtx.fillStyle = '#fff';
-    maskCtx.beginPath();
-    maskCtx.arc(x, y, size / 2, 0, Math.PI * 2);
-    maskCtx.fill();
-    ctx.save();
-    ctx.globalAlpha = .5;
-    ctx.fillStyle = '#ff3155';
-    ctx.beginPath();
-    ctx.arc(x, y, size / 2, 0, Math.PI * 2);
-    ctx.fill();
+  function renderObj() {
+    if (!originalImage) return;
+    ctx.putImageData(originalImage, 0, 0);
+    tintCanvas.width = maskCanvas.width; tintCanvas.height = maskCanvas.height;
+    const t = tintCanvas.getContext('2d');
+    t.drawImage(maskCanvas, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = '#ff3155'; t.fillRect(0, 0, tintCanvas.width, tintCanvas.height);
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.drawImage(tintCanvas, 0, 0);
+    if (rectStart && rectNow) {
+      const x = Math.min(rectStart.x, rectNow.x), y = Math.min(rectStart.y, rectNow.y), w = Math.abs(rectNow.x - rectStart.x), h = Math.abs(rectNow.y - rectStart.y);
+      ctx.globalAlpha = 0.35; ctx.fillStyle = '#ff3155'; ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1, canvas.width / 450); ctx.setLineDash([8, 5]); ctx.strokeRect(x, y, w, h);
+    }
     ctx.restore();
   }
+  const ptOf = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height }; };
+  const brushPx = () => Math.max(2, Number($('objBrush').value) * canvas.width / Math.max(1, canvas.getBoundingClientRect().width));
+  const pushHistory = () => { objHistory.push({ img: originalImage, mask: maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height) }); if (objHistory.length > 12) objHistory.shift(); };
+  const maskHasPixels = () => { const d = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) return true; return false; };
 
   $('objFile').addEventListener('change', () => {
     const file = $('objFile').files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return say('objStatus', 'Choose a PNG, JPG or WebP image.');
-    const image = new Image();
-    const imageUrl = URL.createObjectURL(file);
+    const image = new Image(); const imageUrl = URL.createObjectURL(file);
     image.onload = () => {
-      // Keep browser memory and worker processing reasonable on large phone photos.
+      // Keep browser memory and processing time reasonable on large phone photos.
       const scale = Math.min(1, 1000 / Math.max(image.width, image.height));
-      canvas.width = Math.max(1, Math.round(image.width * scale));
-      canvas.height = Math.max(1, Math.round(image.height * scale));
-      maskCanvas.width = canvas.width;
-      maskCanvas.height = canvas.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      canvas.width = Math.max(1, Math.round(image.width * scale)); canvas.height = Math.max(1, Math.round(image.height * scale));
+      maskCanvas.width = canvas.width; maskCanvas.height = canvas.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height); pristine = originalImage; objHistory = [];
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); prog('objProgress', null);
       $('objDownload').disabled = false;
-      say('objStatus', `Image ready (${canvas.width} × ${canvas.height}). Paint over a small object, then erase.`);
+      say('objStatus', `Image ready (${canvas.width} × ${canvas.height}). Select the object with the brush or a rectangle, then click Erase.`);
       URL.revokeObjectURL(imageUrl);
     };
     image.onerror = () => { URL.revokeObjectURL(imageUrl); say('objStatus', 'Could not open this image. Try a PNG, JPG or WebP file.'); };
@@ -155,69 +145,70 @@
 
   canvas.addEventListener('pointerdown', event => {
     if (!originalImage) return;
-    painting = true;
-    canvas.setPointerCapture(event.pointerId);
-    paintMask(event);
+    event.preventDefault(); canvas.setPointerCapture(event.pointerId); pushHistory();
+    const p = ptOf(event);
+    if (objMode() === 'rect') { rectStart = p; rectNow = p; }
+    else { drawing = true; lastPt = p; maskCtx.fillStyle = '#fff'; maskCtx.beginPath(); maskCtx.arc(p.x, p.y, brushPx() / 2, 0, Math.PI * 2); maskCtx.fill(); }
+    renderObj();
   });
-  canvas.addEventListener('pointermove', event => { if (painting) paintMask(event); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(name => canvas.addEventListener(name, () => { painting = false; }));
-
-  $('objUndo').addEventListener('click', () => {
+  canvas.addEventListener('pointermove', event => {
     if (!originalImage) return;
-    ctx.putImageData(originalImage, 0, 0);
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    say('objStatus', 'Original image restored.');
+    const p = ptOf(event);
+    if (rectStart) { rectNow = p; renderObj(); }
+    else if (drawing) { maskCtx.strokeStyle = '#fff'; maskCtx.lineCap = 'round'; maskCtx.lineJoin = 'round'; maskCtx.lineWidth = brushPx(); maskCtx.beginPath(); maskCtx.moveTo(lastPt.x, lastPt.y); maskCtx.lineTo(p.x, p.y); maskCtx.stroke(); lastPt = p; renderObj(); }
+  });
+  const endSelect = () => {
+    if (rectStart && rectNow) { maskCtx.fillStyle = '#fff'; maskCtx.fillRect(Math.min(rectStart.x, rectNow.x), Math.min(rectStart.y, rectNow.y), Math.abs(rectNow.x - rectStart.x), Math.abs(rectNow.y - rectStart.y)); }
+    rectStart = rectNow = null; drawing = false; lastPt = null; renderObj();
+  };
+  ['pointerup', 'pointercancel'].forEach(n => canvas.addEventListener(n, endSelect));
+
+  $('objUndoStep').addEventListener('click', () => {
+    const h = objHistory.pop(); if (!h) return say('objStatus', 'Nothing to undo.');
+    originalImage = h.img; maskCtx.putImageData(h.mask, 0, 0); renderObj(); say('objStatus', 'Undone.');
+  });
+  $('objClear').addEventListener('click', () => {
+    if (!originalImage) return; pushHistory(); maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); say('objStatus', 'Selection cleared.');
+  });
+  $('objUndo').addEventListener('click', () => {
+    if (!pristine) return; originalImage = pristine; objHistory = []; maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); prog('objProgress', null); say('objStatus', 'Original image restored.');
+  });
+  $('objDownload').addEventListener('click', () => {
+    if (!originalImage) return;
+    const c = document.createElement('canvas'); c.width = originalImage.width; c.height = originalImage.height; c.getContext('2d').putImageData(originalImage, 0, 0);
+    c.toBlob(b => { if (b) downloadBlob(b, 'editprompt-object-removed.png'); }, 'image/png');
   });
 
   $('objApply').addEventListener('click', () => {
     if (!originalImage) return say('objStatus', 'Choose an image first.');
     if (typeof Worker === 'undefined') return say('objStatus', 'This browser does not support background processing. Please use the latest Chrome or Edge.');
-    const button = $('objApply');
-    button.disabled = true;
+    if (!maskHasPixels()) return say('objStatus', 'Select the object first: paint over it with the brush or draw a rectangle around it.');
+    const button = $('objApply'); button.disabled = true;
+    pushHistory();
     const jobId = ++objJob;
-    const stopObj = creep('objProgress', 2, 92);
+    prog('objProgress', 0); say('objStatus', 'Starting...');
+    if (!objWorker) objWorker = new Worker('/object-remover.worker.js');
+    const worker = objWorker;
     const imageData = originalImage;
     const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-    const worker = ensureObjectWorker();
+    const finish = () => { clearTimeout(objWatch); button.disabled = false; worker.removeEventListener('message', onMessage); };
+    const fail = msg => { prog('objProgress', null); say('objStatus', msg); objHistory.pop(); finish(); };
+    // Watchdog: if the worker goes silent for 60s, stop it instead of hanging forever.
+    const arm = () => { clearTimeout(objWatch); objWatch = setTimeout(() => { try { worker.terminate(); } catch (e) {} objWorker = null; fail('Erasing took too long and was stopped. Try selecting a smaller area.'); }, 60000); };
     const onMessage = event => {
       if (event.data.id !== jobId) return;
-      if (event.data.type === 'status') say('objStatus', event.data.message);
-      if (event.data.type === 'done') {
-        const output = new ImageData(new Uint8ClampedArray(event.data.output), canvas.width, canvas.height);
-        ctx.putImageData(output, 0, 0);
-        originalImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-        stopObj(); prog('objProgress', 100);
-        say('objStatus', event.data.engine === 'builtin' ? 'Done (built-in eraser, works offline). Review the result; small objects on simple backgrounds work best.' : 'Done (OpenCV). Review the result; small objects on simple backgrounds work best.');
-        button.disabled = false;
-        worker.removeEventListener('message', onMessage);
-      }
-      if (event.data.type === 'error') {
-        stopObj(); prog('objProgress', null);
-        say('objStatus', `Could not run inpainting: ${event.data.message}`);
-        button.disabled = false;
-        worker.removeEventListener('message', onMessage);
-      }
+      if (event.data.type === 'progress') { arm(); prog('objProgress', event.data.pct); say('objStatus', `Erasing... ${Math.round(event.data.pct)}%`); }
+      else if (event.data.type === 'done') {
+        originalImage = new ImageData(new Uint8ClampedArray(event.data.output), canvas.width, canvas.height);
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); prog('objProgress', 100);
+        say('objStatus', 'Done. Not happy? Click Undo, select a slightly larger area (include shadows) and try again.');
+        finish();
+      } else if (event.data.type === 'error') fail(`Could not erase: ${event.data.message}`);
     };
     worker.addEventListener('message', onMessage);
-    worker.onerror = error => {
-      stopObj(); prog('objProgress', null);
-      say('objStatus', `Background processing failed: ${error.message || 'Worker error'}. Check your connection and retry.`);
-      button.disabled = false;
-    };
-    say('objStatus', 'Starting background image processing...');
-    worker.postMessage({
-      id: jobId,
-      width: canvas.width,
-      height: canvas.height,
-      imageBuffer: imageData.data.slice().buffer,
-      maskBuffer: maskData.data.slice().buffer
-    });
-  });
-
-  $('objDownload').addEventListener('click', () => canvas.toBlob(blob => blob && downloadBlob(blob, 'editprompt-object-erased.png'), 'image/png'));
-  window.addEventListener('pagehide', () => {
-    if (objWorker) objWorker.terminate();
+    worker.onerror = error => { try { worker.terminate(); } catch (e) {} objWorker = null; fail(`Background processing failed: ${error.message || 'Worker error'}.`); };
+    arm();
+    worker.postMessage({ id: jobId, width: canvas.width, height: canvas.height, imageBuffer: imageData.data.buffer.slice(0), maskBuffer: maskData.data.buffer });
   });
 
   // Browser speech recognition.
