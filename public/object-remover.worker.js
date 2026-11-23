@@ -102,6 +102,102 @@ function inpaint(src, maskRgba, W, H, onProgress) {
   return out;
 }
 
+
+/* ---------- Large selections: solve at low resolution, upscale, add matching grain ----------
+ * The patch search is great for small objects but copies visible streaks when the hole is big.
+ * For big holes we fill a small version of the picture (where the hole is only ~80px), upscale that
+ * fill, feather it into the original and add film grain that matches the surroundings. */
+const LARGE_PX = 96;      // hole bigger than this (px, either side) uses the low-res path
+const LOWRES_MODE = 'smooth'; // 'smooth' avoids streaks/blotches on big holes; 'patch' kept for experiments
+
+function dilateBin(bin, w, h, iters) {
+  let cur = bin;
+  for (let it = 0; it < iters; it++) {
+    const nxt = cur.slice();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const p = y * w + x; if (cur[p]) continue;
+      if ((x > 0 && cur[p - 1]) || (x < w - 1 && cur[p + 1]) || (y > 0 && cur[p - w]) || (y < h - 1 && cur[p + w])) nxt[p] = 1;
+    }
+    cur = nxt;
+  }
+  return cur;
+}
+function boxBlurF(src, w, h, r) {
+  const tmp = new Float32Array(w * h), out = new Float32Array(w * h), n = 2 * r + 1;
+  for (let y = 0; y < h; y++) { let s = 0; for (let x = -r; x <= r; x++) s += src[y * w + Math.min(w - 1, Math.max(0, x))]; for (let x = 0; x < w; x++) { tmp[y * w + x] = s / n; s += src[y * w + Math.min(w - 1, x + r + 1)] - src[y * w + Math.max(0, x - r)]; } }
+  for (let x = 0; x < w; x++) { let s = 0; for (let y = -r; y <= r; y++) s += tmp[Math.min(h - 1, Math.max(0, y)) * w + x]; for (let y = 0; y < h; y++) { out[y * w + x] = s / n; s += tmp[Math.min(h - 1, y + r + 1) * w + x] - tmp[Math.max(0, y - r) * w + x]; } }
+  return out;
+}
+function areaDown(src, w, h, nw, nh, ch) {
+  const out = new Float32Array(nw * nh * ch);
+  for (let dy = 0; dy < nh; dy++) {
+    const y0 = Math.floor(dy * h / nh), y1 = Math.max(y0 + 1, Math.floor((dy + 1) * h / nh));
+    for (let dx = 0; dx < nw; dx++) {
+      const x0 = Math.floor(dx * w / nw), x1 = Math.max(x0 + 1, Math.floor((dx + 1) * w / nw));
+      for (let c = 0; c < ch; c++) { let s = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { s += src[(y * w + x) * ch + c]; n++; } out[(dy * nw + dx) * ch + c] = s / n; }
+    }
+  }
+  return out;
+}
+function bilinearUp(src, w, h, nw, nh) {
+  const out = new Float32Array(nw * nh * 3);
+  for (let y = 0; y < nh; y++) {
+    const fy = Math.min(h - 1, Math.max(0, (y + 0.5) * h / nh - 0.5)), y0 = Math.floor(fy), y1 = Math.min(h - 1, y0 + 1), ty = fy - y0;
+    for (let x = 0; x < nw; x++) {
+      const fx = Math.min(w - 1, Math.max(0, (x + 0.5) * w / nw - 0.5)), x0 = Math.floor(fx), x1 = Math.min(w - 1, x0 + 1), tx = fx - x0;
+      for (let c = 0; c < 3; c++) {
+        const a = src[(y0 * w + x0) * 4 + c], b = src[(y0 * w + x1) * 4 + c], d = src[(y1 * w + x0) * 4 + c], e = src[(y1 * w + x1) * 4 + c];
+        out[(y * nw + x) * 3 + c] = (a * (1 - tx) + b * tx) * (1 - ty) + (d * (1 - tx) + e * tx) * ty;
+      }
+    }
+  }
+  return out;
+}
+
+function inpaintAuto(src, maskRgba, W, H, onProgress) {
+  const mask = new Uint8Array(W * H); let minx = W, miny = H, maxx = -1, maxy = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = y * W + x; if (maskRgba[p * 4] > 10 || maskRgba[p * 4 + 1] > 10 || maskRgba[p * 4 + 2] > 10) { mask[p] = 1; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; } }
+  if (maxx < 0) return new Uint8ClampedArray(src);
+  const bw = maxx - minx + 1, bh = maxy - miny + 1, big = Math.max(bw, bh);
+  if (big <= LARGE_PX) return inpaint(src, maskRgba, W, H, onProgress);
+
+  const side = Math.round(big * 1.8) + 64, cw = Math.min(W, side), ch = Math.min(H, side);
+  const cx0 = Math.min(W - cw, Math.max(0, Math.round((minx + maxx) / 2 - cw / 2))), cy0 = Math.min(H - ch, Math.max(0, Math.round((miny + maxy) / 2 - ch / 2)));
+  const s = Math.max(1 / 10, 80 / big), lw = Math.max(24, Math.round(cw * s)), lh = Math.max(24, Math.round(ch * s));
+  const crop = new Float32Array(cw * ch * 4), cm = new Float32Array(cw * ch);
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) { const o = ((cy0 + y) * W + cx0 + x), i = (y * cw + x) * 4; crop[i] = src[o * 4]; crop[i + 1] = src[o * 4 + 1]; crop[i + 2] = src[o * 4 + 2]; crop[i + 3] = 255; cm[y * cw + x] = mask[o]; }
+  const lowF = areaDown(crop, cw, ch, lw, lh, 4), lowMF = areaDown(cm, cw, ch, lw, lh, 1);
+  const lowImg = new Uint8ClampedArray(lw * lh * 4), lowMask = new Uint8ClampedArray(lw * lh * 4);
+  for (let p = 0; p < lw * lh; p++) { lowImg[p * 4] = lowF[p * 4]; lowImg[p * 4 + 1] = lowF[p * 4 + 1]; lowImg[p * 4 + 2] = lowF[p * 4 + 2]; lowImg[p * 4 + 3] = 255; if (lowMF[p] > 0.2) { lowMask[p * 4] = lowMask[p * 4 + 1] = lowMask[p * 4 + 2] = 255; lowMask[p * 4 + 3] = 255; } }
+  let lowOut;
+  if (LOWRES_MODE === 'smooth') { onProgress(40); const unk = new Uint8Array(lw * lh); for (let p = 0; p < lw * lh; p++) unk[p] = lowMask[p * 4] ? 1 : 0; lowOut = diffuseFill(new Uint8ClampedArray(lowImg), dilateBin(unk, lw, lh, 1), lw, lh); }
+  else lowOut = inpaint(lowImg, lowMask, lw, lh, p => onProgress(Math.round(p * 0.9)));
+  const fill = bilinearUp(lowOut, lw, lh, cw, ch);
+
+  // film grain that matches the area around the selection
+  let m0 = new Uint8Array(cw * ch); for (let p = 0; p < m0.length; p++) m0[p] = cm[p] > 0 ? 1 : 0;
+  const mDil = dilateBin(m0, cw, ch, 6); let sum = 0, cnt = 0;
+  const lum = i => 0.299 * src[i] + 0.587 * src[i + 1] + 0.114 * src[i + 2];
+  for (let y = 2; y < ch - 2; y += 2) for (let x = 2; x < cw - 2; x += 2) {
+    if (mDil[y * cw + x]) continue; const o = ((cy0 + y) * W + cx0 + x) * 4; let m = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) m += lum(((cy0 + y + dy) * W + cx0 + x + dx) * 4);
+    const r = lum(o) - m / 9; sum += r * r; cnt++;
+  }
+  const sigma = Math.min(14, cnt ? Math.sqrt(sum / cnt) * 0.9 : 0);
+  let seed = 7; const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
+
+  // feathered composite
+  const grow = dilateBin(m0, cw, ch, 2), mf = new Float32Array(cw * ch); for (let p = 0; p < mf.length; p++) mf[p] = grow[p];
+  const alpha = boxBlurF(mf, cw, ch, 2), out = new Uint8ClampedArray(src);
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+    const a = alpha[y * cw + x]; if (a <= 0.001) continue;
+    const o = ((cy0 + y) * W + cx0 + x) * 4, f = (y * cw + x) * 3, n = gauss() * sigma * a;
+    out[o] = src[o] * (1 - a) + (fill[f] + n) * a; out[o + 1] = src[o + 1] * (1 - a) + (fill[f + 1] + n) * a; out[o + 2] = src[o + 2] * (1 - a) + (fill[f + 2] + n) * a; out[o + 3] = 255;
+  }
+  return out;
+}
+
 self.onmessage = event => {
   const { id, width, height, imageBuffer, maskBuffer } = event.data;
   try {
@@ -109,7 +205,7 @@ self.onmessage = event => {
     let any = false; for (let p = 0; p < width * height; p++) if (mask[p * 4] > 10 || mask[p * 4 + 1] > 10 || mask[p * 4 + 2] > 10) { any = true; break; }
     if (!any) throw new Error('Select the object first (paint over it or draw a rectangle), then click Erase.');
     self.postMessage({ id, type: 'progress', pct: 1 });
-    const result = inpaint(img, mask, width, height, pct => self.postMessage({ id, type: 'progress', pct }));
+    const result = inpaintAuto(img, mask, width, height, pct => self.postMessage({ id, type: 'progress', pct }));
     self.postMessage({ id, type: 'done', output: result.buffer, engine: 'builtin' }, [result.buffer]);
   } catch (error) {
     self.postMessage({ id, type: 'error', message: error && error.message ? error.message : String(error) });

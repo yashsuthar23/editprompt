@@ -210,6 +210,7 @@
     const imageData = originalImage, maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
     const payload = () => ({ width: canvas.width, height: canvas.height, imageBuffer: imageData.data.buffer.slice(0), maskBuffer: maskData.data.buffer.slice(0) });
     let stopCreep = () => {}, result = null;
+    const covered = (() => { let n = 0; const d = maskData.data; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n / (d.length / 4); })();
     prog('objProgress', 0); say('objStatus', 'Starting...');
     try {
       const mode = ($('objQuality') && $('objQuality').value) || 'ai';
@@ -232,7 +233,7 @@
       stopCreep();
       originalImage = new ImageData(new Uint8ClampedArray(result.output), canvas.width, canvas.height);
       maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); prog('objProgress', 100);
-      say('objStatus', (result.engine === 'ai' ? 'Done with the AI model. ' : 'Done with the built-in eraser. ') + 'Not happy? Click Undo, select a slightly larger area (include shadows and reflections) and try again.');
+      say('objStatus', (result.engine === 'ai' ? 'Done with the AI model. ' : 'Done with the built-in eraser. ') + (result.engine !== 'ai' && covered > 0.05 ? 'This was a large area, so the built-in eraser filled it softly. For a natural result choose Quality: Best (AI model). ' : '') + 'Not happy? Click Undo, select a slightly larger area (include shadows and reflections) and try again.');
     } catch (e) {
       stopCreep(); prog('objProgress', null); objHistory.pop();
       say('objStatus', `Could not erase: ${e.message || e}`);
