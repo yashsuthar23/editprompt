@@ -179,36 +179,64 @@
     c.toBlob(b => { if (b) downloadBlob(b, 'editprompt-object-removed.png'); }, 'image/png');
   });
 
-  $('objApply').addEventListener('click', () => {
+  // ---- erase engines: AI (LaMa in a worker) first, built-in patch engine as automatic fallback ----
+  const objWorkers = {};
+  const objWorkerUrl = kind => (kind === 'ai' ? '/object-remover-ai.worker.js' : '/object-remover.worker.js');
+  const killWorker = kind => { try { objWorkers[kind] && objWorkers[kind].terminate(); } catch (e) { /* ignore */ } objWorkers[kind] = null; };
+  function runJob(kind, payload, ui) {
+    return new Promise((resolve, reject) => {
+      if (!objWorkers[kind]) objWorkers[kind] = new Worker(objWorkerUrl(kind));
+      const w = objWorkers[kind], id = ++objJob; let timer;
+      const cleanup = () => { clearTimeout(timer); w.removeEventListener('message', onMsg); w.removeEventListener('error', onErr); };
+      const arm = ms => { clearTimeout(timer); timer = setTimeout(() => { killWorker(kind); cleanup(); reject(new Error('it took too long and was stopped')); }, ms); };
+      const onMsg = e => {
+        const d = e.data; if (d.id !== id) return;
+        if (d.type === 'progress') { arm(ui.watchMs); ui.progress(d.pct, d.label); }
+        else if (d.type === 'stage') { arm(d.watchMs || ui.watchMs); if (ui.stage) ui.stage(d); }
+        else if (d.type === 'done') { cleanup(); resolve(d); }
+        else if (d.type === 'error') { cleanup(); const er = new Error(d.message); er.aiFailed = !!d.aiFailed; reject(er); }
+      };
+      const onErr = e => { killWorker(kind); cleanup(); const er = new Error(e.message || 'worker error'); er.aiFailed = true; reject(er); };
+      w.addEventListener('message', onMsg); w.addEventListener('error', onErr); arm(ui.watchMs);
+      w.postMessage(Object.assign({ id }, payload));
+    });
+  }
+
+  $('objApply').addEventListener('click', async () => {
     if (!originalImage) return say('objStatus', 'Choose an image first.');
     if (typeof Worker === 'undefined') return say('objStatus', 'This browser does not support background processing. Please use the latest Chrome or Edge.');
     if (!maskHasPixels()) return say('objStatus', 'Select the object first: paint over it with the brush or draw a rectangle around it.');
-    const button = $('objApply'); button.disabled = true;
-    pushHistory();
-    const jobId = ++objJob;
+    const button = $('objApply'); button.disabled = true; pushHistory();
+    const imageData = originalImage, maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+    const payload = () => ({ width: canvas.width, height: canvas.height, imageBuffer: imageData.data.buffer.slice(0), maskBuffer: maskData.data.buffer.slice(0) });
+    let stopCreep = () => {}, result = null;
     prog('objProgress', 0); say('objStatus', 'Starting...');
-    if (!objWorker) objWorker = new Worker('/object-remover.worker.js');
-    const worker = objWorker;
-    const imageData = originalImage;
-    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-    const finish = () => { clearTimeout(objWatch); button.disabled = false; worker.removeEventListener('message', onMessage); };
-    const fail = msg => { prog('objProgress', null); say('objStatus', msg); objHistory.pop(); finish(); };
-    // Watchdog: if the worker goes silent for 60s, stop it instead of hanging forever.
-    const arm = () => { clearTimeout(objWatch); objWatch = setTimeout(() => { try { worker.terminate(); } catch (e) {} objWorker = null; fail('Erasing took too long and was stopped. Try selecting a smaller area.'); }, 60000); };
-    const onMessage = event => {
-      if (event.data.id !== jobId) return;
-      if (event.data.type === 'progress') { arm(); prog('objProgress', event.data.pct); say('objStatus', `Erasing... ${Math.round(event.data.pct)}%`); }
-      else if (event.data.type === 'done') {
-        originalImage = new ImageData(new Uint8ClampedArray(event.data.output), canvas.width, canvas.height);
-        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); prog('objProgress', 100);
-        say('objStatus', 'Done. Not happy? Click Undo, select a slightly larger area (include shadows) and try again.');
-        finish();
-      } else if (event.data.type === 'error') fail(`Could not erase: ${event.data.message}`);
-    };
-    worker.addEventListener('message', onMessage);
-    worker.onerror = error => { try { worker.terminate(); } catch (e) {} objWorker = null; fail(`Background processing failed: ${error.message || 'Worker error'}.`); };
-    arm();
-    worker.postMessage({ id: jobId, width: canvas.width, height: canvas.height, imageBuffer: imageData.data.buffer.slice(0), maskBuffer: maskData.data.buffer });
+    try {
+      const mode = ($('objQuality') && $('objQuality').value) || 'ai';
+      if (mode === 'ai') {
+        try {
+          result = await runJob('ai', payload(), {
+            watchMs: 120000,
+            progress: (p, label) => { stopCreep(); prog('objProgress', p); say('objStatus', label || `Preparing AI... ${Math.round(p)}%`); },
+            stage: d => { if (d.stage === 'infer') { stopCreep(); stopCreep = creep('objProgress', d.from || 58, 97); say('objStatus', 'AI is removing the object and rebuilding the background (20–60 s on most devices)...'); } }
+          });
+        } catch (e) {
+          stopCreep();
+          if (/select the object/i.test(e.message)) throw e;
+          say('objStatus', `AI mode unavailable (${e.message}). Switching to the built-in eraser...`); prog('objProgress', 0); result = null;
+        }
+      }
+      if (!result) {
+        result = await runJob('fast', payload(), { watchMs: 60000, progress: p => { prog('objProgress', p); say('objStatus', `Erasing... ${Math.round(p)}%`); } });
+      }
+      stopCreep();
+      originalImage = new ImageData(new Uint8ClampedArray(result.output), canvas.width, canvas.height);
+      maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height); renderObj(); prog('objProgress', 100);
+      say('objStatus', (result.engine === 'ai' ? 'Done with the AI model. ' : 'Done with the built-in eraser. ') + 'Not happy? Click Undo, select a slightly larger area (include shadows and reflections) and try again.');
+    } catch (e) {
+      stopCreep(); prog('objProgress', null); objHistory.pop();
+      say('objStatus', `Could not erase: ${e.message || e}`);
+    } finally { button.disabled = false; }
   });
 
   // Browser speech recognition.
