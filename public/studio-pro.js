@@ -7,8 +7,8 @@
   var side = document.getElementById("spSide");
   if (!layout || !side) return;
 
-  var GROUP_ORDER = ["Image", "Video & Social", "Audio", "Library"];
-  var DEFAULT_TOOL = "photo-editor";
+  var GROUP_ORDER = ["Workspace", "Image", "Video & Social", "Audio", "Library"];
+  var DEFAULT_TOOL = "overview";
   var ALIASES = { creatorLabTools: "background-remover", "creator-lab": "background-remover", imageOptimizer: "image-optimizer" };
   var ICONS = {
     "photo-editor": '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/>',
@@ -23,10 +23,32 @@
     "voice-recorder": '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
     "library": '<path d="M4 5h6v14H4zM12 5h4v14h-4zM18 7l2 .6-3.4 11.8-2-.6L18 7Z"/>',
     "prompt-marketplace": '<path d="M4 8h16l-1.2 11a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8L4 8Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/>',
+    "overview": '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
+    "social-resizer": '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 16V8h8"/><path d="m8 16 8-8"/>',
+    "color-tools": '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-.8-1.6-.8-2.6c0-1 .8-1.8 1.9-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+    "frame-grabber": '<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',
+    "audio-trimmer": '<path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h-2"/>',
+    "caption-toolkit": '<path d="M4 6h16M4 12h10M4 18h14"/>',
+    "image-cleaner": '<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
     "ai-video": '<path d="M5 4v16l14-8L5 4Z"/>'
   };
   function icon(id) { return '<span class="sp-ico" aria-hidden="true"><svg viewBox="0 0 24 24">' + (ICONS[id] || ICONS["photo-editor"]) + "</svg></span>"; }
   function esc(t) { var d = document.createElement("div"); d.textContent = t == null ? "" : String(t); return d.innerHTML; }
+
+  // ---- "All tools" overview, built from the tool metadata ----
+  var main = layout.querySelector(".sp-main");
+  var ov = document.createElement("section");
+  ov.className = "tool-panel sp-overview"; ov.id = "overview";
+  ov.setAttribute("data-tool", "overview"); ov.setAttribute("data-title", "All Tools"); ov.setAttribute("data-group", "Workspace"); ov.setAttribute("data-desc", "Everything in one place");
+  var cards = "";
+  Array.prototype.slice.call(document.querySelectorAll("[data-tool]")).forEach(function (p) {
+    var id = p.getAttribute("data-tool"), badge = p.getAttribute("data-badge");
+    cards += '<button type="button" class="sp-tile" data-go="' + esc(id) + '">' + icon(id) + '<span class="sp-txt"><b>' + esc(p.getAttribute("data-title")) +
+      (badge ? '<span class="sp-tag">' + esc(badge) + "</span>" : "") + "</b><small>" + esc(p.getAttribute("data-desc")) + "</small></span></button>";
+  });
+  ov.innerHTML = '<span class="pill">Workspace</span><h2>All tools</h2><p class="muted">Pick a tool to get started. Everything runs in your browser, so your files stay on your device.</p><div class="sp-tiles">' + cards + "</div>" +
+    '<a class="sp-tile sp-tile-wide" href="/#imageVideo">' + icon("ai-video") + '<span class="sp-txt"><b>AI Image to Video<span class="sp-tag">AI</span></b><small>Animate a photo with AI in AI Studio</small></span></a>';
+  main.insertBefore(ov, main.firstChild);
 
   var panels = Array.prototype.slice.call(document.querySelectorAll("[data-tool]"));
   var byId = {};
@@ -85,7 +107,7 @@
     // canvases inside a previously hidden panel may need a layout pass
     try { window.dispatchEvent(new Event("resize")); } catch (_) {}
   }
-  side.addEventListener("click", function (e) {
+  layout.addEventListener("click", function (e) {
     var b = e.target.closest("[data-go]");
     if (b) show(b.getAttribute("data-go"), { scrollNav: true, scrollTop: true });
   });
