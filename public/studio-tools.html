@@ -1372,7 +1372,38 @@
     <section class="panel" id="voice-recorder" data-tool="voice-recorder" data-title="Voice Recorder" data-group="Audio" data-desc="Record and export MP3"><span class="pill">Audio</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally in your browser. If the MP3 encoder cannot be downloaded, the recording is saved as WAV instead. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
   </div>
   <section class="panel" id="prompt-marketplace" data-tool="prompt-marketplace" data-title="Prompt Marketplace" data-group="Library" data-desc="Browse and share prompts"><span class="pill">Community</span><h2>Discover and share prompts</h2><p class="muted">Browse prompts published by EditPrompt users. Publishing requires login. Do not post private, copyrighted, or sensitive content.</p><div class="two"><div><label for="marketSearch">Search marketplace</label><input id="marketSearch" placeholder="Search title, category, tags or prompt"><label for="marketCategory">Category</label><select id="marketCategory"><option value="">All categories</option><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><button class="btn" id="marketLoad">Search prompts</button><div id="marketStatus" class="status"></div><div id="marketList"></div></div><div><h3>Publish a prompt</h3><label for="marketTitle">Title</label><input id="marketTitle" maxlength="80" placeholder="e.g. Cinematic product photography"><label for="marketPublishCategory">Category</label><select id="marketPublishCategory"><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><label for="marketDescription">Short description</label><input id="marketDescription" maxlength="240" placeholder="What does this prompt create?"><label for="marketTags">Tags (comma separated)</label><input id="marketTags" maxlength="160" placeholder="cinematic, product, studio"><label for="marketPrompt">Prompt</label><textarea id="marketPrompt" maxlength="12000" placeholder="Paste your original prompt..."></textarea><button class="btn" id="marketPublish">Publish prompt</button><div id="publishStatus" class="status"></div></div></div></section>
-  <section class="panel" id="video-timeline" data-tool="video-timeline" data-title="Video Timeline" data-group="Video &amp; Social" data-desc="Arrange and trim clips"><span class="pill">Video</span><h2>Arrange media clips</h2><p class="muted">A lightweight browser timeline for arranging, trimming and previewing local video, audio and image clips. Export a project JSON to continue editing elsewhere. This is not yet a rendered MP4 exporter.</p><input id="timelineFiles" type="file" accept="video/*,audio/*,image/*" multiple><div class="actions"><button class="btn" id="timelineAdd">Add selected media</button><button class="btn ghost" id="timelinePlay">Play preview</button><button class="btn ghost" id="timelineStop">Stop</button><button class="btn ghost" id="timelineExport">Export project JSON</button><button class="btn ghost" id="timelineClear">Clear timeline</button></div><div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div><div id="timelineClips"></div><div id="timelinePreview"></div><div id="timelineStatus" class="status" role="status"></div></section>
+  <section class="panel" id="video-timeline" data-tool="video-timeline" data-title="Video Timeline" data-group="Video &amp; Social" data-desc="Arrange clips, preview, export MP4" data-badge="MP4">
+      <span class="pill">Video</span><h2>Arrange media clips</h2>
+      <p class="muted">Arrange images, video clips and music on a timeline, trim them, preview everything in sync, and export a real MP4 (720p or 1080p) rendered in your browser. Your files are never uploaded.</p>
+      <input id="timelineFiles" type="file" accept="video/*,audio/*,image/jpeg,image/png,image/webp,image/*" multiple>
+      <div class="actions">
+        <button class="btn" id="timelineAdd" type="button">Add selected media</button>
+        <button class="btn ghost" id="timelinePlay" type="button">▶ Play</button>
+        <button class="btn ghost" id="timelinePause" type="button">❚❚ Pause</button>
+        <button class="btn ghost" id="timelineStop" type="button">■ Stop</button>
+        <button class="btn ghost" id="timelineExport" type="button">Export project JSON</button>
+        <button class="btn ghost" id="timelineClear" type="button">Clear timeline</button>
+      </div>
+      <div class="tl-player" id="timelinePreview">
+        <div class="tl-stage"><canvas id="timelineCanvas" width="640" height="360" aria-label="Timeline preview"></canvas></div>
+        <div class="tl-controls"><input id="timelineSeek" type="range" min="0" max="0" step="0.01" value="0" disabled aria-label="Seek"><span id="timelineTime" class="tl-time">0:00.0 / 0:00.0</span></div>
+      </div>
+      <div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div>
+      <div id="timelineClips"></div>
+      <div class="tl-export">
+        <h3 class="sp-h3">Export MP4</h3>
+        <div class="tl-grid">
+          <label>Resolution<select id="tlRes"><option value="720" selected>720p HD</option><option value="1080">1080p Full HD</option></select></label>
+          <label>Aspect ratio<select id="tlAspect"><option value="16:9" selected>16:9 Landscape</option><option value="9:16">9:16 Vertical</option><option value="1:1">1:1 Square</option></select></label>
+          <label>Frame rate<select id="tlFps"><option value="24">24 fps</option><option value="30" selected>30 fps</option></select></label>
+          <label>Transition<select id="tlTransition"><option value="none" selected>None</option><option value="fade">Fade through black</option><option value="crossfade">Crossfade</option></select></label>
+          <label>Transition length (s)<input id="tlTransLen" type="number" min="0.1" max="3" step="0.1" value="0.5"></label>
+        </div>
+        <div class="actions"><button class="btn" id="tlExportMp4" type="button" disabled>Export MP4</button><button class="btn ghost" id="tlCancel" type="button" hidden>Cancel export</button><a class="btn ghost" id="tlDownload" hidden>Download again</a></div>
+        <div class="sp-progress" id="tlProgress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sp-progress-track"><div class="sp-progress-bar"></div></div><span class="sp-progress-label">0%</span></div>
+      </div>
+      <div id="timelineStatus" class="status" role="status">Add images, videos or music to start.</div>
+    </section>
         </div>
       </section>
       </div>
@@ -1381,6 +1412,8 @@
     <script src="/studio-tools.js" defer></script>
     <script src="/creator-lab-v91.js" defer></script>
     <script src="/studio-extra.js" defer></script>
+    <script src="/mp4-mux.js" defer></script>
+    <script src="/timeline-editor.js" defer></script>
     <script src="/studio-pro.js" defer></script>
     <script src="/theme.js"></script>
       <script src="/mobile-nav.js" defer></script>
