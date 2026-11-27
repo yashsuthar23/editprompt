@@ -464,3 +464,88 @@ body #creatorLabTools #tlDownload[hidden], body #creatorLabTools #tlCancel[hidde
 @media (max-width: 600px) { .tl-labels { width: 52px; } .tl-controls { flex-wrap: wrap; } }
 
 .tl-audio-player { width: 100%; margin-top: 10px; height: 38px; }
+
+/* ---------- Pro video editor layout (Premiere-style, EditPrompt dark + red) ---------- */
+.ve { margin-top: 14px; border: 1px solid var(--sp-line); border-radius: 16px; overflow: hidden; background: color-mix(in srgb, #000 22%, var(--sp-surface)); }
+.ve-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--sp-line); background: color-mix(in srgb, #000 12%, var(--sp-surface)); }
+.ve-toolbar .btn { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+.ve-sep { width: 1px; height: 22px; background: var(--sp-line); margin: 0 4px; }
+.ve-grow { flex: 1; }
+.ve-tool, .ve-ico { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--sp-line); border-radius: 9px; background: transparent; color: var(--text, #f5f2ec); font: inherit; cursor: pointer; }
+.ve-tool:hover, .ve-ico:hover { background: color-mix(in srgb, var(--text, #fff) 9%, transparent); }
+.ve-tool.is-on, .ve-ico.is-on { background: var(--sp-accent); border-color: var(--sp-accent); color: #fff; }
+.ve-ico:focus-visible, .ve-tool:focus-visible, .tl-toggle:focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
+.ve-snap { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 !important; }
+.ve-snap input { accent-color: var(--sp-accent); }
+.ve-grid { display: grid; gap: 1px; background: var(--sp-line); grid-template-columns: 250px minmax(0, 1fr) 280px; grid-template-areas: "bin monitor insp" "tl tl tl"; }
+.ve-grid > * { background: var(--sp-surface); min-width: 0; }
+.ve-bin { grid-area: bin; padding: 12px; max-height: 560px; overflow: auto; }
+.ve-monitor { grid-area: monitor; padding: 12px; }
+.ve-inspector { grid-area: insp; padding: 12px; max-height: 560px; overflow: auto; }
+.ve-timeline { grid-area: tl; padding: 10px 12px 12px; }
+.ve-bin h3, .ve-inspector h3 { margin: 0 0 10px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted, #9f9990); }
+.ve-empty { font-size: 12.5px; line-height: 1.55; color: var(--muted, #9f9990); padding: 8px 2px; }
+.ve-asset { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 8px; border: 1px solid var(--sp-line); border-radius: 12px; cursor: grab; background: color-mix(in srgb, var(--text, #fff) 3%, transparent); }
+.ve-asset:hover { border-color: color-mix(in srgb, var(--sp-accent) 60%, var(--sp-line)); }
+.ve-thumb { flex: none; width: 54px; height: 38px; border-radius: 7px; background: #000 center / cover no-repeat; display: grid; place-items: center; color: var(--muted, #999); font-size: 16px; }
+.ve-thumb.ve-audio { background: color-mix(in srgb, #2fbf71 22%, #000); color: #2fbf71; }
+.ve-asset-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ve-asset-info b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ve-asset-info small { font-size: 11px; color: var(--muted, #9f9990); }
+.ve-asset-actions { display: flex; gap: 4px; }
+.btn.ve-mini { min-height: 28px; min-width: 28px; padding: 3px 8px; font-size: 12px; border-radius: 8px; }
+.ve-transport { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 6px; flex-wrap: wrap; }
+.ve-tc { font: 700 18px/1 ui-monospace, "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; color: var(--sp-accent); letter-spacing: .02em; }
+.ve-tc.dim { color: var(--muted, #9f9990); font-size: 14px; }
+.ve-btns { display: flex; gap: 6px; }
+.ve-play { background: var(--sp-accent); border-color: var(--sp-accent); color: #fff; min-width: 44px; }
+.ve-monitor input[type="range"] { width: 100%; }
+.ve-group { margin-bottom: 14px; }
+.ve-group h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: .04em; color: var(--text, #f5f2ec); }
+.ve-group:first-child h4 { font-size: 13px; word-break: break-word; }
+.ve-field { display: block; margin: 0 0 8px; font-size: 11.5px; font-weight: 600; color: var(--muted, #9f9990); }
+.ve-field input, .ve-field select, .ve-group textarea { width: 100%; box-sizing: border-box; margin-top: 3px; padding: 7px 9px; font-size: 13px; color: var(--text, #f5f2ec); }
+.ve-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ve-actions .btn { min-height: 32px; padding: 5px 10px; font-size: 12px; }
+.ve-tlbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ve-tlt { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted, #9f9990); font-weight: 700; }
+.ve-tlbar input[type="range"] { width: 140px; }
+.ve-hint { margin-top: 8px; font-size: 11.5px; color: var(--muted, #9f9990); }
+/* timeline: track heads + lanes */
+.tl-label.tl-head { height: 46px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 2px; padding: 0 6px; }
+.tl-head b { font-size: 12px; letter-spacing: .04em; }
+.tl-toggle { width: 22px; height: 22px; padding: 0; border: 1px solid var(--sp-line); border-radius: 6px; background: transparent; color: var(--muted, #9f9990); font-size: 11px; cursor: pointer; line-height: 1; }
+.tl-toggle.is-on { background: var(--sp-accent); border-color: var(--sp-accent); color: #fff; }
+.tl-labels { width: 92px; }
+.tl-lane { height: 46px; }
+.tl-lane.is-locked { background: repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--text, #fff) 6%, transparent) 8px 16px); }
+.tl-lane.is-hidden, .tl-lane.is-muted { opacity: .55; }
+.tl-block { top: 4px; height: 38px; padding: 0; background-color: color-mix(in srgb, var(--sp-accent) 30%, #1a1a1a); background-size: auto 100%; background-repeat: repeat-x; user-select: none; touch-action: none; cursor: grab; }
+.tl-block.is-dragging { cursor: grabbing; opacity: .9; z-index: 4; }
+.tl-block.tl-t-image { background-color: color-mix(in srgb, #e8a317 30%, #1a1a1a); }
+.tl-block.tl-t-title { background-color: color-mix(in srgb, #8b5cf6 40%, #1a1a1a); }
+.tl-block.tl-t-audio { background-color: color-mix(in srgb, #2fbf71 20%, #121212); }
+.tl-block.tl-t-video::after, .tl-block.tl-t-image::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.15)); pointer-events: none; }
+.tl-name { position: absolute; left: 8px; right: 8px; top: 4px; z-index: 2; font-size: 11px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.tl-wave { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.tl-h { position: absolute; top: 0; bottom: 0; width: 8px; z-index: 3; cursor: ew-resize; }
+.tl-h-l { left: 0; border-radius: 8px 0 0 8px; } .tl-h-r { right: 0; border-radius: 0 8px 8px 0; }
+.tl-h:hover { background: rgba(255,255,255,.45); }
+.timeline.is-razor .tl-block { cursor: crosshair; }
+.tl-block.is-selected { outline: 2px solid #fff; outline-offset: -1px; box-shadow: 0 0 0 2px var(--sp-accent); }
+.tl-ruler { cursor: col-resize; background: color-mix(in srgb, var(--text, #fff) 4%, transparent); }
+@media (max-width: 1100px) {
+  .ve-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "monitor" "tl" "insp" "bin"; }
+  .ve-bin, .ve-inspector { max-height: none; }
+}
+@media (max-width: 600px) { .tl-labels { width: 74px; } .ve-toolbar .btn { padding: 6px 9px; } .ve-tlbar input[type="range"] { width: 90px; } }
+
+/* editor polish */
+.tool-wrap .btn.ve-mini { min-height: 28px; min-width: 28px; padding: 3px 9px; font-size: 12px; border-radius: 8px; }
+.tool-panel .ve-snap, #creatorLabTools .ve-snap { display: inline-flex !important; align-items: center; gap: 6px; margin: 0 4px !important; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.ve-field input[type="color"] { height: 36px; padding: 3px; cursor: pointer; }
+.ve-asset { padding: 7px; gap: 8px; }
+.ve-asset-actions { flex-direction: column; gap: 4px; }
+.ve-asset-info small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ve-transport .ve-tc.dim { white-space: nowrap; }
+@media (min-width: 1101px) { .ve-grid { grid-template-columns: 240px minmax(0, 1fr) 270px; } }

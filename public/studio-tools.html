@@ -1372,24 +1372,56 @@
     <section class="panel" id="voice-recorder" data-tool="voice-recorder" data-title="Voice Recorder" data-group="Audio" data-desc="Record and export MP3"><span class="pill">Audio</span><h2>Record and export MP3</h2><p class="muted">Record from your microphone, then encode the recording to MP3 locally in your browser. If the MP3 encoder cannot be downloaded, the recording is saved as WAV instead. Requires microphone permission and a supported browser.</p><div class="actions"><button class="btn" id="recStart">Start recording</button><button class="btn ghost" id="recStop" disabled>Stop recording</button><button class="btn ghost" id="mp3Export" disabled>Export MP3</button></div><audio id="recPreview" class="preview" controls></audio><div id="recStatus" class="status" role="status"></div><div class="divider"></div><label for="labTtsText">Optional voice preview text</label><textarea id="labTtsText" placeholder="Type text to preview with your installed browser voice..."></textarea><div class="actions"><button class="btn ghost" id="ttsPlay">Preview voice</button><button class="btn ghost" id="labTtsStop">Stop voice</button></div><div id="labTtsStatus" class="status"></div></section>
   </div>
   <section class="panel" id="prompt-marketplace" data-tool="prompt-marketplace" data-title="Prompt Marketplace" data-group="Library" data-desc="Browse and share prompts"><span class="pill">Community</span><h2>Discover and share prompts</h2><p class="muted">Browse prompts published by EditPrompt users. Publishing requires login. Do not post private, copyrighted, or sensitive content.</p><div class="two"><div><label for="marketSearch">Search marketplace</label><input id="marketSearch" placeholder="Search title, category, tags or prompt"><label for="marketCategory">Category</label><select id="marketCategory"><option value="">All categories</option><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><button class="btn" id="marketLoad">Search prompts</button><div id="marketStatus" class="status"></div><div id="marketList"></div></div><div><h3>Publish a prompt</h3><label for="marketTitle">Title</label><input id="marketTitle" maxlength="80" placeholder="e.g. Cinematic product photography"><label for="marketPublishCategory">Category</label><select id="marketPublishCategory"><option>Photography</option><option>Product</option><option>Marketing</option><option>Video</option><option>Art</option><option>Business</option><option>Other</option></select><label for="marketDescription">Short description</label><input id="marketDescription" maxlength="240" placeholder="What does this prompt create?"><label for="marketTags">Tags (comma separated)</label><input id="marketTags" maxlength="160" placeholder="cinematic, product, studio"><label for="marketPrompt">Prompt</label><textarea id="marketPrompt" maxlength="12000" placeholder="Paste your original prompt..."></textarea><button class="btn" id="marketPublish">Publish prompt</button><div id="publishStatus" class="status"></div></div></div></section>
-  <section class="panel" id="video-timeline" data-tool="video-timeline" data-title="Video Timeline" data-group="Video &amp; Social" data-desc="Arrange clips, preview, export MP4" data-badge="MP4">
-      <span class="pill">Video</span><h2>Arrange media clips</h2>
-      <p class="muted">Arrange images, video clips and music on a timeline, trim them, preview everything in sync, and export a real MP4 (720p or 1080p) rendered in your browser. Your files are never uploaded.</p>
-      <input id="timelineFiles" type="file" accept="video/*,audio/*,image/jpeg,image/png,image/webp,image/*" multiple>
-      <div class="actions">
-        <button class="btn" id="timelineAdd" type="button">Add selected media</button>
-        <button class="btn ghost" id="timelinePlay" type="button">▶ Play</button>
-        <button class="btn ghost" id="timelinePause" type="button">❚❚ Pause</button>
-        <button class="btn ghost" id="timelineStop" type="button">■ Stop</button>
-        <button class="btn ghost" id="timelineExport" type="button">Export project JSON</button>
-        <button class="btn ghost" id="timelineClear" type="button">Clear timeline</button>
+  <section class="panel" id="video-timeline" data-tool="video-timeline" data-title="Video Editor" data-group="Video &amp; Social" data-desc="Multi-track editor with MP4 export" data-badge="PRO">
+      <span class="pill">Video</span><h2>Video editor</h2>
+      <p class="muted">A multi-track editor in your browser: import media, arrange it on V1/V2 video and A1/A2 audio tracks, trim and split clips, add titles, colour and fades, preview in sync and export a real MP4 (720p or 1080p). Your files are never uploaded.</p>
+      <div class="ve" id="ve">
+        <div class="ve-toolbar" role="toolbar" aria-label="Editor tools">
+          <button class="btn" id="timelineImport" type="button">＋ Import media</button>
+          <input id="timelineFiles" type="file" accept="video/*,audio/*,image/jpeg,image/png,image/webp,image/*" multiple hidden>
+          <button class="btn ghost" id="tlAddTitle" type="button" title="Add a text title">T Title</button>
+          <span class="ve-sep"></span>
+          <button class="ve-tool is-on" id="tlToolSel" type="button" title="Selection tool (V)">➤</button>
+          <button class="ve-tool" id="tlToolRazor" type="button" title="Razor tool (C)">✂</button>
+          <button class="btn ghost" id="tlSplit" type="button" title="Split at playhead (S)">Split</button>
+          <button class="btn ghost" id="tlDelete" type="button" title="Delete (Del)">Delete</button>
+          <button class="btn ghost" id="tlRipple" type="button" title="Ripple delete (Shift+Del)">Ripple</button>
+          <span class="ve-sep"></span>
+          <button class="btn ghost" id="tlUndo" type="button" title="Undo (Ctrl+Z)" disabled>↶</button>
+          <button class="btn ghost" id="tlRedo" type="button" title="Redo (Ctrl+Shift+Z)" disabled>↷</button>
+          <label class="ve-snap"><input id="tlSnap" type="checkbox" checked> Snap</label>
+          <span class="ve-grow"></span>
+          <button class="btn ghost" id="timelineExport" type="button">Export JSON</button>
+          <button class="btn ghost" id="timelineClear" type="button">Clear</button>
+        </div>
+        <div class="ve-grid">
+          <aside class="ve-bin"><h3>Project</h3><div id="tlBin" class="ve-bin-list"></div></aside>
+          <div class="ve-monitor" id="timelinePreview">
+            <div class="tl-stage"><canvas id="timelineCanvas" width="640" height="360" aria-label="Program monitor"></canvas></div>
+            <div class="ve-transport">
+              <span id="tlTimecode" class="ve-tc">00:00:00:00</span>
+              <div class="ve-btns">
+                <button class="ve-ico" id="tlToStart" type="button" title="Go to start (Home)">⏮</button>
+                <button class="ve-ico" id="tlPrevFrame" type="button" title="Previous frame (←)">◂</button>
+                <button class="ve-ico ve-play" id="timelinePlay" type="button" title="Play / pause (Space)">▶</button>
+                <button class="ve-ico" id="timelinePause" type="button" title="Pause (K)">❚❚</button>
+                <button class="ve-ico" id="timelineStop" type="button" title="Stop">■</button>
+                <button class="ve-ico" id="tlNextFrame" type="button" title="Next frame (→)">▸</button>
+                <button class="ve-ico" id="tlToEnd" type="button" title="Go to end (End)">⏭</button>
+              </div>
+              <span id="timelineTime" class="ve-tc dim">/ 00:00:00:00</span>
+            </div>
+            <input id="timelineSeek" type="range" min="0" max="0" step="0.01" value="0" disabled aria-label="Seek">
+          </div>
+          <aside class="ve-inspector"><h3>Properties</h3><div id="tlInspector"></div></aside>
+          <div class="ve-timeline">
+            <div class="ve-tlbar"><span class="ve-tlt">Timeline</span><span class="ve-grow"></span>
+              <button class="ve-ico" id="tlZoomOut" type="button" title="Zoom out (-)">−</button><input id="tlZoom" type="range" min="4" max="200" step="1" value="30" aria-label="Zoom"><button class="ve-ico" id="tlZoomIn" type="button" title="Zoom in (+)">＋</button><button class="btn ghost ve-mini" id="tlFit" type="button" title="Fit timeline (\\)">Fit</button></div>
+            <div class="timeline" id="timelineView"></div>
+            <div class="ve-hint">Shortcuts: Space play/pause · S split · C razor · V select · Del delete · Shift+Del ripple · Ctrl+Z undo · ←/→ frame · + / − zoom</div>
+          </div>
+        </div>
       </div>
-      <div class="tl-player" id="timelinePreview">
-        <div class="tl-stage"><canvas id="timelineCanvas" width="640" height="360" aria-label="Timeline preview"></canvas></div>
-        <div class="tl-controls"><input id="timelineSeek" type="range" min="0" max="0" step="0.01" value="0" disabled aria-label="Seek"><span id="timelineTime" class="tl-time">0:00.0 / 0:00.0</span></div>
-      </div>
-      <div class="timeline" id="timelineView"><div class="muted">Add media to build your timeline.</div></div>
-      <div id="timelineClips"></div>
       <div class="tl-export">
         <h3 class="sp-h3">Export MP4</h3>
         <div class="tl-grid">
@@ -1402,7 +1434,7 @@
         <div class="actions"><button class="btn" id="tlExportMp4" type="button" disabled>Export MP4</button><button class="btn ghost" id="tlCancel" type="button" hidden>Cancel export</button><a class="btn ghost" id="tlDownload" hidden>Download again</a></div>
         <div class="sp-progress" id="tlProgress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="sp-progress-track"><div class="sp-progress-bar"></div></div><span class="sp-progress-label">0%</span></div>
       </div>
-      <div id="timelineStatus" class="status" role="status">Add images, videos or music to start.</div>
+      <div id="timelineStatus" class="status" role="status">Import images, videos or music to start.</div>
     </section>
         </div>
       </section>
