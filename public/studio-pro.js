@@ -75,8 +75,25 @@
   });
   html += '<div class="sp-group" role="group" aria-label="AI Studio"><div class="sp-group-label">AI Studio</div>' +
     '<a class="sp-item" href="/#imageVideo">' + icon("ai-video") + '<span class="sp-txt"><b>Image to Video<span class="sp-tag">AI</span></b><small>Animate a photo in AI Studio</small></span></a></div>';
-  side.innerHTML = html;
+  side.innerHTML = '<div class="sp-sheet-head"><span class="sp-grab" aria-hidden="true"></span><b>All tools</b><button type="button" class="sp-sheet-close" aria-label="Close tool list">✕</button></div>' + html;
   layout.classList.add("sp-js");
+  // Mobile: compact tool bar (current tool + prev/next) that opens the tool list as a bottom sheet.
+  var mbar = document.createElement("div"); mbar.className = "sp-mbar";
+  mbar.innerHTML = '<button type="button" class="sp-mstep" data-step="-1" aria-label="Previous tool">‹</button>' +
+    '<button type="button" class="sp-mcur" aria-haspopup="dialog" aria-expanded="false"><span class="sp-mico"></span><span class="sp-mname"></span><span class="sp-mtag"></span><span class="sp-mchev" aria-hidden="true">▾</span></button>' +
+    '<button type="button" class="sp-mstep" data-step="1" aria-label="Next tool">›</button>';
+  layout.insertBefore(mbar, layout.firstChild);
+  var backdrop = document.createElement("div"); backdrop.className = "sp-backdrop"; backdrop.hidden = true; layout.appendChild(backdrop);
+  function openSheet() { side.classList.add("is-open"); backdrop.hidden = false; document.body.classList.add("sp-lock"); mbar.querySelector(".sp-mcur").setAttribute("aria-expanded", "true"); var cur = side.querySelector("[aria-current]"); if (cur) cur.scrollIntoView({ block: "center" }); }
+  function closeSheet() { side.classList.remove("is-open"); backdrop.hidden = true; document.body.classList.remove("sp-lock"); mbar.querySelector(".sp-mcur").setAttribute("aria-expanded", "false"); }
+  mbar.querySelector(".sp-mcur").addEventListener("click", function () { if (side.classList.contains("is-open")) closeSheet(); else openSheet(); });
+  backdrop.addEventListener("click", closeSheet); side.querySelector(".sp-sheet-close").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && side.classList.contains("is-open")) closeSheet(); });
+  mbar.addEventListener("click", function (e) {
+    var st = e.target.closest("[data-step]"); if (!st) return;
+    var ids = Array.prototype.map.call(side.querySelectorAll("[data-go]"), function (b) { return b.getAttribute("data-go"); }), i = ids.indexOf(current);
+    show(ids[(i + Number(st.getAttribute("data-step")) + ids.length) % ids.length], { scrollNav: true, scrollTop: true });
+  });
 
   // ---- switching ----
   var current = null;
@@ -95,12 +112,17 @@
       if (on && opts.scrollNav && side.scrollWidth > side.clientWidth) { b.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }
     });
     var title = byId[id].getAttribute("data-title");
+    var badgeTxt = byId[id].getAttribute("data-badge");
+    mbar.querySelector(".sp-mico").innerHTML = icon(id).replace('class="sp-ico"', 'class="sp-ico sp-ico-sm"');
+    mbar.querySelector(".sp-mname").textContent = title;
+    mbar.querySelector(".sp-mtag").textContent = badgeTxt || ""; mbar.querySelector(".sp-mtag").hidden = !badgeTxt;
+    if (typeof closeSheet === "function") closeSheet();
     document.title = title + " — Creator Studio — EditPrompt";
     if (opts.updateHash !== false && current !== null) {
       try { history.replaceState(null, "", "#" + id); } catch (_) { /* file:// etc. */ }
     }
     if (opts.scrollTop && window.matchMedia("(max-width: 900px)").matches) {
-      var top = layout.getBoundingClientRect().top + window.scrollY - 70;
+      var top = layout.getBoundingClientRect().top + window.scrollY - 64;
       if (window.scrollY > top) window.scrollTo({ top: top, behavior: "smooth" });
     }
     current = id;

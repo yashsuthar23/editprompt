@@ -612,3 +612,101 @@ body #creatorLabTools #tlDownload[hidden], body #creatorLabTools #tlCancel[hidde
   .tl-block { top: 10px; height: 44px; }
   .tl-labels { width: 84px; }
 }
+
+/* ================= Creator Studio — mobile app experience ================= */
+.sp-mbar, .sp-sheet-head, .sp-backdrop { display: none; }
+.tool-panel .sp-check b { color: var(--text, #f5f2ec); margin: 0; font-weight: 650; }
+.tool-panel .sp-check small { color: var(--muted, #9f9990); }
+
+@media (max-width: 900px) {
+  .sp-layout.sp-js { display: block; }
+  /* compact tool bar: previous · current tool (opens list) · next */
+  .sp-mbar {
+    display: flex; align-items: center; gap: 8px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 30; margin: 0 0 12px; padding: 8px;
+    border: 1px solid var(--sp-line); border-radius: 16px; background: color-mix(in srgb, var(--sp-surface) 92%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+  }
+  .sp-mstep { flex: none; width: 44px; height: 44px; border: 1px solid var(--sp-line); border-radius: 12px; background: transparent; color: var(--text, #f5f2ec); font-size: 24px; line-height: 1; cursor: pointer; }
+  .sp-mstep:active, .sp-mcur:active { transform: scale(.97); }
+  .sp-mcur {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 12px; cursor: pointer; text-align: left;
+    border: 1px solid color-mix(in srgb, var(--sp-accent) 45%, transparent); background: var(--sp-tint); color: var(--text, #f5f2ec); font: inherit; font-weight: 700; font-size: 15px;
+  }
+  .sp-mico { display: grid; flex: none; }
+  .sp-ico-sm { width: 28px; height: 28px; border-radius: 8px; background: var(--sp-accent); color: #fff; }
+  .sp-ico-sm svg { width: 16px; height: 16px; }
+  .sp-mname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sp-mtag { flex: none; font-size: 9.5px; font-weight: 800; letter-spacing: .06em; padding: 2px 6px; border-radius: 6px; background: var(--sp-accent); color: #fff; }
+  .sp-mtag[hidden] { display: none; }
+  .sp-mchev { flex: none; opacity: .7; }
+
+  /* tool list becomes a bottom sheet */
+  .sp-side {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 70; display: block; max-height: 82vh; padding: 0 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden; overflow-y: auto; scroll-snap-type: none; border: 1px solid var(--sp-line); border-bottom: 0; border-radius: 22px 22px 0 0;
+    background: var(--sp-surface); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 -20px 50px rgba(0, 0, 0, .45);
+    transform: translateY(110%); visibility: hidden; transition: transform .26s ease, visibility 0s linear .26s; overscroll-behavior: contain;
+  }
+  .sp-side.is-open { transform: none; visibility: visible; transition: transform .26s ease; }
+  .sp-sheet-head { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 2; padding: 14px 0 8px; background: var(--sp-surface); }
+  .sp-grab { position: absolute; top: 6px; left: 50%; width: 42px; height: 4px; margin-left: -21px; border-radius: 2px; background: color-mix(in srgb, var(--text, #fff) 25%, transparent); }
+  .sp-sheet-head b { flex: 1; font-size: 16px; }
+  .sp-sheet-close { width: 38px; height: 38px; border: 1px solid var(--sp-line); border-radius: 10px; background: transparent; color: var(--text, #f5f2ec); font-size: 15px; cursor: pointer; }
+  .sp-group { display: block; margin: 0 0 4px; }
+  .sp-group-label { display: block; }
+  .sp-item { flex: none; width: 100%; padding: 10px; scroll-snap-align: none; }
+  .sp-ico { width: 38px; height: 38px; border-radius: 11px; }
+  .sp-ico svg { width: 19px; height: 19px; }
+  .sp-ico-sm { width: 28px !important; height: 28px !important; border-radius: 8px !important; }
+  .sp-txt small { display: block; font-size: 12px; }
+  .sp-backdrop { display: block; position: fixed; inset: 0; z-index: 65; background: rgba(0, 0, 0, .58); }
+  .sp-backdrop[hidden] { display: none; }
+  body.sp-lock { overflow: hidden; }
+}
+
+@media (max-width: 700px) {
+  .tool-wrap { padding: 0 12px 40px; margin-top: 10px; }
+  .sp-hero { padding: 16px; border-radius: 16px; gap: 14px; margin-bottom: 14px; }
+  .sp-hero h1 { font-size: 27px; margin: 8px 0 6px; }
+  .sp-hero p { font-size: 14px; line-height: 1.55; }
+  .sp-trust { gap: 4px 12px; font-size: 12px; margin-top: 12px; }
+  .sp-hero-cta { width: 100%; }
+  .sp-hero-cta .btn { flex: 1 1 0; text-align: center; justify-content: center; }
+  .tool-panel, body #creatorLabTools .panel { padding: 14px; border-radius: 16px; }
+  .tool-panel > h2, body #creatorLabTools .panel > h2 { font-size: 21px; margin: 6px 0; }
+  .tool-panel .muted, body #creatorLabTools .muted { font-size: 13px; line-height: 1.55; }
+  /* inputs: 16px stops iOS zooming into fields; comfortable height */
+  .tool-wrap input:not([type="range"]):not([type="checkbox"]):not([type="file"]):not([type="color"]),
+  .tool-wrap select, .tool-wrap textarea { font-size: 16px; min-height: 46px; }
+  .tool-wrap input[type="range"] { min-height: 34px; }
+  .tool-wrap .btn { min-height: 46px; }
+  .tool-panel .actions { gap: 8px; }
+  .tool-panel .actions .btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
+  .tool-wrap input[type="file"] { padding: 12px; }
+  .sp-field { max-width: none; }
+  /* overview: 2-column app-style tiles */
+  .sp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .sp-tile { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; }
+  .sp-tile .sp-txt b { font-size: 13.5px; flex-wrap: wrap; }
+  .sp-tile .sp-txt small { font-size: 11.5px; }
+  .sp-tile-wide { flex-direction: row; align-items: center; }
+  /* tool specifics */
+  .sp-presets { grid-template-columns: minmax(0, 1fr); }
+  .sp-results { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sp-swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sp-meters { grid-template-columns: minmax(0, 1fr); }
+  .sp-row .btn { flex: 1 1 100%; }
+  .sp-card .btn { width: 100%; }
+  .status { font-size: 13px; }
+}
+
+/* mobile: button rows wrap in pairs; no giant gaps from label flex-basis */
+@media (max-width: 700px) {
+  body .tool-panel .actions, body #object-remover .actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+  body #object-remover .actions label, body #object-remover .row label { flex: 0 0 auto; width: 100%; max-width: none; margin: 0; }
+  body #object-remover .actions .btn { flex: 1 1 calc(50% - 8px); }
+  body #object-remover .actions select, body #object-remover .actions input[type="range"] { width: 100%; }
+  body #object-remover canvas { min-height: 160px; }
+  .tool-panel .actions .btn[data-ck="copy"] { flex-basis: 100%; }
+}
