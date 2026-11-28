@@ -101,7 +101,7 @@
       var info = el('div', 've-asset-info'); info.append(el('b', '', a.name), el('small', '', a.type + (a.type === 'image' ? ' · ' + a.w + '×' + a.h : ' · ' + sec(a.dur))));
       var acts = el('div', 've-asset-actions');
       acts.append(btn('＋', 'btn ve-mini', function () { addAsset(a); }, 'Add to timeline'), btn('✕', 'btn ghost ve-mini', function () { removeAsset(a); }, 'Remove from project'));
-      row.append(th, info, acts); row.addEventListener('dblclick', function () { addAsset(a); }); bin.append(row);
+      row.append(th, info, acts); bin.append(row);
     });
   }
 
@@ -254,7 +254,7 @@
 
   /* ---------- timeline ---------- */
   var laneEls = {};
-  function fitZoom() { var tot = Math.max(total(), 10), avail = Math.max(260, ($('timelineView').clientWidth || 800) - 130); pxPerSec = clamp(avail / tot, 4, 200); $('tlZoom').value = pxPerSec; }
+  function fitZoom() { var tot = Math.max(total(), 10), avail = Math.max(260, ($('timelineView').clientWidth || 800) - 130); pxPerSec = clamp(avail / tot, window.innerWidth < 700 ? 26 : 4, 200); $('tlZoom').value = pxPerSec; }
   function setZoom(v, auto) { var sc = document.querySelector('.tl-scroll'), center = sc ? (sc.scrollLeft + sc.clientWidth / 2) / pxPerSec : 0; pxPerSec = clamp(v, 4, 200); zoomAuto = !!auto; $('tlZoom').value = pxPerSec; renderTimeline(); var s2 = document.querySelector('.tl-scroll'); if (s2) s2.scrollLeft = Math.max(0, center * pxPerSec - s2.clientWidth / 2); }
   function snapPoints(except) { var p = [0, playhead]; clips.forEach(function (c) { if (c !== except) { p.push(c.start, endOf(c)); } }); return p; }
   function snapDelta(times, except) { if (!$('tlSnap').checked) return 0; var pts = snapPoints(except), thr = 9 / pxPerSec, best = null; times.forEach(function (t) { pts.forEach(function (p) { var d = p - t; if (Math.abs(d) <= thr && (best === null || Math.abs(d) < Math.abs(best))) best = d; }); }); return best || 0; }

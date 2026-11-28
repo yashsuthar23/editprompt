@@ -549,3 +549,66 @@ body #creatorLabTools #tlDownload[hidden], body #creatorLabTools #tlCancel[hidde
 .ve-asset-info small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ve-transport .ve-tc.dim { white-space: nowrap; }
 @media (min-width: 1101px) { .ve-grid { grid-template-columns: 240px minmax(0, 1fr) 270px; } }
+
+/* ================= Video editor — mobile & touch ================= */
+.tl-inner { touch-action: pan-x pan-y; }
+.tl-ruler { touch-action: none; }
+.tl-block { touch-action: none; }
+@media (pointer: coarse) {
+  .ve-tool, .ve-ico { min-width: 42px; height: 42px; }
+  .ve-toolbar .btn { min-height: 42px; }
+  .tl-h { width: 16px; }
+  .tl-h::after { content: ""; position: absolute; top: 28%; bottom: 28%; left: 50%; width: 3px; margin-left: -1.5px; border-radius: 2px; background: rgba(255,255,255,.65); }
+  .tl-toggle { width: 28px; height: 28px; font-size: 13px; }
+  .tl-lane, .tl-label.tl-head { height: 54px; }
+  .tl-block { top: 5px; height: 44px; }
+  .tl-name { top: 7px; font-size: 12px; }
+  .tool-wrap .btn.ve-mini { min-height: 36px; min-width: 36px; }
+}
+@media (max-width: 900px) {
+  .ve { border-radius: 14px; }
+  /* one scrolling row of tools instead of a 3-line wrap */
+  .ve-toolbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 8px 10px; gap: 8px; -webkit-overflow-scrolling: touch; }
+  .ve-toolbar::-webkit-scrollbar { display: none; }
+  .ve-toolbar > * { flex: none; }
+  .ve-grow { display: none; }
+  .ve-grid { grid-template-areas: "monitor" "bin" "tl" "insp"; }
+  .ve-monitor { padding: 10px; }
+  .tl-stage { padding: 6px; }
+  .tl-stage canvas { max-height: 46vh; }
+  .ve-transport { justify-content: center; gap: 8px; }
+  .ve-transport .ve-tc:first-child { flex: 1 0 100%; text-align: center; font-size: 22px; }
+  .ve-transport .ve-tc.dim { flex: 1 0 100%; text-align: center; order: 3; }
+  .ve-btns { width: 100%; justify-content: space-between; }
+  .ve-btns .ve-ico { flex: 1; min-width: 0; }
+  /* project bin becomes a horizontal strip of cards */
+  .ve-bin { padding: 10px; }
+  .ve-bin-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .ve-asset { flex: 0 0 210px; margin: 0; }
+  .ve-asset-actions { flex-direction: row; }
+  .ve-empty { white-space: normal; }
+  /* inspector fields in two columns */
+  .ve-inspector { padding: 10px; }
+  #tlInspector .ve-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+  #tlInspector .ve-group > h4, #tlInspector .ve-group > textarea { grid-column: 1 / -1; }
+  .ve-actions .btn { flex: 1 1 auto; min-height: 40px; }
+  .ve-hint { display: none; }
+  .ve-timeline { padding: 8px 8px 10px; }
+  .ve-tlbar { gap: 6px; }
+  .ve-tlbar input[type="range"] { flex: 1; width: auto; min-width: 60px; }
+  .tl-labels { width: 80px; }
+  /* export controls: two columns */
+  .tl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tl-export .actions .btn { flex: 1 1 100%; }
+}
+@media (max-width: 420px) { .ve-asset { flex-basis: 180px; } .tl-labels { width: 76px; } }
+
+/* touch: roomy track headers with finger-sized toggles */
+@media (pointer: coarse) {
+  .tl-lane, .tl-label.tl-head { height: 64px; }
+  .tl-label.tl-head { flex-wrap: wrap; align-content: center; justify-content: center; gap: 3px 4px; padding: 0 4px; }
+  .tl-head b { flex: 1 0 100%; text-align: center; font-size: 12px; line-height: 1; }
+  .tl-toggle { width: 34px; height: 30px; }
+  .tl-block { top: 10px; height: 44px; }
+  .tl-labels { width: 84px; }
+}
